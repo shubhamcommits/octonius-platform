@@ -1,6 +1,29 @@
 # Octonius Platform
 
-A robust API platform for Octonius services.
+A modern, scalable platform built with Node.js, Express, and PostgreSQL.
+
+## Features
+
+- **Database Replication**: Read-write separation with PostgreSQL
+  - Write operations directed to primary database
+  - Read operations distributed to replica database
+  - Automatic failover support
+- **Redis Caching**: High-performance caching layer
+  - Key-based caching
+  - Prefix-based key management
+  - Automatic cache invalidation
+- **Docker Support**: Containerized deployment
+  - Multi-container setup
+  - PostgreSQL replication configuration
+  - Redis caching service
+- **Structured Logging**: Comprehensive logging system
+  - Service-specific logging (Database, Redis, Application)
+  - Color-coded log levels
+  - Detailed metadata for debugging
+- **Cluster Support**: Multi-process architecture
+  - Automatic worker process management
+  - Load balancing across CPU cores
+  - Graceful worker recovery
 
 ## 🚀 Quick Start
 
@@ -9,6 +32,9 @@ A robust API platform for Octonius services.
 - Package manager of your choice:
   - [npm](https://www.npmjs.com/) (comes with Node.js)
   - [Yarn](https://classic.yarnpkg.com/en/docs/install/)
+- Docker and Docker Compose
+- PostgreSQL (v15 or higher)
+- Redis (v7 or higher)
 
 ### Installation
 
@@ -43,6 +69,20 @@ A robust API platform for Octonius services.
    # Redis Credentials
    REDIS_HOST='127.0.0.1'
    REDIS_PORT=6379
+
+   # Database (Writer)
+   DB_WRITER_HOST=postgres-writer
+   DB_PORT=5432
+   DB_USER=postgres
+   DB_PASS=your_password
+   DB_NAME=octonius
+
+   # Database (Reader)
+   DB_READER_HOST=postgres-reader
+
+   # Connection Pool
+   MAX_POOL=20
+   MIN_POOL=0
    ```
 
 4. Start the development server:
@@ -153,3 +193,96 @@ git checkout -b bugfix_EditPostContent
 ## 📝 License
 
 This project is proprietary and confidential. All rights reserved.
+
+## Docker Setup
+
+The application can be run using Docker Compose:
+
+```bash
+# Build and start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+```
+
+The Docker setup includes:
+- Application container
+- PostgreSQL writer container
+- PostgreSQL reader container
+- Redis container
+
+## Database Replication
+
+The platform uses PostgreSQL replication for read-write separation:
+
+- **Writer Node**: Handles all write operations
+  - Located at `DB_WRITER_HOST`
+  - Handles INSERT, UPDATE, DELETE operations
+  - Primary database for data consistency
+
+- **Reader Node**: Handles read operations
+  - Located at `DB_READER_HOST`
+  - Handles SELECT queries
+  - Improves read performance
+
+## Redis Caching
+
+Redis is used for caching with the following features:
+
+- **Key Management**:
+  - Prefix-based key organization
+  - Automatic key cleanup
+  - Bulk key operations
+
+- **Cache Operations**:
+  - Set/Get operations
+  - Key deletion by prefix
+  - Key listing by prefix
+
+## Logging
+
+The application uses a structured logging system:
+
+- **Database Logs**: `Database \t: [message]`
+- **Redis Logs**: `Redis \t: [message]`
+- **Application Logs**: `Application \t: [message]`
+
+Log levels:
+- INFO: General information
+- ERROR: Error messages
+- DEBUG: Debug information (development only)
+
+## Development
+
+1. Start the development environment:
+   ```bash
+   npm run dev
+   ```
+
+2. The application will automatically:
+   - Connect to the database
+   - Set up Redis caching
+   - Start worker processes
+   - Enable development logging
+
+## Production
+
+1. Build the application:
+   ```bash
+   npm run build
+   ```
+
+2. Start in production mode:
+   ```bash
+   npm start
+   ```
+
+3. The application will:
+   - Use production database settings
+   - Enable caching
+   - Start in cluster mode
+   - Use production logging
