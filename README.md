@@ -39,6 +39,10 @@ A robust API platform for Octonius services.
    # JWT Configuration
    JWT_ACCESS_KEY='your-secure-key-here'
    JWT_ACCESS_TIME=30d
+
+   # Redis Credentials
+   REDIS_HOST='127.0.0.1'
+   REDIS_PORT=6379
    ```
 
 4. Start the development server:
