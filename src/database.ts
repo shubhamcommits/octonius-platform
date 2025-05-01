@@ -1,6 +1,6 @@
 // Import Sequelize
 import { db } from './sequelize'
-import { dbLogger } from './logger'
+import logger from './logger'
 
 /**
  * This function initializes the PostgreSQL database
@@ -19,29 +19,21 @@ export async function initiliazeDatabase(): Promise<{ message: string }> {
             alter_tables_auto = false
 
         if(!DB_WRITER_HOST?.startsWith(NODE_ENV || '')){
-            dbLogger('The NODE_ENV is not compatible with the database endpoint', { 
-                environment: NODE_ENV,
-                host: DB_WRITER_HOST 
-            })
+            logger.error('The NODE_ENV is not compatible with the database endpoint')
             throw new Error(`The NODE_ENV is not compatible with the database endpoint`)
         }
 
         // Authenticate the Sequelize and Initialize the ORM inside the application
         await db.authenticate()
-        dbLogger('Sequelize has been authenticated', {
-            host: DB_WRITER_HOST,
-            database: DB_NAME
-        })
+        logger.info('Sequelize has been authenticated')
 
         await db.sync({ alter: alter_tables_auto })
-        dbLogger('All the Models are Synced with the Database Tables', {
-            alter: alter_tables_auto
-        })
+        logger.info('All the Models are Synced with the Database Tables')
 
         return { message: 'Database initialized successfully' }
 
     } catch (error) {
-        dbLogger('Error during database initialization', { error })
+        logger.error(`Error during database initialization: ${error}`)
         throw new Error(`Error during database initialization - ${error}`)
     }
 }
