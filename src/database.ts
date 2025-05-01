@@ -1,6 +1,19 @@
 // Import Sequelize
 import { db } from './sequelize'
 import logger from './logger'
+import { QueryTypes } from 'sequelize'
+
+interface VersionResult {
+    version: string;
+}
+
+interface DatabaseResult {
+    current_database: string;
+}
+
+interface UserResult {
+    current_user: string;
+}
 
 /**
  * This function initializes the PostgreSQL database
@@ -19,16 +32,57 @@ export async function initiliazeDatabase(): Promise<{ message: string }> {
             alter_tables_auto = false
 
         if(!DB_WRITER_HOST?.startsWith(NODE_ENV || '')){
-            logger.error('Database \t: The NODE_ENV is not compatible with the database endpoint')
+            logger.error(`Database \t: The NODE_ENV is not compatible with the database endpoint`)
             throw new Error(`The NODE_ENV is not compatible with the database endpoint`)
         }
 
+        // Log database connection details
+        logger.info(`Database \t: Attempting to connect to PostgreSQL`)
+        logger.info(`Database \t: Writer Host: ${DB_WRITER_HOST}`)
+        logger.info(`Database \t: Reader Host: ${DB_READER_HOST}`)
+        logger.info(`Database \t: Port: ${DB_PORT}`)
+        logger.info(`Database \t: Database: ${DB_NAME}`)
+        logger.info(`Database \t: Environment: ${NODE_ENV}`)
+        logger.info(`Database \t: Auto Alter Tables: ${alter_tables_auto}`)
+
         // Authenticate the Sequelize and Initialize the ORM inside the application
         await db.authenticate()
-        logger.info('Database \t: Sequelize has been authenticated')
+        logger.info(`Database \t: Successfully authenticated with PostgreSQL`)
+
+        try {
+            // Get database version
+            const versionResult = await db.query<VersionResult>('SELECT version()', {
+                type: QueryTypes.SELECT,
+                raw: true
+            })
+            if (versionResult && versionResult[0]) {
+                logger.info(`Database \t: PostgreSQL Version: ${versionResult[0].version}`)
+            }
+
+            // Get current database name
+            const dbNameResult = await db.query<DatabaseResult>('SELECT current_database()', {
+                type: QueryTypes.SELECT,
+                raw: true
+            })
+            if (dbNameResult && dbNameResult[0]) {
+                logger.info(`Database \t: Connected to database: ${dbNameResult[0].current_database}`)
+            }
+
+            // Get current user
+            const userResult = await db.query<UserResult>('SELECT current_user', {
+                type: QueryTypes.SELECT,
+                raw: true
+            })
+            if (userResult && userResult[0]) {
+                logger.info(`Database \t: Connected as user: ${userResult[0].current_user}`)
+            }
+        } catch (queryError) {
+            logger.error(`Database \t: Error fetching database information - ${queryError}`)
+        }
 
         await db.sync({ alter: alter_tables_auto })
-        logger.info('Database \t: All the Models are Synced with the Database Tables')
+        logger.info(`Database \t: All Models are Synced with Database Tables`)
+        logger.info(`Database \t: Database initialization completed successfully`)
 
         return { message: 'Database initialized successfully' }
 
