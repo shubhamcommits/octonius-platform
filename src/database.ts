@@ -19,21 +19,21 @@ export async function initiliazeDatabase(): Promise<{ message: string }> {
             alter_tables_auto = false
 
         if(!DB_WRITER_HOST?.startsWith(NODE_ENV || '')){
-            logger.error('The NODE_ENV is not compatible with the database endpoint')
+            logger.error('Database \t: The NODE_ENV is not compatible with the database endpoint')
             throw new Error(`The NODE_ENV is not compatible with the database endpoint`)
         }
 
         // Authenticate the Sequelize and Initialize the ORM inside the application
         await db.authenticate()
-        logger.info('Sequelize has been authenticated')
+        logger.info('Database \t: Sequelize has been authenticated')
 
         await db.sync({ alter: alter_tables_auto })
-        logger.info('All the Models are Synced with the Database Tables')
+        logger.info('Database \t: All the Models are Synced with the Database Tables')
 
         return { message: 'Database initialized successfully' }
 
     } catch (error) {
-        logger.error(`Error during database initialization: ${error}`)
+        logger.error(`Database \t: Error during database initialization - ${error}`)
         throw new Error(`Error during database initialization - ${error}`)
     }
 }
