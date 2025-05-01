@@ -19,10 +19,10 @@ const client = createClient({
 export async function connectRedis(): Promise<{ connection: any }> {
     try {
         await client.connect()
-        logger.info('Redis: Connected to redis successfully')
+        logger.info('Redis \t: Connected to redis successfully')
         return { connection: client }
     } catch (error) {
-        logger.error(`Redis: Client error from redis - ${error}`)
+        logger.error(`Redis \t: Client error from redis - ${error}`)
         throw new Error(`Redis connection error: ${error}`)
     }
 }
@@ -34,9 +34,9 @@ export async function connectRedis(): Promise<{ connection: any }> {
 export async function disconnectRedis(): Promise<void> {
     try {
         await client.disconnect()
-        logger.info('Redis: Disconnected from redis')
+        logger.info('Redis \t: Disconnected from redis')
     } catch (error) {
-        logger.error(`Redis: Unable to disconnect from redis - ${error}`)
+        logger.error(`Redis \t: Unable to disconnect from redis - ${error}`)
         throw new Error(`Redis disconnection error: ${error}`)
     }
 }
@@ -67,13 +67,13 @@ export async function deleteRedisKeysByPrefix(prefix: string): Promise<{ message
             }
         } while (cursor != '0')
 
-        logger.info(`Redis: Removed keys with prefix ${prefix}*`)
+        logger.info(`Redis \t: Removed keys with prefix ${prefix}*`)
         return {
             message: `Keys with prefix ${prefix}* were removed`,
             keys: removed_keys
         }
     } catch (error) {
-        logger.error(`Redis: Error removing keys with prefix ${prefix}* - ${error}`)
+        logger.error(`Redis \t: Error removing keys with prefix ${prefix}* - ${error}`)
         throw new Error(`Error removing Redis keys with prefix ${prefix}: ${error}`)
     }
 }
@@ -103,13 +103,13 @@ export async function fetchRedisKeysByPrefix(prefix: string): Promise<{ message:
             }
         } while (cursor != '0')
 
-        logger.info(`Redis: Keys with prefix ${prefix}* were fetched`)
+        logger.info(`Redis \t: Keys with prefix ${prefix}* were fetched`)
         return {
             message: `Keys with prefix ${prefix}* were fetched`,
             keys: g_keys
         }
     } catch (error) {
-        logger.error(`Redis: Error fetching keys with prefix ${prefix}* - ${error}`)
+        logger.error(`Redis \t: Error fetching keys with prefix ${prefix}* - ${error}`)
         throw new Error(`Error fetching Redis keys with prefix ${prefix}: ${error}`)
     }
 }
