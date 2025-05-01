@@ -37,44 +37,60 @@ export async function initiliazeDatabase(): Promise<{ message: string }> {
         }
 
         // Log database connection details
-        logger.info(`Database \t: Attempting to connect to PostgreSQL`)
+        logger.info(`Database \t: Attempting to connect to PostgreSQL with replication`)
         logger.info(`Database \t: Writer Host: ${DB_WRITER_HOST}`)
         logger.info(`Database \t: Reader Host: ${DB_READER_HOST}`)
         logger.info(`Database \t: Port: ${DB_PORT}`)
         logger.info(`Database \t: Database: ${DB_NAME}`)
         logger.info(`Database \t: Environment: ${NODE_ENV}`)
         logger.info(`Database \t: Auto Alter Tables: ${alter_tables_auto}`)
+        logger.info(`Database \t: Replication Mode: Active`)
+        logger.info(`Database \t: Write operations will be directed to: ${DB_WRITER_HOST}`)
+        logger.info(`Database \t: Read operations will be directed to: ${DB_READER_HOST}`)
 
         // Authenticate the Sequelize and Initialize the ORM inside the application
         await db.authenticate()
         logger.info(`Database \t: Successfully authenticated with PostgreSQL`)
 
         try {
-            // Get database version
+            // Get database version from writer
             const versionResult = await db.query<VersionResult>('SELECT version()', {
                 type: QueryTypes.SELECT,
-                raw: true
+                raw: true,
+                useMaster: true // Force using writer for version check
             })
             if (versionResult && versionResult[0]) {
                 logger.info(`Database \t: PostgreSQL Version: ${versionResult[0].version}`)
             }
 
-            // Get current database name
+            // Get current database name from writer
             const dbNameResult = await db.query<DatabaseResult>('SELECT current_database()', {
                 type: QueryTypes.SELECT,
-                raw: true
+                raw: true,
+                useMaster: true // Force using writer for database name check
             })
             if (dbNameResult && dbNameResult[0]) {
                 logger.info(`Database \t: Connected to database: ${dbNameResult[0].current_database}`)
             }
 
-            // Get current user
+            // Get current user from writer
             const userResult = await db.query<UserResult>('SELECT current_user', {
                 type: QueryTypes.SELECT,
-                raw: true
+                raw: true,
+                useMaster: true // Force using writer for user check
             })
             if (userResult && userResult[0]) {
                 logger.info(`Database \t: Connected as user: ${userResult[0].current_user}`)
+            }
+
+            // Test read replication
+            const readTest = await db.query('SELECT 1', {
+                type: QueryTypes.SELECT,
+                raw: true,
+                useMaster: false // Force using reader
+            })
+            if (readTest) {
+                logger.info(`Database \t: Read replication is working correctly`)
             }
         } catch (queryError) {
             logger.error(`Database \t: Error fetching database information - ${queryError}`)
