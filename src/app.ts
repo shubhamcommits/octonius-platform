@@ -16,6 +16,9 @@ import compression from 'compression'
 // Import Sequelize
 import { db } from './sequelize'
 
+// Import User Route
+import { UserRoute } from './users'
+
 // Define the express application
 const app = express()
 
@@ -116,6 +119,7 @@ app.get('/api/health', async (req: Request, res: Response, next: NextFunction) =
 // app.use(createWebRequestLogTransaction)
 
 // Correct REST naming
+app.use('/v1/users', new UserRoute().router)
 
 // Invalid routes handling middleware
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
