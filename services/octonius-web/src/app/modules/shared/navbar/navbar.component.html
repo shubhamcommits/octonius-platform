@@ -1,0 +1,24 @@
+<div class="fixed top-0 right-0 p-4 z-50">
+  <div class="relative">
+    <div class="dropdown dropdown-end" [class.dropdown-open]="dropdownOpen">
+      <!-- Theme icon acts as a toggle -->
+      <label tabindex="0" class="btn btn-ghost btn-circle" (click)="toggleDropdown()">
+        <lucide-icon name="SunMoon" class="w-6 h-6"></lucide-icon>
+      </label>
+      <!-- Theme dropdown menu, shown only if dropdownOpen -->
+      <ul *ngIf="dropdownOpen" tabindex="0"
+        class="dropdown-content z-50 menu menu-vertical gap-1 p-2 shadow bg-base-200 rounded-box w-[28rem] max-h-[28rem] overflow-y-auto capitalize"
+        style="overscroll-behavior: contain; touch-action: pan-y;">
+        <!-- Generate theme items with *ngFor and highlight the active one -->
+        <li *ngFor="let theme of themes">
+          <a
+            (click)="setTheme(theme)"
+            [class.font-bold]="theme === currentTheme"
+            [class.underline]="theme === currentTheme">
+            {{ theme }}
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
