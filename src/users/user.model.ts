@@ -4,14 +4,13 @@ import { Model, DataTypes, Optional } from 'sequelize'
 // Import Database Class
 import { db } from '../sequelize'
 
-// Define user attributes
+// Define user attributes (passwordless authentication)
 interface UserAttributes {
     uuid: string
     active: boolean
     first_name: string | null
     last_name: string | null
     email: string
-    password: string | null
     phone: string
     avatar_url: string | null
     job_title: string | null
@@ -40,7 +39,6 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     public first_name!: string | null
     public last_name!: string | null
     public email!: string
-    public password!: string | null
     public phone!: string
     public avatar_url!: string | null
     public job_title!: string | null
@@ -112,10 +110,6 @@ User.init({
             },
             len: [1, 100]
         }
-    },
-    password: {
-        type: DataTypes.TEXT,
-        allowNull: true
     },
     phone: {
         type: DataTypes.STRING(20),

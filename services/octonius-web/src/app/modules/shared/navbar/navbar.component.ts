@@ -10,39 +10,38 @@ import { SharedModule } from '../shared.module'
 })
 export class NavbarComponent {
   /**
-   * List of all DaisyUI themes for the dropdown
-   */
-  themes = [
-    'light', 'dark', 'cupcake', 'bumblebee', 'emerald', 'corporate', 'synthwave', 'retro', 'cyberpunk',
-    'valentine', 'halloween', 'garden', 'forest', 'aqua', 'lofi', 'pastel', 'fantasy', 'wireframe', 'black',
-    'luxury', 'dracula', 'cmyk', 'autumn', 'business', 'acid', 'lemonade', 'night', 'coffee', 'winter'
-  ]
-
-  /**
-   * Controls whether the theme dropdown is open
-   */
-  dropdownOpen = false
-
-  /**
    * Tracks the currently selected theme
    */
-  currentTheme = 'dark'
+  currentTheme = 'light'
 
-  /**
-   * Toggles the theme dropdown open/close state
-   */
-  toggleDropdown() {
-    this.dropdownOpen = !this.dropdownOpen
+  constructor() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      this.currentTheme = savedTheme;
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else {
+      document.documentElement.setAttribute('data-theme', this.currentTheme);
+    }
   }
 
   /**
-   * Sets the DaisyUI theme by updating the data-theme attribute on the <html> element.
-   * Updates the currentTheme for highlighting.
-   * Does NOT close the dropdown after selection (per user request).
-   * @param theme The name of the DaisyUI theme to apply
+   * Returns the correct logo path based on the current theme
    */
-  setTheme(theme: string) {
-    document.documentElement.setAttribute('data-theme', theme)
-    this.currentTheme = theme
+  get logoSrc(): string {
+    if (this.currentTheme === 'night') {
+      return '/logo/octonius-logo-white.svg'
+    }
+    // Default to blue logo for light and other themes
+    return '/logo/octonius-logo-blue.svg'
+  }
+
+  /**
+   * Toggles between light and night themes
+   */
+  toggleTheme() {
+    const newTheme = this.currentTheme === 'light' ? 'night' : 'light'
+    document.documentElement.setAttribute('data-theme', newTheme)
+    this.currentTheme = newTheme
+    localStorage.setItem('theme', newTheme)
   }
 }
