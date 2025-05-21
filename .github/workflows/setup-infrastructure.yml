@@ -1,5 +1,8 @@
 name: Setup AWS Infrastructure
 
+# This workflow sets up the necessary AWS infrastructure for GitHub Actions deployments
+# It creates an OIDC provider and IAM roles with appropriate permissions
+
 on:
   workflow_dispatch:
     inputs:
