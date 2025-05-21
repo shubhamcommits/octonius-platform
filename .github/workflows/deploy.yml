@@ -13,7 +13,24 @@ permissions:
   contents: read
 
 jobs:
+  check-requirements:
+    runs-on: ubuntu-latest
+    outputs:
+      is-setup: ${{ steps.check.outputs.is-setup }}
+    steps:
+      - name: Check if infrastructure is set up
+        id: check
+        run: |
+          if [ -n "${{ vars.AWS_ACCOUNT_ID }}" ] && [ -n "${{ vars.AWS_ROLE_NAME }}" ] && [ -n "${{ vars.AWS_REGION }}" ]; then
+            echo "is-setup=true" >> $GITHUB_OUTPUT
+          else
+            echo "Infrastructure not set up. Please run the 'Setup AWS Infrastructure' workflow first."
+            echo "is-setup=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
   deploy:
+    needs: check-requirements
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
