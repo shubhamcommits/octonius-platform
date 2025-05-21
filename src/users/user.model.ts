@@ -1,0 +1,231 @@
+// Sequelize Module
+import { Model, DataTypes, Optional } from 'sequelize'
+
+// Import Database Class
+import { db } from '../sequelize'
+
+// Define user attributes (passwordless authentication)
+interface UserAttributes {
+    uuid: string
+    active: boolean
+    first_name: string | null
+    last_name: string | null
+    email: string
+    phone: string
+    avatar_url: string | null
+    job_title: string | null
+    department: string | null
+    timezone: string
+    language: string
+    notification_preferences: {
+        email: boolean
+        push: boolean
+        in_app: boolean
+    }
+    disabled_at: Date | null
+    source: string
+    role: string | null
+    created_at: Date
+    updated_at: Date
+}
+
+// Define user creation attributes
+interface UserCreationAttributes extends Optional<UserAttributes, 'uuid' | 'first_name' | 'last_name' | 'avatar_url' | 'job_title' | 'department' | 'disabled_at' | 'created_at' | 'updated_at'> {}
+
+// Extend Sequelize Model Class
+export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
+    public uuid!: string
+    public active!: boolean
+    public first_name!: string | null
+    public last_name!: string | null
+    public email!: string
+    public phone!: string
+    public avatar_url!: string | null
+    public job_title!: string | null
+    public department!: string | null
+    public timezone!: string
+    public language!: string
+    public notification_preferences!: {
+        email: boolean
+        push: boolean
+        in_app: boolean
+    }
+    public disabled_at!: Date | null
+    public source!: string
+    public role!: string | null
+    public readonly created_at!: Date
+    public readonly updated_at!: Date
+
+    // Define associations
+    static associate(models: any) {
+        // User belongs to many workplaces through memberships
+        User.belongsToMany(models.Workplace, {
+            through: models.WorkplaceMembership,
+            foreignKey: 'user_id',
+            otherKey: 'workplace_id',
+            as: 'workplaces'
+        })
+
+        // User has many workplace memberships
+        User.hasMany(models.WorkplaceMembership, {
+            foreignKey: 'user_id',
+            as: 'workplace_memberships'
+        })
+    }
+}
+
+User.init({
+    uuid: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
+        allowNull: false
+    },
+    active: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        allowNull: false
+    },
+    first_name: {
+        type: DataTypes.CHAR(50),
+        allowNull: true,
+        validate: {
+            len: [0, 50]
+        }
+    },
+    last_name: {
+        type: DataTypes.CHAR(50),
+        allowNull: true,
+        validate: {
+            len: [0, 50]
+        }
+    },
+    email: {
+        type: DataTypes.STRING(100),
+        unique: 'email',
+        allowNull: false,
+        validate: {
+            isEmail: {
+                msg: "Please provide a valid email address!"
+            },
+            len: [1, 100]
+        }
+    },
+    phone: {
+        type: DataTypes.STRING(20),
+        unique: 'phone',
+        allowNull: false,
+        validate: {
+            is: {
+                args: /^[0-9]+$/,
+                msg: "Please provide a valid phone number!"
+            },
+            len: [1, 20]
+        }
+    },
+    avatar_url: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        validate: {
+            isUrl: true
+        }
+    },
+    job_title: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        validate: {
+            len: [0, 100]
+        }
+    },
+    department: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        validate: {
+            len: [0, 100]
+        }
+    },
+    timezone: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        defaultValue: 'UTC'
+    },
+    language: {
+        type: DataTypes.STRING(10),
+        allowNull: false,
+        defaultValue: 'en',
+        validate: {
+            len: [2, 10]
+        }
+    },
+    notification_preferences: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        defaultValue: {
+            email: true,
+            push: true,
+            in_app: true
+        }
+    },
+    disabled_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: null
+    },
+    source: {
+        type: DataTypes.CHAR(50),
+        defaultValue: 'email',
+        allowNull: false,
+        validate: {
+            len: [1, 50]
+        }
+    },
+    role: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'roles',
+            key: 'uuid'
+        }
+    },
+    created_at: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW
+    }
+}, {
+    sequelize: db,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    tableName: 'users',
+    engine: 'InnoDB',
+    indexes: [
+        {
+            unique: true,
+            fields: ['uuid']
+        },
+        {
+            unique: true,
+            fields: ['email']
+        },
+        {
+            unique: true,
+            fields: ['phone']
+        },
+        {
+            fields: ['role']
+        },
+        {
+            fields: ['active']
+        },
+        {
+            fields: ['department']
+        }
+    ]
+})
+
+export default User

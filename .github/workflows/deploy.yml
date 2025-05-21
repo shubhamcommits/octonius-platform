@@ -1,0 +1,52 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - 'development'
+  pull_request:
+    branches:
+      - 'development'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_NAME: ${{ vars.AWS_ROLE_NAME }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      GITHUB_REPOSITORY: ${{ vars.GITHUB_REPOSITORY }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Show repository context
+        run: 'echo "This workflow is running for repository: ${{ vars.GITHUB_REPOSITORY }}"'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to AWS
+        run: |
+          # Add your deployment commands here
+          # For example:
+          # aws s3 sync dist/ s3://${{ vars.AWS_S3_BUCKET }}/
+          # aws cloudfront create-invalidation --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*" 

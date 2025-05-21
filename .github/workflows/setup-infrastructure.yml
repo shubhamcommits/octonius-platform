@@ -1,0 +1,133 @@
+name: Setup AWS Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      aws_account_id:
+        description: 'AWS Account ID'
+        required: true
+      aws_region:
+        description: 'AWS Region'
+        required: true
+        default: 'eu-central-1'
+      s3_bucket:
+        description: 'S3 Bucket Name'
+        required: true
+      github_repository:
+        description: 'GitHub Repository (owner/repo)'
+        required: true
+        default: 'Octonius/octonius-platform'
+      use_cloudfront:
+        description: 'Use CloudFront?'
+        required: true
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      cloudfront_id:
+        description: 'CloudFront Distribution ID'
+        required: false
+
+env:
+  AWS_REGION: ${{ inputs.aws_region }}
+  AWS_ACCOUNT_ID: ${{ inputs.aws_account_id }}
+  AWS_ROLE_NAME: github-actions-role
+  GITHUB_REPOSITORY: ${{ inputs.github_repository }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-setup-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create OIDC provider
+        run: |
+          aws iam create-open-id-connect-provider \
+            --url https://token.actions.githubusercontent.com \
+            --client-id-list sts.amazonaws.com \
+            --thumbprint-list "6938fd4d98bab03faadb97b34396831e3780aea1" "1c58a3a8518e8759bf075b76b750d4f2df264fcd" || true
+
+      - name: Create trust policy
+        run: |
+          cat > trust-policy.json << EOF
+          {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Principal": {
+                          "Federated": "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
+                      },
+                      "Action": "sts:AssumeRoleWithWebIdentity",
+                      "Condition": {
+                          "StringLike": {
+                              "token.actions.githubusercontent.com:sub": "repo:${GITHUB_REPOSITORY}:*"
+                          },
+                          "StringEquals": {
+                              "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                          }
+                      }
+                  }
+              ]
+          }
+          EOF
+
+      - name: Create IAM role
+        run: |
+          aws iam create-role \
+            --role-name ${AWS_ROLE_NAME} \
+            --assume-role-policy-document file://trust-policy.json || true
+
+      - name: Create and attach policy
+        run: |
+          cat > role-policy.json << EOF
+          {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "s3:PutObject",
+                          "s3:GetObject",
+                          "s3:ListBucket",
+                          "s3:DeleteObject"
+                          ${{ inputs.use_cloudfront == 'yes' && ', "cloudfront:CreateInvalidation"' || '' }}
+                      ],
+                      "Resource": [
+                          "arn:aws:s3:::${{ inputs.s3_bucket }}/*",
+                          "arn:aws:s3:::${{ inputs.s3_bucket }}"
+                          ${{ inputs.use_cloudfront == 'yes' && format(', "arn:aws:cloudfront::{0}:distribution/{1}"', env.AWS_ACCOUNT_ID, inputs.cloudfront_id) || '' }}
+                      ]
+                  }
+              ]
+          }
+          EOF
+
+          aws iam put-role-policy \
+            --role-name ${AWS_ROLE_NAME} \
+            --policy-name github-actions-policy \
+            --policy-document file://role-policy.json
+
+      - name: Set GitHub Variables
+        run: |
+          gh variable set AWS_ACCOUNT_ID --body "${{ env.AWS_ACCOUNT_ID }}"
+          gh variable set AWS_ROLE_NAME --body "${{ env.AWS_ROLE_NAME }}"
+          gh variable set AWS_REGION --body "${{ env.AWS_REGION }}"
+          gh variable set AWS_S3_BUCKET --body "${{ inputs.s3_bucket }}"
+          gh variable set GITHUB_REPOSITORY --body "${{ env.GITHUB_REPOSITORY }}"
+          ${{ inputs.use_cloudfront == 'yes' && format('gh variable set CLOUDFRONT_DISTRIBUTION_ID --body "%s"', inputs.cloudfront_id) || '' }}
+
+      - name: Documentation
+        run: |
+          echo "This workflow sets up AWS infrastructure for GitHub Actions."
+          echo "It creates an OIDC provider, IAM role, and sets permissions."
+          echo "The IAM trust policy is parameterized for the repository: ${{ env.GITHUB_REPOSITORY }}."
+          echo "Modify inputs to change AWS configurations." 
