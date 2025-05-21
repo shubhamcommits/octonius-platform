@@ -1,0 +1,12 @@
+<nav class="fixed top-0 left-0 w-full flex items-center justify-between p-4 z-50 bg-base-100">
+  <!-- Logo Left -->
+  <div class="flex items-center gap-2">
+    <img [src]="logoSrc" alt="Octonius Logo" class="w-1/4 h-auto p-1" />
+  </div>
+  <!-- Theme Switcher Right -->
+  <div class="relative">
+    <button class="btn btn-ghost btn-circle" (click)="toggleTheme()">
+      <lucide-icon [name]="currentTheme === 'night' ? 'SunMoon' : 'SunMoon'" class="w-8 h-8"></lucide-icon>
+    </button>
+  </div>
+</nav>
