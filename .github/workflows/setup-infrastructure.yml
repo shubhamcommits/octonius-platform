@@ -12,8 +12,12 @@ on:
         required: true
         default: 'eu-central-1'
         type: string
-      s3_bucket:
-        description: 'S3 Bucket Name'
+      dev_s3_bucket:
+        description: 'Development S3 Bucket Name (must exist)'
+        required: true
+        type: string
+      prod_s3_bucket:
+        description: 'Production S3 Bucket Name (must exist)'
         required: true
         type: string
       github_repository:
@@ -21,16 +25,13 @@ on:
         required: true
         default: 'Octonius/octonius-platform'
         type: string
-      use_cloudfront:
-        description: 'Use CloudFront?'
+      dev_cloudfront_id:
+        description: 'Development CloudFront Distribution ID'
         required: true
-        type: choice
-        options:
-          - 'yes'
-          - 'no'
-      cloudfront_id:
-        description: 'CloudFront Distribution ID'
-        required: false
+        type: string
+      prod_cloudfront_id:
+        description: 'Production CloudFront Distribution ID'
+        required: true
         type: string
 
 env:
@@ -94,18 +95,11 @@ jobs:
 
       - name: Create and attach policy
         env:
-          USE_CLOUDFRONT: ${{ inputs.use_cloudfront }}
-          S3_BUCKET: ${{ inputs.s3_bucket }}
-          CLOUDFRONT_ID: ${{ inputs.cloudfront_id }}
+          DEV_S3_BUCKET: ${{ inputs.dev_s3_bucket }}
+          PROD_S3_BUCKET: ${{ inputs.prod_s3_bucket }}
+          DEV_CLOUDFRONT_ID: ${{ inputs.dev_cloudfront_id }}
+          PROD_CLOUDFRONT_ID: ${{ inputs.prod_cloudfront_id }}
         run: |
-          if [ "$USE_CLOUDFRONT" = "yes" ]; then
-            CLOUDFRONT_STATEMENT=', "cloudfront:CreateInvalidation"'
-            CLOUDFRONT_RESOURCE=', "arn:aws:cloudfront::'"${AWS_ACCOUNT_ID}"':distribution/'"${CLOUDFRONT_ID}"'"'
-          else
-            CLOUDFRONT_STATEMENT=''
-            CLOUDFRONT_RESOURCE=''
-          fi
-
           cat > role-policy.json << EOF
           {
               "Version": "2012-10-17",
@@ -116,11 +110,16 @@ jobs:
                           "s3:PutObject",
                           "s3:GetObject",
                           "s3:ListBucket",
-                          "s3:DeleteObject"${CLOUDFRONT_STATEMENT}
+                          "s3:DeleteObject",
+                          "cloudfront:CreateInvalidation"
                       ],
                       "Resource": [
-                          "arn:aws:s3:::${S3_BUCKET}",
-                          "arn:aws:s3:::${S3_BUCKET}/*"${CLOUDFRONT_RESOURCE}
+                          "arn:aws:s3:::${DEV_S3_BUCKET}",
+                          "arn:aws:s3:::${DEV_S3_BUCKET}/*",
+                          "arn:aws:s3:::${PROD_S3_BUCKET}",
+                          "arn:aws:s3:::${PROD_S3_BUCKET}/*",
+                          "arn:aws:cloudfront::${AWS_ACCOUNT_ID}:distribution/${DEV_CLOUDFRONT_ID}",
+                          "arn:aws:cloudfront::${AWS_ACCOUNT_ID}:distribution/${PROD_CLOUDFRONT_ID}"
                       ]
                   }
               ]
@@ -140,11 +139,16 @@ jobs:
 
       - name: Set GitHub Variables
         run: |
+          # Set common AWS account variables
           gh variable set AWS_ACCOUNT_ID --body "${AWS_ACCOUNT_ID}"
           gh variable set AWS_ROLE_NAME --body "${AWS_ROLE_NAME}"
           gh variable set AWS_REGION --body "${AWS_REGION}"
-          gh variable set AWS_S3_BUCKET --body "${{ inputs.s3_bucket }}"
           gh variable set GITHUB_REPOSITORY --body "${GITHUB_REPOSITORY}"
-          if [ "${{ inputs.use_cloudfront }}" = "yes" ]; then
-            gh variable set CLOUDFRONT_DISTRIBUTION_ID --body "${{ inputs.cloudfront_id }}"
-          fi
+          
+          # Set environment-specific bucket names
+          gh variable set DEV_S3_BUCKET --body "${{ inputs.dev_s3_bucket }}"
+          gh variable set PROD_S3_BUCKET --body "${{ inputs.prod_s3_bucket }}"
+          
+          # Set CloudFront IDs
+          gh variable set DEV_CLOUDFRONT_ID --body "${{ inputs.dev_cloudfront_id }}"
+          gh variable set PROD_CLOUDFRONT_ID --body "${{ inputs.prod_cloudfront_id }}"
