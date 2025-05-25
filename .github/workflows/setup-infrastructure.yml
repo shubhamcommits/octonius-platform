@@ -168,13 +168,13 @@ jobs:
         with:
           app_id: ${{ secrets.GH_APP_ID }}
           private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          installation_id: ${{ secrets.GH_APP_INSTALLATION_ID }}
 
       - name: Authenticate GitHub CLI
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
-          gh auth login --with-token <<< "$GH_TOKEN"
+          unset GH_TOKEN
+          echo "$GH_TOKEN" | gh auth login --with-token
 
       - name: Set GitHub Variables
         run: |
