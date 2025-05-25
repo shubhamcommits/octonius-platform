@@ -97,10 +97,19 @@ jobs:
         run: |
           if aws iam get-role --role-name ${AWS_ROLE_NAME} >/dev/null 2>&1; then
             echo "IAM role ${AWS_ROLE_NAME} already exists"
-            # Update trust policy
-            aws iam update-assume-role-policy \
-              --role-name ${AWS_ROLE_NAME} \
-              --policy-document file://trust-policy.json
+            # Check if we can update the trust policy
+            if aws iam get-role-policy --role-name ${AWS_ROLE_NAME} --policy-name trust-policy >/dev/null 2>&1; then
+              echo "Updating trust policy..."
+              aws iam update-assume-role-policy \
+                --role-name ${AWS_ROLE_NAME} \
+                --policy-document file://trust-policy.json
+            else
+              echo "Creating trust policy..."
+              aws iam put-role-policy \
+                --role-name ${AWS_ROLE_NAME} \
+                --policy-name trust-policy \
+                --policy-document file://trust-policy.json
+            fi
           else
             echo "Creating IAM role ${AWS_ROLE_NAME}..."
             aws iam create-role \
@@ -115,10 +124,25 @@ jobs:
           DEV_CLOUDFRONT_ID: ${{ inputs.dev_cloudfront_id }}
           PROD_CLOUDFRONT_ID: ${{ inputs.prod_cloudfront_id }}
         run: |
-          cat > role-policy.json << EOF
+          cat > role-policy.json << 'EOF'
           {
               "Version": "2012-10-17",
               "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "iam:GetRole",
+                          "iam:CreateRole",
+                          "iam:UpdateAssumeRolePolicy",
+                          "iam:PutRolePolicy",
+                          "iam:GetOpenIDConnectProvider",
+                          "iam:CreateOpenIDConnectProvider"
+                      ],
+                      "Resource": [
+                          "arn:aws:iam::${AWS_ACCOUNT_ID}:role/github-actions-role",
+                          "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
+                      ]
+                  },
                   {
                       "Effect": "Allow",
                       "Action": [
@@ -163,16 +187,27 @@ jobs:
 
       - name: Set GitHub Variables
         run: |
+          # Function to set variable with error handling
+          set_var() {
+            local name=$1
+            local value=$2
+            if ! gh variable set "$name" --body "$value"; then
+              echo "Failed to set variable: $name"
+              exit 1
+            fi
+            echo "Successfully set variable: $name"
+          }
+          
           # Set common AWS account variables
-          gh variable set AWS_ACCOUNT_ID --body "${AWS_ACCOUNT_ID}"
-          gh variable set AWS_ROLE_NAME --body "${AWS_ROLE_NAME}"
-          gh variable set AWS_REGION --body "${AWS_REGION}"
-          gh variable set GITHUB_REPOSITORY --body "${GITHUB_REPOSITORY}"
+          set_var "AWS_ACCOUNT_ID" "${AWS_ACCOUNT_ID}"
+          set_var "AWS_ROLE_NAME" "${AWS_ROLE_NAME}"
+          set_var "AWS_REGION" "${AWS_REGION}"
+          set_var "GITHUB_REPOSITORY" "${GITHUB_REPOSITORY}"
           
           # Set environment-specific bucket names
-          gh variable set DEV_S3_BUCKET --body "${{ inputs.dev_s3_bucket }}"
-          gh variable set PROD_S3_BUCKET --body "${{ inputs.prod_s3_bucket }}"
+          set_var "DEV_S3_BUCKET" "${{ inputs.dev_s3_bucket }}"
+          set_var "PROD_S3_BUCKET" "${{ inputs.prod_s3_bucket }}"
           
           # Set CloudFront IDs
-          gh variable set DEV_CLOUDFRONT_ID --body "${{ inputs.dev_cloudfront_id }}"
-          gh variable set PROD_CLOUDFRONT_ID --body "${{ inputs.prod_cloudfront_id }}"
+          set_var "DEV_CLOUDFRONT_ID" "${{ inputs.dev_cloudfront_id }}"
+          set_var "PROD_CLOUDFRONT_ID" "${{ inputs.prod_cloudfront_id }}"
