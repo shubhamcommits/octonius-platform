@@ -21,7 +21,7 @@ jobs:
       - name: Check if infrastructure is set up
         id: check
         run: |
-          if [ -n "${{ vars.AWS_ACCOUNT_ID }}" ] && [ -n "${{ vars.AWS_ROLE_NAME }}" ] && [ -n "${{ vars.AWS_REGION }}" ]; then
+          if [ -n "${{ vars.AWS_ACCOUNT_ID_dev }}" ] && [ -n "${{ vars.AWS_ROLE_NAME_dev }}" ] && [ -n "${{ vars.AWS_REGION_dev }}" ]; then
             echo "is-setup=true" >> $GITHUB_OUTPUT
           else
             echo "Infrastructure not set up. Please run the 'Setup AWS Infrastructure' workflow first."
@@ -32,16 +32,21 @@ jobs:
   deploy:
     needs: check-requirements
     runs-on: ubuntu-latest
+    environment: dev  # Default to dev environment for development branch
     env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      AWS_ROLE_NAME: ${{ vars.AWS_ROLE_NAME }}
-      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION_dev }}
+      AWS_ROLE_NAME: ${{ vars.AWS_ROLE_NAME_dev }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID_dev }}
+      AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET_dev }}
       GITHUB_REPOSITORY: ${{ vars.GITHUB_REPOSITORY }}
     steps:
       - uses: actions/checkout@v3
 
-      - name: Show repository context
-        run: 'echo "This workflow is running for repository: ${{ vars.GITHUB_REPOSITORY }}"'
+      - name: Show deployment context
+        run: |
+          echo "Deploying to environment: dev"
+          echo "Repository: ${{ vars.GITHUB_REPOSITORY }}"
+          echo "S3 Bucket: ${{ vars.AWS_S3_BUCKET_dev }}"
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -63,7 +68,12 @@ jobs:
 
       - name: Deploy to AWS
         run: |
-          # Add your deployment commands here
-          # For example:
-          # aws s3 sync dist/ s3://${{ vars.AWS_S3_BUCKET }}/
-          # aws cloudfront create-invalidation --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*" 
+          # Deploy to S3
+          aws s3 sync dist/ s3://${{ env.AWS_S3_BUCKET }}/
+          
+          # Invalidate CloudFront if distribution ID exists
+          if [ -n "${{ vars.CLOUDFRONT_DISTRIBUTION_ID_dev }}" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID_dev }} \
+              --paths "/*"
+          fi 
