@@ -3,15 +3,31 @@ name: Deploy to AWS
 on:
   push:
     branches:
-      - 'development'
-      - 'master'
-      
+      - development
+      - master
+    paths-ignore:
+      - '**/*.md'
+      - '.gitignore'
+      - 'LICENSE'
+
+  pull_request:
+    types:
+      - closed
+    branches:
+      - development
+      - master
+    paths-ignore:
+      - '**/*.md'
+      - '.gitignore'
+      - 'LICENSE'
+
 permissions:
   id-token: write
   contents: read
 
 jobs:
   check-requirements:
+    if: github.repository == 'Octonius/octonius-platform' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.action == 'closed'))
     runs-on: ubuntu-latest
     outputs:
       is-setup: ${{ steps.check.outputs.is-setup }}
