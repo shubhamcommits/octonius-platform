@@ -5,11 +5,7 @@ on:
     branches:
       - 'development'
       - 'master'
-  pull_request:
-    branches:
-      - 'development'
-      - 'master'
-
+      
 permissions:
   id-token: write
   contents: read
