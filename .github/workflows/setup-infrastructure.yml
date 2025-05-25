@@ -174,29 +174,29 @@ jobs:
           # Configure GitHub CLI to use the token
           echo "${{ steps.generate-token.outputs.token }}" | gh auth login --with-token
 
-      - name: Set GitHub Variables
+      - name: Set GitHub Secrets
         run: |
-          # Function to set variable with error handling
-          set_var() {
+          # Function to set secret with error handling
+          set_secret() {
             local name=$1
             local value=$2
-            if ! gh variable set "$name" --body "$value" --repo "${GITHUB_REPOSITORY}"; then
-              echo "Failed to set variable: $name"
+            if ! gh secret set "$name" --body "$value" --repo "${GITHUB_REPOSITORY}"; then
+              echo "Failed to set secret: $name"
               exit 1
             fi
-            echo "Successfully set variable: $name"
+            echo "Successfully set secret: $name"
           }
           
-          # Set common AWS account variables
-          set_var "AWS_ACCOUNT_ID" "${AWS_ACCOUNT_ID}"
-          set_var "AWS_ROLE_NAME" "${AWS_ROLE_NAME}"
-          set_var "AWS_REGION" "${AWS_REGION}"
-          set_var "REPO_NAME" "${GITHUB_REPOSITORY}"
+          # Set common AWS account secrets
+          set_secret "AWS_ACCOUNT_ID" "${AWS_ACCOUNT_ID}"
+          set_secret "AWS_ROLE_NAME" "${AWS_ROLE_NAME}"
+          set_secret "AWS_REGION" "${AWS_REGION}"
+          set_secret "REPO_NAME" "${GITHUB_REPOSITORY}"
           
           # Set environment-specific bucket names
-          set_var "DEV_S3_BUCKET" "${{ inputs.dev_s3_bucket }}"
-          set_var "PROD_S3_BUCKET" "${{ inputs.prod_s3_bucket }}"
+          set_secret "DEV_S3_BUCKET" "${{ inputs.dev_s3_bucket }}"
+          set_secret "PROD_S3_BUCKET" "${{ inputs.prod_s3_bucket }}"
           
           # Set CloudFront IDs
-          set_var "DEV_CLOUDFRONT_ID" "${{ inputs.dev_cloudfront_id }}"
-          set_var "PROD_CLOUDFRONT_ID" "${{ inputs.prod_cloudfront_id }}"
+          set_secret "DEV_CLOUDFRONT_ID" "${{ inputs.dev_cloudfront_id }}"
+          set_secret "PROD_CLOUDFRONT_ID" "${{ inputs.prod_cloudfront_id }}"

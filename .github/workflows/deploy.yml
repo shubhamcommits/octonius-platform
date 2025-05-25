@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - 'development'
+      - 'master'
   pull_request:
     branches:
       - 'development'
+      - 'master'
 
 permissions:
   id-token: write
@@ -21,7 +23,7 @@ jobs:
       - name: Check if infrastructure is set up
         id: check
         run: |
-          if [ -n "${{ vars.AWS_ACCOUNT_ID_dev }}" ] && [ -n "${{ vars.AWS_ROLE_NAME_dev }}" ] && [ -n "${{ vars.AWS_REGION_dev }}" ]; then
+          if [ -n "${{ secrets.AWS_ACCOUNT_ID }}" ] && [ -n "${{ secrets.AWS_ROLE_NAME }}" ] && [ -n "${{ secrets.AWS_REGION }}" ]; then
             echo "is-setup=true" >> $GITHUB_OUTPUT
           else
             echo "Infrastructure not set up. Please run the 'Setup AWS Infrastructure' workflow first."
@@ -32,21 +34,25 @@ jobs:
   deploy:
     needs: check-requirements
     runs-on: ubuntu-latest
-    environment: dev  # Default to dev environment for development branch
+    environment: ${{ github.ref == 'refs/heads/master' && 'prod' || 'dev' }}
     env:
-      AWS_REGION: ${{ vars.AWS_REGION_dev }}
-      AWS_ROLE_NAME: ${{ vars.AWS_ROLE_NAME_dev }}
-      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID_dev }}
-      AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET_dev }}
-      GITHUB_REPOSITORY: ${{ vars.REPO_NAME }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ROLE_NAME: ${{ secrets.AWS_ROLE_NAME }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DEV_S3_BUCKET: ${{ secrets.DEV_S3_BUCKET }}
+      PROD_S3_BUCKET: ${{ secrets.PROD_S3_BUCKET }}
+      GITHUB_REPOSITORY: ${{ secrets.REPO_NAME }}
+      DEV_CLOUDFRONT_ID: ${{ secrets.DEV_CLOUDFRONT_ID }}
+      PROD_CLOUDFRONT_ID: ${{ secrets.PROD_CLOUDFRONT_ID }}
     steps:
       - uses: actions/checkout@v3
 
       - name: Show deployment context
         run: |
-          echo "Deploying to environment: dev"
-          echo "Repository: ${{ vars.REPO_NAME }}"
-          echo "S3 Bucket: ${{ vars.AWS_S3_BUCKET_dev }}"
+          echo "Deploying to environment: ${{ github.ref == 'refs/heads/master' && 'prod' || 'dev' }}"
+          echo "Repository: ${{ secrets.REPO_NAME }}"
+          echo "S3 Bucket: ${{ github.ref == 'refs/heads/master' && env.PROD_S3_BUCKET || env.DEV_S3_BUCKET }}"
+          echo "CloudFront ID: ${{ github.ref == 'refs/heads/master' && env.PROD_CLOUDFRONT_ID || env.DEV_CLOUDFRONT_ID }}"
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -69,11 +75,11 @@ jobs:
       - name: Deploy to AWS
         run: |
           # Deploy to S3
-          aws s3 sync dist/ s3://${{ env.AWS_S3_BUCKET }}/
+          aws s3 sync dist/ s3://${{ github.ref == 'refs/heads/master' && env.PROD_S3_BUCKET || env.DEV_S3_BUCKET }}/
           
           # Invalidate CloudFront if distribution ID exists
-          if [ -n "${{ vars.CLOUDFRONT_DISTRIBUTION_ID_dev }}" ]; then
+          if [ -n "${{ github.ref == 'refs/heads/master' && env.PROD_CLOUDFRONT_ID || env.DEV_CLOUDFRONT_ID }}" ]; then
             aws cloudfront create-invalidation \
-              --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID_dev }} \
+              --distribution-id ${{ github.ref == 'refs/heads/master' && env.PROD_CLOUDFRONT_ID || env.DEV_CLOUDFRONT_ID }} \
               --paths "/*"
           fi 
