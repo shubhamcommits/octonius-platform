@@ -70,7 +70,7 @@ jobs:
 
       - name: Create trust policy
         run: |
-          cat > trust-policy.json << EOF
+          cat > trust-policy.json << 'EOF'
           {
               "Version": "2012-10-17",
               "Statement": [
@@ -97,19 +97,10 @@ jobs:
         run: |
           if aws iam get-role --role-name ${AWS_ROLE_NAME} >/dev/null 2>&1; then
             echo "IAM role ${AWS_ROLE_NAME} already exists"
-            # Check if we can update the trust policy
-            if aws iam get-role-policy --role-name ${AWS_ROLE_NAME} --policy-name trust-policy >/dev/null 2>&1; then
-              echo "Updating trust policy..."
-              aws iam update-assume-role-policy \
-                --role-name ${AWS_ROLE_NAME} \
-                --policy-document file://trust-policy.json
-            else
-              echo "Creating trust policy..."
-              aws iam put-role-policy \
-                --role-name ${AWS_ROLE_NAME} \
-                --policy-name trust-policy \
-                --policy-document file://trust-policy.json
-            fi
+            echo "Updating trust policy..."
+            aws iam update-assume-role-policy \
+              --role-name ${AWS_ROLE_NAME} \
+              --policy-document file://trust-policy.json
           else
             echo "Creating IAM role ${AWS_ROLE_NAME}..."
             aws iam create-role \
