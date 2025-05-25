@@ -93,13 +93,22 @@ jobs:
           }
           EOF
 
-      - name: Create IAM role
+      - name: Check and Create IAM role
         run: |
-          aws iam create-role \
-            --role-name ${AWS_ROLE_NAME} \
-            --assume-role-policy-document file://trust-policy.json || true
+          if aws iam get-role --role-name ${AWS_ROLE_NAME} >/dev/null 2>&1; then
+            echo "IAM role ${AWS_ROLE_NAME} already exists"
+            # Update trust policy
+            aws iam update-assume-role-policy \
+              --role-name ${AWS_ROLE_NAME} \
+              --policy-document file://trust-policy.json
+          else
+            echo "Creating IAM role ${AWS_ROLE_NAME}..."
+            aws iam create-role \
+              --role-name ${AWS_ROLE_NAME} \
+              --assume-role-policy-document file://trust-policy.json
+          fi
 
-      - name: Create and attach policy
+      - name: Check and Update IAM role policy
         env:
           DEV_S3_BUCKET: ${{ inputs.dev_s3_bucket }}
           PROD_S3_BUCKET: ${{ inputs.prod_s3_bucket }}
@@ -132,6 +141,7 @@ jobs:
           }
           EOF
 
+          # Always update the policy to ensure it's current
           aws iam put-role-policy \
             --role-name ${AWS_ROLE_NAME} \
             --policy-name github-actions-policy \
@@ -143,6 +153,7 @@ jobs:
         with:
           app_id: ${{ secrets.GH_APP_ID }}
           private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          installation_id: ${{ secrets.GH_APP_INSTALLATION_ID }}
 
       - name: Authenticate GitHub CLI
         env:
