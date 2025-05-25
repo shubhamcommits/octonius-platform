@@ -38,14 +38,14 @@ jobs:
       AWS_ROLE_NAME: ${{ vars.AWS_ROLE_NAME_dev }}
       AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID_dev }}
       AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET_dev }}
-      GITHUB_REPOSITORY: ${{ vars.GITHUB_REPOSITORY }}
+      GITHUB_REPOSITORY: ${{ vars.REPO_NAME }}
     steps:
       - uses: actions/checkout@v3
 
       - name: Show deployment context
         run: |
           echo "Deploying to environment: dev"
-          echo "Repository: ${{ vars.GITHUB_REPOSITORY }}"
+          echo "Repository: ${{ vars.REPO_NAME }}"
           echo "S3 Bucket: ${{ vars.AWS_S3_BUCKET_dev }}"
 
       - name: Set up Node.js
