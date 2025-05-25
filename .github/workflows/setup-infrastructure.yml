@@ -191,7 +191,7 @@ jobs:
           set_var "AWS_ACCOUNT_ID" "${AWS_ACCOUNT_ID}"
           set_var "AWS_ROLE_NAME" "${AWS_ROLE_NAME}"
           set_var "AWS_REGION" "${AWS_REGION}"
-          set_var "GITHUB_REPOSITORY" "${GITHUB_REPOSITORY}"
+          set_var "REPO_NAME" "${GITHUB_REPOSITORY}"
           
           # Set environment-specific bucket names
           set_var "DEV_S3_BUCKET" "${{ inputs.dev_s3_bucket }}"
