@@ -115,7 +115,7 @@ jobs:
           DEV_CLOUDFRONT_ID: ${{ inputs.dev_cloudfront_id }}
           PROD_CLOUDFRONT_ID: ${{ inputs.prod_cloudfront_id }}
         run: |
-          cat > role-policy.json << 'EOF'
+          cat > role-policy.json << EOF
           {
               "Version": "2012-10-17",
               "Statement": [
