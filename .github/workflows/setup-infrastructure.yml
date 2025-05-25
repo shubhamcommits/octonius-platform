@@ -173,16 +173,19 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
-          unset GH_TOKEN
+          # Configure GitHub CLI to use the token
           echo "$GH_TOKEN" | gh auth login --with-token
+          gh auth status
 
       - name: Set GitHub Variables
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           # Function to set variable with error handling
           set_var() {
             local name=$1
             local value=$2
-            if ! gh variable set "$name" --body "$value"; then
+            if ! gh variable set "$name" --body "$value" --repo "${GITHUB_REPOSITORY}"; then
               echo "Failed to set variable: $name"
               exit 1
             fi
