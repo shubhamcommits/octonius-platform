@@ -11,6 +11,19 @@ on:
         options:
           - dev
           - prod
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: string
+    secrets:
+      AWS_REGION:
+        required: true
+      AWS_ROLE_NAME:
+        required: true
+      AWS_ACCOUNT_ID:
+        required: true
 
 jobs:
   setup-dependencies:
