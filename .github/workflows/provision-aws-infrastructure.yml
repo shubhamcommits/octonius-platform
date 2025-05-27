@@ -37,18 +37,17 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: 'package-lock.json'
 
       - name: Install dependencies
         run: |
           echo "Installing dependencies..."
-          npm ci
+          npm install
         continue-on-error: true
 
       - name: Verify dependencies
         run: |
           if [ ! -d "node_modules" ]; then
-            echo "Dependencies not found after npm ci, trying npm install..."
+            echo "Dependencies not found after npm install, trying again..."
             npm install
           else
             echo "Dependencies verified."
@@ -71,7 +70,6 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: 'package-lock.json'
 
       - name: Install dependencies
         run: |
@@ -82,7 +80,7 @@ jobs:
       - name: Verify dependencies
         run: |
           if [ ! -d "node_modules" ]; then
-            echo "Dependencies not found after npm ci in deploy-cdk, trying npm install..."
+            echo "Dependencies not found after npm install in deploy-cdk, trying again..."
             npm install
           else
             echo "Dependencies verified in deploy-cdk."
