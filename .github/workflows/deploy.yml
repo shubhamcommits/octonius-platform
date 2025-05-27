@@ -58,6 +58,8 @@ jobs:
       PROD_CLOUDFRONT_ID: ${{ secrets.PROD_CLOUDFRONT_ID }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Show deployment context
         run: |
@@ -71,6 +73,18 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+
+      - name: Verify package files
+        run: |
+          if [ ! -f "package.json" ]; then
+            echo "package.json not found"
+            exit 1
+          fi
+          if [ ! -f "package-lock.json" ]; then
+            echo "package-lock.json not found"
+            exit 1
+          fi
+          echo "Package files verified successfully"
 
       - name: Install dependencies
         run: npm ci
