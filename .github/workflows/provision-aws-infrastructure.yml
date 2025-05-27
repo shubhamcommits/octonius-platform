@@ -1,0 +1,116 @@
+name: Provision AWS Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+jobs:
+  setup-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get npm cache directory
+        id: npm-cache-dir-setup
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: npm-cache-setup
+        with:
+          path: ${{ steps.npm-cache-dir-setup.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.npm-cache-setup.outputs.cache-hit != 'true'
+        run: |
+          echo "Cache miss - installing dependencies..."
+          npm ci
+        continue-on-error: true
+
+      - name: Verify dependencies
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "Dependencies not found, installing..."
+            npm install
+          else
+            echo "Dependencies found in cache"
+          fi
+
+  deploy-cdk:
+    needs: setup-dependencies
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ROLE_NAME: ${{ secrets.AWS_ROLE_NAME }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get npm cache directory
+        id: npm-cache-dir-deploy
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: npm-cache-deploy
+        with:
+          path: ${{ steps.npm-cache-dir-deploy.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.npm-cache-deploy.outputs.cache-hit != 'true'
+        run: |
+          echo "Cache miss - installing dependencies..."
+          npm ci
+        continue-on-error: true
+
+      - name: Verify dependencies
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "Dependencies not found, installing..."
+            npm install
+          else
+            echo "Dependencies found in cache"
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Bootstrap CDK
+        run: npx cdk bootstrap aws://${{ env.AWS_ACCOUNT_ID }}/${{ env.AWS_REGION }}
+
+      - name: Deploy CDK stack
+        run: |
+          echo "Deploying CDK stack for environment: ${{ inputs.environment }}"
+          npx cdk deploy --require-approval never 

@@ -26,7 +26,7 @@ permissions:
   contents: read
 
 jobs:
-  check-requirements:
+  validate-deployment-prerequisites:
     if: github.repository == 'Octonius/octonius-platform' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.action == 'closed'))
     runs-on: ubuntu-latest
     outputs:
@@ -38,13 +38,62 @@ jobs:
           if [ -n "${{ secrets.AWS_ACCOUNT_ID }}" ] && [ -n "${{ secrets.AWS_ROLE_NAME }}" ] && [ -n "${{ secrets.AWS_REGION }}" ]; then
             echo "is-setup=true" >> $GITHUB_OUTPUT
           else
-            echo "Infrastructure not set up. Please run the 'Setup AWS Infrastructure' workflow first."
+            echo "Infrastructure not set up. Please run the 'Configure AWS-GitHub Integration' workflow first."
             echo "is-setup=false" >> $GITHUB_OUTPUT
             exit 1
           fi
 
+  setup-dependencies:
+    needs: validate-deployment-prerequisites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get npm cache directory
+        id: npm-cache-dir-setup
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: npm-cache-setup
+        with:
+          path: ${{ steps.npm-cache-dir-setup.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.npm-cache-setup.outputs.cache-hit != 'true'
+        run: |
+          echo "Cache miss - installing dependencies..."
+          npm install --force
+        continue-on-error: true
+
+      - name: Verify dependencies
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "Dependencies not found, installing..."
+            npm install
+          else
+            echo "Dependencies found in cache"
+          fi
+
+  deploy-cdk:
+    needs: setup-dependencies
+    uses: ./.github/workflows/provision-aws-infrastructure.yml
+    with:
+      environment: ${{ github.ref == 'refs/heads/master' && 'prod' || 'dev' }}
+    secrets: inherit
+
   deploy:
-    needs: check-requirements
+    needs: [setup-dependencies, deploy-cdk]
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/master' && 'prod' || 'dev' }}
     env:
@@ -59,6 +108,42 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Get npm cache directory
+        id: npm-cache-dir-deploy
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: npm-cache-deploy
+        with:
+          path: ${{ steps.npm-cache-dir-deploy.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.npm-cache-deploy.outputs.cache-hit != 'true'
+        run: |
+          echo "Cache miss - installing dependencies..."
+          npm ci
+        continue-on-error: true
+
+      - name: Verify dependencies
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "Dependencies not found, installing..."
+            npm install
+          else
+            echo "Dependencies found in cache"
+          fi
+
       - name: Show deployment context
         run: |
           echo "Deploying to environment: ${{ github.ref == 'refs/heads/master' && 'prod' || 'dev' }}"
@@ -66,14 +151,8 @@ jobs:
           echo "S3 Bucket: ${{ github.ref == 'refs/heads/master' && env.PROD_S3_BUCKET || env.DEV_S3_BUCKET }}"
           echo "CloudFront ID: ${{ github.ref == 'refs/heads/master' && env.PROD_CLOUDFRONT_ID || env.DEV_CLOUDFRONT_ID }}"
 
-      - name: Install dependencies
-        run: npm install --force
-
       - name: Build
         run: npm run build
-
-      - name: Remove node_modules
-        run: rm -rf node_modules
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
