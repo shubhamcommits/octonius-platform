@@ -31,40 +31,27 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get npm cache directory
-        id: npm-cache-dir-setup
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-
       - name: Setup Node.js
+        id: setup-node
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
 
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
-        id: npm-cache-setup
-        with:
-          path: ${{ steps.npm-cache-dir-setup.outputs.dir }}
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install dependencies
-        if: steps.npm-cache-setup.outputs.cache-hit != 'true'
         run: |
-          echo "Cache miss - installing dependencies..."
+          echo "Installing dependencies..."
           npm ci
         continue-on-error: true
 
       - name: Verify dependencies
         run: |
           if [ ! -d "node_modules" ]; then
-            echo "Dependencies not found, installing..."
+            echo "Dependencies not found after npm ci, trying npm install..."
             npm install
           else
-            echo "Dependencies found in cache"
+            echo "Dependencies verified."
           fi
 
   deploy-cdk:
@@ -78,40 +65,27 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get npm cache directory
-        id: npm-cache-dir-deploy
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-
       - name: Setup Node.js
+        id: setup-node-deploy
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
 
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
-        id: npm-cache-deploy
-        with:
-          path: ${{ steps.npm-cache-dir-deploy.outputs.dir }}
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install dependencies
-        if: steps.npm-cache-deploy.outputs.cache-hit != 'true'
         run: |
-          echo "Cache miss - installing dependencies..."
-          npm ci
+          echo "Installing dependencies for deploy-cdk job..."
+          npm install
         continue-on-error: true
 
       - name: Verify dependencies
         run: |
           if [ ! -d "node_modules" ]; then
-            echo "Dependencies not found, installing..."
+            echo "Dependencies not found after npm ci in deploy-cdk, trying npm install..."
             npm install
           else
-            echo "Dependencies found in cache"
+            echo "Dependencies verified in deploy-cdk."
           fi
 
       - name: Configure AWS credentials
