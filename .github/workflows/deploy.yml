@@ -58,8 +58,6 @@ jobs:
       PROD_CLOUDFRONT_ID: ${{ secrets.PROD_CLOUDFRONT_ID }}
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Show deployment context
         run: |
@@ -67,12 +65,6 @@ jobs:
           echo "Repository: ${{ secrets.REPO_NAME }}"
           echo "S3 Bucket: ${{ github.ref == 'refs/heads/master' && env.PROD_S3_BUCKET || env.DEV_S3_BUCKET }}"
           echo "CloudFront ID: ${{ github.ref == 'refs/heads/master' && env.PROD_CLOUDFRONT_ID || env.DEV_CLOUDFRONT_ID }}"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm install --force
