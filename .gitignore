@@ -56,7 +56,13 @@ dist
 .serverless/
 .fusebox/
 .dynamodb/
+
+# CDK specific
 cdk.out
+.cdk.staging
+*.js
+!jest.config.js
+*.d.ts
 
 # TypeScript and package management
 # - TypeScript build info

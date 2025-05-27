@@ -1,4 +1,4 @@
-name: Setup AWS Infrastructure
+name: Configure AWS-GitHub Integration
 
 on:
   workflow_dispatch:
@@ -175,6 +175,7 @@ jobs:
           echo "${{ steps.generate-token.outputs.token }}" | gh auth login --with-token
 
       - name: Set GitHub Secrets
+        id: setup-complete
         run: |
           # Function to set secret with error handling
           set_secret() {
