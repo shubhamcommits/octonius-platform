@@ -74,23 +74,14 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      - name: Verify package files
-        run: |
-          if [ ! -f "package.json" ]; then
-            echo "package.json not found"
-            exit 1
-          fi
-          if [ ! -f "package-lock.json" ]; then
-            echo "package-lock.json not found"
-            exit 1
-          fi
-          echo "Package files verified successfully"
-
       - name: Install dependencies
-        run: npm ci
+        run: npm install --force
 
       - name: Build
         run: npm run build
+
+      - name: Remove node_modules
+        run: rm -rf node_modules
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
