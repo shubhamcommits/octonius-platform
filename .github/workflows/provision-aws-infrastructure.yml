@@ -35,7 +35,7 @@ jobs:
         id: setup-node
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
         run: |
@@ -67,7 +67,7 @@ jobs:
         id: setup-node-deploy
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
         run: |
@@ -91,9 +91,9 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Bootstrap CDK
-        run: npx cdk bootstrap aws://${{ env.AWS_ACCOUNT_ID }}/${{ env.AWS_REGION }}
+        run: npx cdk bootstrap aws://${{ env.AWS_ACCOUNT_ID }}/${{ env.AWS_REGION }} --context aws:account=${{ env.AWS_ACCOUNT_ID }} --context aws:region=${{ env.AWS_REGION }}
 
       - name: Deploy CDK stack
         run: |
           echo "Deploying CDK stack for environment: ${{ inputs.environment }}"
-          npx cdk deploy --require-approval never 
+          npx cdk deploy --require-approval never --context aws:account=${{ env.AWS_ACCOUNT_ID }} --context aws:region=${{ env.AWS_REGION }} 
