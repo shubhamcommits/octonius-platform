@@ -26,7 +26,7 @@ permissions:
   contents: read
 
 jobs:
-  check-requirements:
+  validate-deployment-prerequisites:
     if: github.repository == 'Octonius/octonius-platform' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.action == 'closed'))
     runs-on: ubuntu-latest
     outputs:
@@ -38,13 +38,47 @@ jobs:
           if [ -n "${{ secrets.AWS_ACCOUNT_ID }}" ] && [ -n "${{ secrets.AWS_ROLE_NAME }}" ] && [ -n "${{ secrets.AWS_REGION }}" ]; then
             echo "is-setup=true" >> $GITHUB_OUTPUT
           else
-            echo "Infrastructure not set up. Please run the 'Setup AWS Infrastructure' workflow first."
+            echo "Infrastructure not set up. Please run the 'Configure AWS-GitHub Integration' workflow first."
             echo "is-setup=false" >> $GITHUB_OUTPUT
             exit 1
           fi
 
+  setup-dependencies:
+    needs: validate-deployment-prerequisites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        id: setup-node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies..."
+          npm install
+        continue-on-error: true
+
+      - name: Verify dependencies
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "Dependencies not found after npm install, trying again..."
+            npm install
+          else
+            echo "Dependencies verified."
+          fi
+
+  deploy-cdk:
+    needs: setup-dependencies
+    uses: ./.github/workflows/provision-aws-infrastructure.yml
+    with:
+      environment: ${{ github.ref == 'refs/heads/master' && 'prod' || 'dev' }}
+    secrets: inherit
+
   deploy:
-    needs: check-requirements
+    needs: [setup-dependencies, deploy-cdk]
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/master' && 'prod' || 'dev' }}
     env:
@@ -59,21 +93,33 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Setup Node.js
+        id: setup-node-deploy
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies for deploy job..."
+          npm install
+        continue-on-error: true
+
+      - name: Verify dependencies
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "Dependencies not found after npm install in deploy job, trying again..."
+            npm install
+          else
+            echo "Dependencies verified in deploy job."
+          fi
+
       - name: Show deployment context
         run: |
           echo "Deploying to environment: ${{ github.ref == 'refs/heads/master' && 'prod' || 'dev' }}"
           echo "Repository: ${{ secrets.REPO_NAME }}"
           echo "S3 Bucket: ${{ github.ref == 'refs/heads/master' && env.PROD_S3_BUCKET || env.DEV_S3_BUCKET }}"
           echo "CloudFront ID: ${{ github.ref == 'refs/heads/master' && env.PROD_CLOUDFRONT_ID || env.DEV_CLOUDFRONT_ID }}"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Build
         run: npm run build
