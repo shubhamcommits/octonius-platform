@@ -7,7 +7,7 @@
     "author": "Shubham Singh",
     "license": "MIT",
     "bin": {
-        "cdk": "cdk/bin/cdk.js"
+        "cdk": "cdk/bin/cdk.ts"
     },
     "scripts": {
         "build": "NODE_OPTIONS=--max-old-space-size=4096 tsc --diagnostics --extendedDiagnostics",
