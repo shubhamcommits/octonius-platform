@@ -84,6 +84,9 @@ jobs:
           else
             echo "Dependencies verified in deploy-cdk."
           fi
+          
+      - name: Build
+        run: npm run build
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
