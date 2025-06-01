@@ -156,69 +156,6 @@ jobs:
                           "arn:aws:cloudfront::${AWS_ACCOUNT_ID}:distribution/${DEV_CLOUDFRONT_ID}",
                           "arn:aws:cloudfront::${AWS_ACCOUNT_ID}:distribution/${PROD_CLOUDFRONT_ID}"
                       ]
-                  },
-                  {
-                      "Sid": "CloudFormationPermissions",
-                      "Effect": "Allow",
-                      "Action": [
-                          "cloudformation:DescribeStacks",
-                          "cloudformation:CreateStack",
-                          "cloudformation:UpdateStack",
-                          "cloudformation:DeleteStack",
-                          "cloudformation:GetTemplateSummary",
-                          "cloudformation:ListStacks",
-                          "cloudformation:DescribeStackEvents",
-                          "cloudformation:DescribeStackResources",
-                          "cloudformation:GetTemplate",
-                          "cloudformation:ValidateTemplate"
-                      ],
-                      "Resource": [
-                          "arn:aws:cloudformation:${AWS_REGION}:${AWS_ACCOUNT_ID}:stack/CDKToolkit/*",
-                          "arn:aws:cloudformation:${AWS_REGION}:${AWS_ACCOUNT_ID}:stack/*"
-                      ]
-                  },
-                  {
-                      "Sid": "S3CDKToolkitPermissions",
-                      "Effect": "Allow",
-                      "Action": "s3:*",
-                      "Resource": [
-                          "arn:aws:s3:::cdktoolkit-*"
-                      ]
-                  },
-                  {
-                      "Sid": "IAMPassRoleAndCDKRoleManagement",
-                      "Effect": "Allow",
-                      "Action": [
-                          "iam:PassRole",
-                          "iam:GetRole",
-                          "iam:CreateRole",
-                          "iam:DeleteRole",
-                          "iam:AttachRolePolicy",
-                          "iam:DetachRolePolicy",
-                          "iam:PutRolePolicy"
-                      ],
-                      "Resource": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/cdk-*"
-                  },
-                  {
-                      "Sid": "STSAssumeCDKRoles",
-                      "Effect": "Allow",
-                      "Action": "sts:AssumeRole",
-                      "Resource": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/cdk-*"
-                  },
-                  {
-                      "Sid": "SSMCDKBootstrapParameters",
-                      "Effect": "Allow",
-                      "Action": "ssm:GetParameter",
-                      "Resource": "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/cdk-bootstrap/*"
-                  },
-                  {
-                      "Sid": "Route53HostedZoneLookupPermissions",
-                      "Effect": "Allow",
-                      "Action": [
-                          "route53:ListHostedZonesByName",
-                          "route53:GetHostedZone"
-                      ],
-                      "Resource": "*" 
                   }
               ]
           }
