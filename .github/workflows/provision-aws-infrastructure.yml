@@ -26,52 +26,30 @@ on:
         required: true
 
 jobs:
-  setup-dependencies:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: |
-          echo "Installing dependencies..."
-          npm install
-        continue-on-error: true
-
-      - name: Verify dependencies
-        run: |
-          if [ ! -d "node_modules" ]; then
-            echo "Dependencies not found after npm install, trying again..."
-            npm install
-          else
-            echo "Dependencies verified."
-          fi
-
   deploy-cdk:
-    needs: setup-dependencies
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       AWS_ROLE_NAME: ${{ secrets.AWS_ROLE_NAME }}
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      AWS_ACCOUNT_NUMBER: ${{ secrets.AWS_ACCOUNT_ID }}
+      NODE_ENV: ${{ inputs.environment }}
+      APP_NAME: 'octonius'
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME || 'octonius.example.com' }}
     steps:
       - uses: actions/checkout@v3
 
       - name: Setup Node.js
-        id: setup-node-deploy
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Install CDK
-        run: npm install -g aws-cdk
+        run: npm install -g aws-cdk@2.99.1
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -79,21 +57,6 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install dependencies
-        run: |
-          echo "Installing dependencies for deploy-cdk job..."
-          npm install
-        continue-on-error: true
-
-      - name: Verify dependencies
-        run: |
-          if [ ! -d "node_modules" ]; then
-            echo "Dependencies not found after npm install in deploy-cdk, trying again..."
-            npm install
-          else
-            echo "Dependencies verified in deploy-cdk."
-          fi
-          
       - name: Build
         run: npm run build
 
