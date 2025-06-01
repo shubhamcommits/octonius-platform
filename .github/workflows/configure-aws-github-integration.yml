@@ -174,6 +174,11 @@ jobs:
                           "arn:aws:cloudfront::${AWS_ACCOUNT_ID}:distribution/${DEV_CLOUDFRONT_ID}",
                           "arn:aws:cloudfront::${AWS_ACCOUNT_ID}:distribution/${PROD_CLOUDFRONT_ID}"
                       ]
+                  },
+                  {
+                      "Effect": "Allow",
+                      "Action": "sts:AssumeRole",
+                      "Resource": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/cdk-*"
                   }
               ]
           }
