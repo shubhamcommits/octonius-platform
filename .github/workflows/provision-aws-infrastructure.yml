@@ -26,52 +26,30 @@ on:
         required: true
 
 jobs:
-  setup-dependencies:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: |
-          echo "Installing dependencies..."
-          npm install
-        continue-on-error: true
-
-      - name: Verify dependencies
-        run: |
-          if [ ! -d "node_modules" ]; then
-            echo "Dependencies not found after npm install, trying again..."
-            npm install
-          else
-            echo "Dependencies verified."
-          fi
-
   deploy-cdk:
-    needs: setup-dependencies
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       AWS_ROLE_NAME: ${{ secrets.AWS_ROLE_NAME }}
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      AWS_ACCOUNT_NUMBER: ${{ secrets.AWS_ACCOUNT_ID }}
+      NODE_ENV: ${{ inputs.environment }}
+      APP_NAME: 'octonius'
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME || 'octonius.example.com' }}
     steps:
       - uses: actions/checkout@v3
 
       - name: Setup Node.js
-        id: setup-node-deploy
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Install CDK
-        run: npm install -g aws-cdk
+        run: npm install -g aws-cdk@2.99.1
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -79,21 +57,6 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install dependencies
-        run: |
-          echo "Installing dependencies for deploy-cdk job..."
-          npm install
-        continue-on-error: true
-
-      - name: Verify dependencies
-        run: |
-          if [ ! -d "node_modules" ]; then
-            echo "Dependencies not found after npm install in deploy-cdk, trying again..."
-            npm install
-          else
-            echo "Dependencies verified in deploy-cdk."
-          fi
-          
       - name: Build
         run: npm run build
 
@@ -108,8 +71,42 @@ jobs:
           echo "Expected Policy ARN: ${EXPECTED_POLICY_ARN}"
 
           if aws iam get-policy --policy-arn ${EXPECTED_POLICY_ARN} > /dev/null 2>&1; then
-            echo "Policy ${POLICY_NAME} found. Creating a new version and setting it as default."
-            VERSION_INFO=$(aws iam create-policy-version --policy-arn ${EXPECTED_POLICY_ARN} --policy-document file://${POLICY_FILE_PATH} --set-as-default)
+            echo "Policy ${POLICY_NAME} found. Managing versions and updating."
+
+            # List versions and count them
+            POLICY_VERSIONS_JSON=$(aws iam list-policy-versions --policy-arn "${EXPECTED_POLICY_ARN}")
+            VERSION_COUNT=$(echo "${POLICY_VERSIONS_JSON}" | jq '.Versions | length')
+
+            echo "Current version count: ${VERSION_COUNT}"
+            echo "Policy versions details:"
+            echo "${POLICY_VERSIONS_JSON}" | jq '.Versions[] | {VersionId, IsDefaultVersion, CreateDate}'
+
+            # If version count is at the limit (e.g., 5)
+            if [ "${VERSION_COUNT}" -ge 5 ]; then
+              echo "Version limit (5) reached. Deleting oldest non-default version."
+              
+              # Get VersionId of the oldest non-default version
+              OLDEST_NON_DEFAULT_VERSION_ID=$(echo "${POLICY_VERSIONS_JSON}" | \
+                jq -r '.Versions | sort_by(.CreateDate) | map(select(.IsDefaultVersion == false)) | .[0].VersionId // null')
+
+              if [ -n "${OLDEST_NON_DEFAULT_VERSION_ID}" ] && [ "${OLDEST_NON_DEFAULT_VERSION_ID}" != "null" ] && [ "${OLDEST_NON_DEFAULT_VERSION_ID}" != "" ]; then
+                echo "Deleting oldest non-default version: ${OLDEST_NON_DEFAULT_VERSION_ID}"
+                aws iam delete-policy-version --policy-arn "${EXPECTED_POLICY_ARN}" --version-id "${OLDEST_NON_DEFAULT_VERSION_ID}"
+                if [ $? -ne 0 ]; then
+                  echo "Failed to delete old policy version ${OLDEST_NON_DEFAULT_VERSION_ID}. Exiting."
+                  exit 1
+                fi
+                echo "Successfully deleted version ${OLDEST_NON_DEFAULT_VERSION_ID}"
+              else
+                echo "ERROR: Could not find a non-default version to delete."
+                echo "This is unusual - all 5 versions appear to be default or there's a parsing issue."
+                echo "Attempting to proceed with policy update anyway..."
+              fi
+            fi
+
+            # Now, create the new version and set it as default
+            echo "Creating new policy version and setting as default."
+            VERSION_INFO=$(aws iam create-policy-version --policy-arn "${EXPECTED_POLICY_ARN}" --policy-document file://${POLICY_FILE_PATH} --set-as-default)
             if [ $? -ne 0 ]; then
               echo "Failed to create new version for policy ${POLICY_NAME}. Exiting."
               exit 1
@@ -130,9 +127,20 @@ jobs:
         shell: bash
 
       - name: Bootstrap CDK
-        run: npx cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }}
+        run: |
+          npx cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
+          if [ $? -ne 0 ]; then
+            echo "CDK bootstrap failed. Exiting."
+            exit 1
+          fi
+          echo "CDK bootstrap completed successfully."
 
       - name: Deploy CDK stack
         run: |
           echo "Deploying CDK stack for environment: ${{ inputs.environment }}"
-          npx cdk deploy --require-approval never 
+          npx cdk deploy --require-approval never --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }}
+          if [ $? -ne 0 ]; then
+            echo "CDK deploy failed. Exiting."
+            exit 1
+          fi
+          echo "CDK deploy completed successfully." 

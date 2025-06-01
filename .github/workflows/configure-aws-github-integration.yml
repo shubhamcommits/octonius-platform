@@ -70,7 +70,11 @@ jobs:
 
       - name: Create trust policy
         run: |
-          cat > trust-policy.json << 'EOF'
+          echo "Creating trust policy with:"
+          echo "  AWS_ACCOUNT_ID: ${AWS_ACCOUNT_ID}"
+          echo "  GITHUB_REPOSITORY: ${GITHUB_REPOSITORY}"
+          
+          cat > trust-policy.json << EOF
           {
               "Version": "2012-10-17",
               "Statement": [
@@ -92,6 +96,8 @@ jobs:
               ]
           }
           EOF
+          echo "Trust policy content:"
+          cat trust-policy.json
 
       - name: Check and Create IAM role
         run: |
@@ -115,6 +121,14 @@ jobs:
           DEV_CLOUDFRONT_ID: ${{ inputs.dev_cloudfront_id }}
           PROD_CLOUDFRONT_ID: ${{ inputs.prod_cloudfront_id }}
         run: |
+          echo "Creating role policy with:"
+          echo "  AWS_ACCOUNT_ID: ${AWS_ACCOUNT_ID}"
+          echo "  AWS_REGION: ${AWS_REGION}"
+          echo "  DEV_S3_BUCKET: ${DEV_S3_BUCKET}"
+          echo "  PROD_S3_BUCKET: ${PROD_S3_BUCKET}"
+          echo "  DEV_CLOUDFRONT_ID: ${DEV_CLOUDFRONT_ID}"
+          echo "  PROD_CLOUDFRONT_ID: ${PROD_CLOUDFRONT_ID}"
+          
           cat > role-policy.json << EOF
           {
               "Version": "2012-10-17",
@@ -177,14 +191,161 @@ jobs:
                   },
                   {
                       "Effect": "Allow",
-                      "Action": "sts:AssumeRole",
+                      "Action": [
+                          "sts:AssumeRole",
+                          "iam:PassRole"
+                      ],
                       "Resource": [
                         "arn:aws:iam::${AWS_ACCOUNT_ID}:role/cdk-*"
                       ]
+                  },
+                  {
+                      "Sid": "CloudFormationPermissions",
+                      "Effect": "Allow",
+                      "Action": [
+                          "cloudformation:CreateStack",
+                          "cloudformation:UpdateStack",
+                          "cloudformation:DeleteStack",
+                          "cloudformation:DescribeStacks",
+                          "cloudformation:DescribeStackEvents",
+                          "cloudformation:DescribeStackResources",
+                          "cloudformation:GetTemplate",
+                          "cloudformation:ValidateTemplate",
+                          "cloudformation:CreateChangeSet",
+                          "cloudformation:DescribeChangeSet",
+                          "cloudformation:ExecuteChangeSet",
+                          "cloudformation:DeleteChangeSet",
+                          "cloudformation:ListStackResources",
+                          "cloudformation:DescribeStackDriftDetectionStatus",
+                          "cloudformation:DetectStackDrift",
+                          "cloudformation:DescribeStackResourceDrifts",
+                          "cloudformation:GetTemplateSummary",
+                          "cloudformation:ListExports",
+                          "cloudformation:ListImports",
+                          "cloudformation:DescribeStackInstance",
+                          "cloudformation:ListStacks",
+                          "cloudformation:SetStackPolicy",
+                          "cloudformation:GetStackPolicy"
+                      ],
+                      "Resource": [
+                          "arn:aws:cloudformation:${AWS_REGION}:${AWS_ACCOUNT_ID}:stack/CDKToolkit/*",
+                          "arn:aws:cloudformation:${AWS_REGION}:${AWS_ACCOUNT_ID}:stack/*/*"
+                      ]
+                  },
+                  {
+                      "Sid": "CDKContextLookupPermissions",
+                      "Effect": "Allow",
+                      "Action": [
+                          "ec2:DescribeAvailabilityZones",
+                          "ec2:DescribeVpcs",
+                          "ec2:DescribeSubnets",
+                          "ec2:DescribeRouteTables",
+                          "ec2:DescribeSecurityGroups",
+                          "route53:ListHostedZones",
+                          "route53:ListHostedZonesByName",
+                          "route53:GetHostedZone",
+                          "ssm:GetParameter"
+                      ],
+                      "Resource": "*"
+                  },
+                  {
+                      "Sid": "S3CDKToolkitBucketPermissions",
+                      "Effect": "Allow",
+                      "Action": [
+                          "s3:CreateBucket",
+                          "s3:GetBucketLocation",
+                          "s3:GetBucketVersioning",
+                          "s3:PutBucketVersioning",
+                          "s3:GetEncryptionConfiguration",
+                          "s3:PutEncryptionConfiguration",
+                          "s3:GetBucketPublicAccessBlock",
+                          "s3:PutBucketPublicAccessBlock",
+                          "s3:PutBucketPolicy",
+                          "s3:GetBucketPolicy",
+                          "s3:PutLifecycleConfiguration",
+                          "s3:PutBucketTagging",
+                          "s3:GetBucketTagging",
+                          "s3:PutObject",
+                          "s3:GetObject",
+                          "s3:ListBucket",
+                          "s3:DeleteObject",
+                          "s3:DeleteBucket"
+                      ],
+                      "Resource": [
+                          "arn:aws:s3:::cdk-*"
+                      ]
+                  },
+                  {
+                      "Sid": "SSMCDKBootstrapParameters",
+                      "Effect": "Allow", 
+                      "Action": [
+                          "ssm:GetParameter",
+                          "ssm:PutParameter"
+                      ],
+                      "Resource": [
+                          "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/cdk-bootstrap/*"
+                      ]
+                  },
+                  {
+                      "Sid": "ECRCDKBootstrapPermissions",
+                      "Effect": "Allow",
+                      "Action": [
+                          "ecr:CreateRepository",
+                          "ecr:DescribeRepositories",
+                          "ecr:PutLifecyclePolicy",
+                          "ecr:SetRepositoryPolicy",
+                          "ecr:DeleteRepository"
+                      ],
+                      "Resource": [
+                          "arn:aws:ecr:${AWS_REGION}:${AWS_ACCOUNT_ID}:repository/cdk-*"
+                      ]
+                  },
+                  {
+                      "Sid": "IAMCDKBootstrapRoleCreation",
+                      "Effect": "Allow",
+                      "Action": [
+                          "iam:CreateRole",
+                          "iam:AttachRolePolicy",
+                          "iam:PutRolePolicy",
+                          "iam:GetRole",
+                          "iam:TagRole",
+                          "iam:UpdateRole",
+                          "iam:DeleteRole",
+                          "iam:DetachRolePolicy",
+                          "iam:DeleteRolePolicy",
+                          "iam:UpdateAssumeRolePolicy"
+                      ],
+                      "Resource": [
+                          "arn:aws:iam::${AWS_ACCOUNT_ID}:role/cdk-*"
+                      ]
+                  },
+                  {
+                      "Sid": "KMSCDKBootstrapPermissions",
+                      "Effect": "Allow",
+                      "Action": [
+                          "kms:CreateKey",
+                          "kms:CreateAlias",
+                          "kms:DescribeKey",
+                          "kms:PutKeyPolicy",
+                          "kms:TagResource",
+                          "kms:UntagResource",
+                          "kms:ScheduleKeyDeletion",
+                          "kms:CreateGrant",
+                          "kms:DescribeKeyPolicy"
+                      ],
+                      "Resource": "*",
+                      "Condition": {
+                          "StringLike": {
+                              "kms:AliasName": "alias/cdk-*"
+                          }
+                      }
                   }
               ]
           }
           EOF
+
+          echo "Role policy content (first 50 lines):"
+          head -n 50 role-policy.json
 
           # Always update the policy to ensure it's current
           aws iam put-role-policy \

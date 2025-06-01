@@ -41,15 +41,48 @@ export class EcsStack extends cdk.Stack {
             containerInsights: true
         })
 
-        // Create ECR repository
+        // Create ECR repository with enhanced security
         this.repository = new ecr.Repository(this, 'octonius_repo', {
             repositoryName: 'octonius',
             removalPolicy: cdk.RemovalPolicy.RETAIN,
             imageScanOnPush: true,
-            encryption: ecr.RepositoryEncryption.AES_256
+            encryption: ecr.RepositoryEncryption.KMS,
+            imageTagMutability: ecr.TagMutability.IMMUTABLE,
+            lifecycleRules: [
+                {
+                    maxImageCount: 100,
+                    rulePriority: 1,
+                    description: 'Keep only 100 images'
+                },
+                {
+                    maxImageAge: cdk.Duration.days(30),
+                    rulePriority: 2,
+                    description: 'Remove images older than 30 days'
+                }
+            ]
         })
 
-        // Create task execution role
+        // Add image scanning policy
+        const scanningPolicy = new ecr.CfnRegistryPolicy(this, 'octonius_scanning_policy', {
+            policyText: JSON.stringify({
+                rules: [
+                    {
+                        rulePriority: 1,
+                        description: 'Scan all images on push',
+                        selection: {
+                            tagStatus: 'tagged',
+                            tagPrefixList: ['prod', 'staging', 'dev'],
+                            repositoryNames: [this.repository.repositoryName]
+                        },
+                        action: {
+                            type: 'SCAN'
+                        }
+                    }
+                ]
+            })
+        })
+
+        // Create task execution role with enhanced permissions
         const taskExecutionRole = new iam.Role(this, 'octonius_task_execution_role', {
             assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
             managedPolicies: [
@@ -57,10 +90,36 @@ export class EcsStack extends cdk.Stack {
             ]
         })
 
-        // Create task role
+        // Add permissions for Secrets Manager
+        taskExecutionRole.addToPolicy(new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+                'secretsmanager:GetSecretValue',
+                'secretsmanager:DescribeSecret'
+            ],
+            resources: [
+                `arn:aws:secretsmanager:${this.region}:${this.account}:secret:octonius-*`
+            ]
+        }))
+
+        // Create task role with least privilege
         const taskRole = new iam.Role(this, 'octonius_task_role', {
             assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
         })
+
+        // Add specific permissions needed by the application
+        taskRole.addToPolicy(new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+                's3:GetObject',
+                's3:PutObject',
+                's3:ListBucket'
+            ],
+            resources: [
+                `arn:aws:s3:::octonius-*/*`,
+                `arn:aws:s3:::octonius-*`
+            ]
+        }))
 
         // Create task definition
         this.taskDefinition = new ecs.FargateTaskDefinition(this, 'octonius_task', {
@@ -71,33 +130,35 @@ export class EcsStack extends cdk.Stack {
             family: 'octonius-task'
         })
 
-        // Add container to task definition
-        const container = this.taskDefinition.addContainer('octonius_container', {
-            image: ecs.ContainerImage.fromEcrRepository(this.repository),
-            logging: ecs.LogDrivers.awsLogs({
-                streamPrefix: 'octonius',
-                logRetention: cdk.aws_logs.RetentionDays.ONE_WEEK
-            }),
-            environment: {
-                NODE_ENV: 'production',
-                REGION: 'eu-central-1'
-            },
-            healthCheck: {
-                command: ['CMD-SHELL', 'curl -f http://localhost:3000/health || exit 1'],
-                interval: cdk.Duration.seconds(30),
-                timeout: cdk.Duration.seconds(5),
-                retries: 3,
-                startPeriod: cdk.Duration.seconds(60)
-            }
+        // Create security group for ECS service
+        const serviceSecurityGroup = new ec2.SecurityGroup(this, 'octonius_service_sg', {
+            vpc: props.vpc,
+            description: 'Security group for Octonius ECS service',
+            allowAllOutbound: false
         })
 
-        // Add port mappings
-        container.addPortMappings({
-            containerPort: 3000,
-            protocol: ecs.Protocol.TCP
-        })
+        // Allow HTTPS outbound
+        serviceSecurityGroup.addEgressRule(
+            ec2.Peer.anyIpv4(),
+            ec2.Port.tcp(443),
+            'Allow HTTPS outbound'
+        )
 
-        // Create Fargate service
+        // Allow HTTP outbound for package downloads
+        serviceSecurityGroup.addEgressRule(
+            ec2.Peer.anyIpv4(),
+            ec2.Port.tcp(80),
+            'Allow HTTP outbound'
+        )
+
+        // Allow inbound from ALB
+        serviceSecurityGroup.addIngressRule(
+            ec2.Peer.ipv4(props.vpc.vpcCidrBlock),
+            ec2.Port.tcp(3000),
+            'Allow inbound from ALB'
+        )
+
+        // Create Fargate service with enhanced security
         this.service = new ecs.FargateService(this, 'octonius_service', {
             cluster: this.cluster,
             taskDefinition: this.taskDefinition,
@@ -108,21 +169,21 @@ export class EcsStack extends cdk.Stack {
             vpcSubnets: {
                 subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
             },
-            securityGroups: [
-                new ec2.SecurityGroup(this, 'octonius_service_sg', {
-                    vpc: props.vpc,
-                    description: 'Security group for Octonius ECS service',
-                    allowAllOutbound: true
-                })
-            ],
+            securityGroups: [serviceSecurityGroup],
             circuitBreaker: { rollback: true },
             enableECSManagedTags: true,
-            propagateTags: ecs.PropagatedTagSource.SERVICE
+            propagateTags: ecs.PropagatedTagSource.SERVICE,
+            enableExecuteCommand: false,
+            platformVersion: ecs.FargatePlatformVersion.LATEST
         })
 
         // Add tags for cost allocation
         if (props?.tags) {
-            Object.entries(props.tags).forEach(([key, value]) => cdk.Tags.of(this.cluster).add(key, value as string))
+            Object.entries(props.tags).forEach(([key, value]) => {
+                cdk.Tags.of(this.cluster).add(key, value as string)
+                cdk.Tags.of(this.repository).add(key, value as string)
+                cdk.Tags.of(this.service).add(key, value as string)
+            })
         }
     }
 } 
