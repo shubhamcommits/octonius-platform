@@ -70,23 +70,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: |
-          echo "Installing dependencies for deploy-cdk job..."
-          npm install
-        continue-on-error: true
-
-      - name: Verify dependencies
-        run: |
-          if [ ! -d "node_modules" ]; then
-            echo "Dependencies not found after npm install in deploy-cdk, trying again..."
-            npm install
-          else
-            echo "Dependencies verified in deploy-cdk."
-          fi
-          
-      - name: Build
-        run: npm run build
+      - name: Install CDK
+        run: npm install -g aws-cdk
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -94,8 +79,40 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Create/Update IAM Policy for CDK CloudFormation Execution
+        run: |
+          POLICY_NAME="${{ inputs.environment }}-cdk-deploy-policy"
+          POLICY_FILE_PATH="cdk/cdk-deploy-policy.json"
+          ACCOUNT_ID="${{ env.AWS_ACCOUNT_ID }}"
+          EXPECTED_POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${POLICY_NAME}"
+
+          echo "Ensuring IAM policy ${POLICY_NAME} is up-to-date from ${POLICY_FILE_PATH}"
+          echo "Expected Policy ARN: ${EXPECTED_POLICY_ARN}"
+
+          if aws iam get-policy --policy-arn ${EXPECTED_POLICY_ARN} > /dev/null 2>&1; then
+            echo "Policy ${POLICY_NAME} found. Creating a new version and setting it as default."
+            VERSION_INFO=$(aws iam create-policy-version --policy-arn ${EXPECTED_POLICY_ARN} --policy-document file://${POLICY_FILE_PATH} --set-as-default)
+            if [ $? -ne 0 ]; then
+              echo "Failed to create new version for policy ${POLICY_NAME}. Exiting."
+              exit 1
+            fi
+            echo "New version created and set as default: $VERSION_INFO"
+          else
+            echo "Policy ${POLICY_NAME} not found. Creating it."
+            POLICY_INFO=$(aws iam create-policy --policy-name ${POLICY_NAME} --policy-document file://${POLICY_FILE_PATH} --description "Policy for CDK CloudFormation execution, managed by GitHub Actions for environment ${{ inputs.environment }}")
+            if [ $? -ne 0 ]; then
+              echo "Failed to create policy ${POLICY_NAME}. Exiting."
+              exit 1
+            fi
+            echo "Policy ${POLICY_NAME} created: $POLICY_INFO"
+          fi
+          
+          echo "Successfully prepared policy ${EXPECTED_POLICY_ARN}"
+          echo "AWS_CDK_POLICY_ARN_FROM_FILE=${EXPECTED_POLICY_ARN}" >> $GITHUB_ENV
+        shell: bash
+
       - name: Bootstrap CDK
-        run: npx cdk bootstrap aws://${{ env.AWS_ACCOUNT_ID }}/${{ env.AWS_REGION }}
+        run: npx cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }}
 
       - name: Deploy CDK stack
         run: |
