@@ -10,17 +10,6 @@ on:
       - '.gitignore'
       - 'LICENSE'
 
-  pull_request:
-    types:
-      - closed
-    branches:
-      - development
-      - master
-    paths-ignore:
-      - '**/*.md'
-      - '.gitignore'
-      - 'LICENSE'
-
 permissions:
   id-token: write
   contents: read

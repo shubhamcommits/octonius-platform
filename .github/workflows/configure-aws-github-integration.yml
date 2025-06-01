@@ -92,6 +92,8 @@ jobs:
               ]
           }
           EOF
+          echo "Trust policy content:"
+          cat trust-policy.json
 
       - name: Check and Create IAM role
         run: |
@@ -177,7 +179,10 @@ jobs:
                   },
                   {
                       "Effect": "Allow",
-                      "Action": "sts:AssumeRole",
+                      "Action": [
+                          "sts:AssumeRole",
+                          "iam:PassRole"
+                      ],
                       "Resource": [
                         "arn:aws:iam::${AWS_ACCOUNT_ID}:role/cdk-*"
                       ]
