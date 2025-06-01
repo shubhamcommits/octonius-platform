@@ -127,7 +127,7 @@ jobs:
         shell: bash
 
       - name: Bootstrap CDK
-        run: npx cdk bootstrap aws://${{ env.AWS_ACCOUNT_ID }}/${{ env.AWS_REGION }} --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }}
+        run: npx cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }}
 
       - name: Deploy CDK stack
         run: |
