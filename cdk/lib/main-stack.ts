@@ -1,11 +1,5 @@
 import * as cdk from 'aws-cdk-lib'
 import { Construct } from 'constructs'
-import { Vpc, SecurityGroup, Peer, Port, SubnetType } from 'aws-cdk-lib/aws-ec2'
-import * as s3 from 'aws-cdk-lib/aws-s3'
-import { CfnSubnetGroup } from 'aws-cdk-lib/aws-elasticache'
-import { LambdaIntegration } from 'aws-cdk-lib/aws-apigateway'
-import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications'
-import { EventType } from 'aws-cdk-lib/aws-s3'
 
 // Import existing stacks
 import { VpcStack } from './vpc-stack'
