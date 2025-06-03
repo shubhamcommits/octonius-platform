@@ -264,11 +264,15 @@ jobs:
           
           # Show the diff before deploying
           echo "Showing changes that will be deployed:"
-          npx cdk diff --verbose
+          npx cdk diff --verbose || true
+          
+          # List all stacks that will be deployed
+          echo "Stacks to be deployed:"
+          npx cdk list --verbose
           
           # Deploy with explicit approval and more verbose output
           echo "Starting CDK deployment..."
-          npx cdk deploy --require-approval never --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose --debug
+          npx cdk deploy --require-approval never --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose --debug --all
           
           if [ $? -ne 0 ]; then
             echo "CDK deploy failed. Exiting."
@@ -278,5 +282,9 @@ jobs:
           # List deployed stacks after deployment
           echo "Listing deployed stacks:"
           aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --query "StackSummaries[?contains(StackName, '${{ inputs.environment }}')]"
+          
+          # List all CloudFormation stacks for debugging
+          echo "All CloudFormation stacks:"
+          aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE
           
           echo "CDK deploy completed successfully." 

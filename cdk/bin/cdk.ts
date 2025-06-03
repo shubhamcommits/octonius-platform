@@ -27,7 +27,8 @@ if (missing_env_vars.length > 0) {
 const app = new cdk.App()
 
 // Define regions to deploy to
-const regions = [process.env.AWS_REGION || 'eu-central-1']
+const region = process.env.AWS_REGION || 'eu-central-1'
+console.log(`Deploying to region: ${region}`)
 
 // Define common tags
 const COMMON_TAGS = {
@@ -37,27 +38,31 @@ const COMMON_TAGS = {
     ManagedBy: 'CDK'
 }
 
-// For each region create the stack
-regions.forEach(region => {
-    
-    // Define base stack name
-    const baseStackName = `${process.env.NODE_ENV}-${process.env.APP_NAME}`
-    
-    // Get account ID
-    const accountId = process.env.AWS_ACCOUNT_ID
+// Define base stack name
+const baseStackName = `${process.env.NODE_ENV}-${process.env.APP_NAME}`
+console.log(`Base stack name: ${baseStackName}`)
 
-    // Create stack name with region suffix
-    const stackName = `${baseStackName}-${region}`
+// Get account ID
+const accountId = process.env.AWS_ACCOUNT_ID
+console.log(`Account ID: ${accountId}`)
 
-    // Create main stack
-    new MainStack(app, stackName, {
-        env: {
-            account: accountId,
-            region: region
-        },
-        tags: {
-            ...COMMON_TAGS,
-            Region: region
-        }
-    })
-}) 
+// Create main stack
+new MainStack(app, baseStackName, {
+    env: {
+        account: accountId,
+        region: region
+    },
+    tags: {
+        ...COMMON_TAGS,
+        Region: region
+    }
+})
+
+// Output app configuration
+console.log('CDK App Configuration:')
+console.log(JSON.stringify({
+    region,
+    baseStackName,
+    accountId,
+    tags: COMMON_TAGS
+}, null, 2)) 
