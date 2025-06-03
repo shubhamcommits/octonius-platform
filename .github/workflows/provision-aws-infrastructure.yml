@@ -61,31 +61,7 @@ jobs:
 
       - name: Install CDK
         run: |
-          npm install -g aws-cdk@2.99.1
-
-      - name: Build
-        run: |
-          # Clean the dist directory first
-          rm -rf dist/
-          # Build the project
-          npm run build
-          # Verify the build output exists
-          if [ ! -f "dist/cdk/bin/cdk.js" ]; then
-            echo "Build failed: dist/cdk/bin/cdk.js not found"
-            exit 1
-          fi
-          # List the contents of dist directory for debugging
-          echo "Contents of dist directory:"
-          ls -R dist/
-          
-          # Check and set permissions for cdk.js
-          echo "Setting permissions for cdk.js"
-          chmod +x dist/cdk/bin/cdk.js
-          ls -l dist/cdk/bin/cdk.js
-          
-          # Print the contents of the CDK entry point
-          echo "Contents of CDK entry point:"
-          cat dist/cdk/bin/cdk.js
+          npm install -g aws-cdk
 
       - name: Preprocess policy files
         run: |
@@ -263,49 +239,15 @@ jobs:
           echo "Current CDK context:"
           npx aws-cdk context --json
 
-      - name: Deploy CDK stack
+      - name: CDK Deploy
+        env:
+          NODE_ENV: ${{ inputs.environment }}
         run: |
-          echo "Deploying CDK stack for environment: ${{ inputs.environment }}"
-          
-          # Debug CDK configuration
-          echo "CDK Configuration:"
-          npx aws-cdk context --json
-          
-          # Show the diff before deploying
-          echo "Showing changes that will be deployed:"
-          npx aws-cdk diff --verbose || true
-          
-          # List all stacks that will be deployed
-          echo "Stacks to be deployed:"
-          npx aws-cdk list --verbose
-          
-          # Deploy with explicit approval and more verbose output
-          echo "Starting CDK deployment..."
-          npx aws-cdk deploy --require-approval never --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose --debug --all --outputs-file cdk-outputs.json
-          
-          if [ $? -ne 0 ]; then
-            echo "CDK deploy failed. Exiting."
+          if [ "$NODE_ENV" = "prod" ]; then
+            cdk deploy --all --require-approval never --parameters env=prod
+          elif [ "$NODE_ENV" = "dev" ]; then
+            cdk deploy --all --require-approval never --parameters env=dev
+          else
+            echo "Unknown environment: $NODE_ENV"
             exit 1
-          fi
-          
-          # Show deployment outputs
-          echo "Deployment outputs:"
-          cat cdk-outputs.json || true
-          
-          # List deployed stacks after deployment
-          echo "Listing deployed stacks:"
-          aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --query "StackSummaries[?contains(StackName, '${{ inputs.environment }}')]"
-          
-          # List all CloudFormation stacks for debugging
-          echo "All CloudFormation stacks:"
-          aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE
-          
-          # Check if the stack exists in CloudFormation
-          echo "Checking if stack exists in CloudFormation:"
-          aws cloudformation describe-stacks --stack-name dev-octonius || true
-          
-          # Verify environment variables
-          echo "Environment Variables:" 
-          env
-          
-          echo "CDK deploy completed successfully." 
+          fi 
