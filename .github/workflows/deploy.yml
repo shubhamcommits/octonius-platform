@@ -11,7 +11,6 @@ on:
       - 'LICENSE'
       - 'cdk/**'
       - '.github/workflows/configure-aws-github-integration.yml'
-      - '.github/workflows/provision-aws-infrastructure.yml'
 
 permissions:
   id-token: write
