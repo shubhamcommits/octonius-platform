@@ -1,19 +1,10 @@
 {
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
+    "target": "ES2018",
+    "module": "commonjs",
+    "lib": ["es2018"],
     "declaration": true,
-    "esModuleInterop": true,
-    "lib": [
-      "es2021"
-    ],
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "outDir": "dist",
     "strict": true,
-    "target": "ESNext",
-    "skipLibCheck": true,
-    "noEmitOnError": false,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noImplicitThis": true,
@@ -24,11 +15,18 @@
     "noFallthroughCasesInSwitch": false,
     "inlineSourceMap": true,
     "inlineSources": true,
-    "strictPropertyInitialization": false
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
+    "typeRoots": ["./node_modules/@types"],
+    "outDir": "dist",
+    "rootDir": ".",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "noEmitOnError": false
   },
   "include": [
     "src/**/*",
-    "/**/*",
     "cdk/**/*"
   ],
   "exclude": [

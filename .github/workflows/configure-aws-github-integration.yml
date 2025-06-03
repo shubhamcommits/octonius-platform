@@ -152,6 +152,7 @@ jobs:
                       "Effect": "Allow",
                       "Action": [
                           "iam:*",
+                          "sts:*",
                           "rds:*",
                           "s3:*",
                           "kms:*",

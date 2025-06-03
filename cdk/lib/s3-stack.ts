@@ -3,7 +3,6 @@ import * as cdk from 'aws-cdk-lib'
 
 // Import AWS constructs
 import * as s3 from 'aws-cdk-lib/aws-s3'
-import * as iam from 'aws-cdk-lib/aws-iam'
 
 // Import Construct base class
 import { Construct } from 'constructs'
@@ -20,12 +19,19 @@ export class S3Stack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props)
 
+        if (!props?.env?.account || !props?.env?.region) {
+            throw new Error('Account and region must be specified in stack props')
+        }
+
+        const { account, region } = props.env
+
         // Create assets bucket
         this.assets_bucket = new s3.Bucket(this, 'OctoniusAssetsBucket', {
-            bucketName: `octonius-assets-${this.account}-${this.region}`,
+            bucketName: `octonius-assets-${account}-${region}`,
             versioned: true,
             encryption: s3.BucketEncryption.S3_MANAGED,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+            removalPolicy: cdk.RemovalPolicy.RETAIN,
             lifecycleRules: [
                 {
                     expiration: cdk.Duration.days(365),
@@ -45,10 +51,11 @@ export class S3Stack extends cdk.Stack {
 
         // Create backups bucket
         this.backups_bucket = new s3.Bucket(this, 'OctoniusBackupsBucket', {
-            bucketName: `octonius-backups-${this.account}-${this.region}`,
+            bucketName: `octonius-backups-${account}-${region}`,
             versioned: true,
             encryption: s3.BucketEncryption.S3_MANAGED,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+            removalPolicy: cdk.RemovalPolicy.RETAIN,
             lifecycleRules: [
                 {
                     expiration: cdk.Duration.days(365),
@@ -65,5 +72,13 @@ export class S3Stack extends cdk.Stack {
                 }
             ]
         })
+
+        // Add tags to buckets
+        if (props?.tags) {
+            Object.entries(props.tags).forEach(([key, value]) => {
+                cdk.Tags.of(this.assets_bucket).add(key, value as string)
+                cdk.Tags.of(this.backups_bucket).add(key, value as string)
+            })
+        }
     }
 } 
