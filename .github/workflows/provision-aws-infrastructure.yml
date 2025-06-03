@@ -24,6 +24,18 @@ on:
         required: true
       AWS_ACCOUNT_ID:
         required: true
+      DEV_S3_BUCKET:
+        required: true
+      PROD_S3_BUCKET:
+        required: true
+      DEV_CLOUDFRONT_ID:
+        required: true
+      PROD_CLOUDFRONT_ID:
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   deploy-cdk:
