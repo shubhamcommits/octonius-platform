@@ -225,7 +225,16 @@ jobs:
                           "cloudformation:DescribeStackInstance",
                           "cloudformation:ListStacks",
                           "cloudformation:SetStackPolicy",
-                          "cloudformation:GetStackPolicy"
+                          "cloudformation:GetStackPolicy",
+                          "cloudformation:ListChangeSets",
+                          "cloudformation:GetTemplateSummary",
+                          "cloudformation:ListStackResources",
+                          "cloudformation:ListStacks",
+                          "cloudformation:UpdateTerminationProtection",
+                          "cloudformation:GetTemplateSummary",
+                          "cloudformation:ListStackResources",
+                          "cloudformation:ListStacks",
+                          "cloudformation:UpdateTerminationProtection"
                       ],
                       "Resource": [
                           "arn:aws:cloudformation:${AWS_REGION}:${AWS_ACCOUNT_ID}:stack/CDKToolkit/*",
@@ -244,7 +253,41 @@ jobs:
                           "route53:ListHostedZones",
                           "route53:ListHostedZonesByName",
                           "route53:GetHostedZone",
-                          "ssm:GetParameter"
+                          "ssm:GetParameter",
+                          "ec2:DescribeRegions",
+                          "ec2:DescribeAccountAttributes",
+                          "ec2:DescribeImages",
+                          "ec2:DescribeInstanceTypes",
+                          "ec2:DescribeKeyPairs",
+                          "ec2:DescribeSecurityGroups",
+                          "ec2:DescribeVpcs",
+                          "ec2:DescribeSubnets",
+                          "ec2:DescribeAvailabilityZones",
+                          "ec2:DescribeRouteTables",
+                          "ec2:DescribeNetworkAcls",
+                          "ec2:DescribeNetworkInterfaces",
+                          "ec2:DescribeTags",
+                          "ec2:DescribeVolumes",
+                          "ec2:DescribeSnapshots",
+                          "ec2:DescribeInstances",
+                          "ec2:DescribeAddresses",
+                          "ec2:DescribeNatGateways",
+                          "ec2:DescribeInternetGateways",
+                          "ec2:DescribeVpcEndpoints",
+                          "ec2:DescribeVpcEndpointServices",
+                          "ec2:DescribeVpcPeeringConnections",
+                          "ec2:DescribeVpcAttribute",
+                          "ec2:DescribeSubnetAttribute",
+                          "ec2:DescribeNetworkInterfaceAttribute",
+                          "ec2:DescribeVolumeAttribute",
+                          "ec2:DescribeSnapshotAttribute",
+                          "ec2:DescribeInstanceAttribute",
+                          "ec2:DescribeAddressesAttribute",
+                          "ec2:DescribeNatGatewayAttribute",
+                          "ec2:DescribeInternetGatewayAttribute",
+                          "ec2:DescribeVpcEndpointAttribute",
+                          "ec2:DescribeVpcEndpointServiceAttribute",
+                          "ec2:DescribeVpcPeeringConnectionAttribute"
                       ],
                       "Resource": "*"
                   },
@@ -280,10 +323,15 @@ jobs:
                       "Effect": "Allow", 
                       "Action": [
                           "ssm:GetParameter",
-                          "ssm:PutParameter"
+                          "ssm:PutParameter",
+                          "ssm:DeleteParameter",
+                          "ssm:GetParameters",
+                          "ssm:GetParametersByPath",
+                          "ssm:DescribeParameters"
                       ],
                       "Resource": [
-                          "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/cdk-bootstrap/*"
+                          "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/cdk-bootstrap/*",
+                          "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/cdk/*"
                       ]
                   },
                   {
