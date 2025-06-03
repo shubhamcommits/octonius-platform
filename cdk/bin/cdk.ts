@@ -28,7 +28,6 @@ const app = new cdk.App()
 
 // Define regions to deploy to
 const region = process.env.AWS_REGION || 'eu-central-1'
-console.log(`Deploying to region: ${region}`)
 
 // Define common tags
 const COMMON_TAGS = {
@@ -40,14 +39,12 @@ const COMMON_TAGS = {
 
 // Define base stack name
 const baseStackName = `${process.env.NODE_ENV}-${process.env.APP_NAME}`
-console.log(`Base stack name: ${baseStackName}`)
 
 // Get account ID
 const accountId = process.env.AWS_ACCOUNT_ID
-console.log(`Account ID: ${accountId}`)
 
 // Create main stack
-const stack = new MainStack(app, baseStackName, {
+new MainStack(app, baseStackName, {
     env: {
         account: accountId,
         region: region
@@ -58,26 +55,5 @@ const stack = new MainStack(app, baseStackName, {
     }
 })
 
-// Output app configuration
-console.log('CDK App Configuration:')
-console.log(JSON.stringify({
-    region,
-    baseStackName,
-    accountId,
-    tags: COMMON_TAGS
-}, null, 2))
-
 // Synthesize the stack
-console.log('Synthesizing stack...')
-const synth = app.synth()
-console.log('Stack synthesis complete')
-
-// Output stack details
-console.log('Stack details:')
-console.log(JSON.stringify({
-    stackName: stack.stackName,
-    stackId: stack.stackId,
-    region: stack.region,
-    account: stack.account,
-    environment: stack.environment
-}, null, 2)) 
+app.synth() 
