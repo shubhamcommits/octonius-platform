@@ -3,7 +3,6 @@ import * as cdk from 'aws-cdk-lib'
 
 // Import AWS constructs
 import * as s3 from 'aws-cdk-lib/aws-s3'
-import * as iam from 'aws-cdk-lib/aws-iam'
 
 // Import Construct base class
 import { Construct } from 'constructs'
