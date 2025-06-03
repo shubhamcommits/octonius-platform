@@ -11,14 +11,20 @@ on:
       - 'LICENSE'
       - 'cdk/**'
       - '.github/workflows/configure-aws-github-integration.yml'
-      - '.github/workflows/provision-aws-infrastructure.yml'
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
+  provision-infrastructure:
+    uses: ./.github/workflows/provision-aws-infrastructure.yml
+    with:
+      environment: ${{ github.ref == 'refs/heads/master' && 'prod' || 'dev' }}
+    secrets: inherit
+
   validate-and-deploy:
+    needs: [provision-infrastructure]
     if: github.repository == 'Octonius/octonius-platform'
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/master' && 'prod' || 'dev' }}

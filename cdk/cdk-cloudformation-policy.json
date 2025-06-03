@@ -1,0 +1,40 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "CloudFormationPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:CreateStack",
+                "cloudformation:UpdateStack",
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:DescribeStackResources",
+                "cloudformation:GetTemplate",
+                "cloudformation:ValidateTemplate",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:DescribeChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:DeleteChangeSet",
+                "cloudformation:ListStackResources",
+                "cloudformation:DescribeStackDriftDetectionStatus",
+                "cloudformation:DetectStackDrift",
+                "cloudformation:DescribeStackResourceDrifts",
+                "cloudformation:GetTemplateSummary",
+                "cloudformation:ListExports",
+                "cloudformation:ListImports",
+                "cloudformation:DescribeStackInstance",
+                "cloudformation:ListStacks",
+                "cloudformation:SetStackPolicy",
+                "cloudformation:GetStackPolicy",
+                "cloudformation:ListChangeSets",
+                "cloudformation:UpdateTerminationProtection"
+            ],
+            "Resource": [
+                "arn:aws:cloudformation:${AWS_REGION}:${AWS_ACCOUNT_ID}:stack/CDKToolkit/*",
+                "arn:aws:cloudformation:${AWS_REGION}:${AWS_ACCOUNT_ID}:stack/*/*"
+            ]
+        }
+    ]
+} 
