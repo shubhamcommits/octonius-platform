@@ -78,6 +78,15 @@ jobs:
           echo "Contents of dist directory:"
           ls -R dist/
           
+          # List the contents of dist/bin directory for debugging
+          echo "Contents of dist/bin directory:"
+          ls -R dist/bin/
+          
+          # Check and set permissions for cdk.js
+          echo "Setting permissions for cdk.js"
+          chmod +x dist/cdk/bin/cdk.js
+          ls -l dist/cdk/bin/cdk.js
+          
           # Print the contents of the CDK entry point
           echo "Contents of CDK entry point:"
           cat dist/cdk/bin/cdk.js
