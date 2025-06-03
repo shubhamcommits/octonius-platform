@@ -9,7 +9,6 @@ on:
       - '**/*.md'
       - '.gitignore'
       - 'LICENSE'
-      - 'cdk/**'
       - '.github/workflows/configure-aws-github-integration.yml'
 
 permissions:
