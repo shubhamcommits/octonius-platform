@@ -299,4 +299,8 @@ jobs:
           echo "Checking if stack exists in CloudFormation:"
           aws cloudformation describe-stacks --stack-name dev-octonius || true
           
+          # Verify environment variables
+          echo "Environment Variables:" 
+          env
+          
           echo "CDK deploy completed successfully." 
