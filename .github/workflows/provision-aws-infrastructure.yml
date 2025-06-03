@@ -52,9 +52,9 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
         run: npm install
@@ -77,6 +77,10 @@ jobs:
           # List the contents of dist directory for debugging
           echo "Contents of dist directory:"
           ls -R dist/
+          
+          # Print the contents of the CDK entry point
+          echo "Contents of CDK entry point:"
+          cat dist/cdk/bin/cdk.js
 
       - name: Preprocess policy files
         run: |
@@ -246,19 +250,33 @@ jobs:
           
           echo "CDK bootstrap completed successfully."
 
+      - name: List CDK Stacks
+        run: |
+          echo "Listing available CDK stacks..."
+          npx cdk list --verbose
+          
+          echo "Current CDK context:"
+          npx cdk context --json
+
       - name: Deploy CDK stack
         run: |
           echo "Deploying CDK stack for environment: ${{ inputs.environment }}"
           
-          # Ensure we're using the right context
-          npx cdk context --clear
+          # Show the diff before deploying
+          echo "Showing changes that will be deployed:"
+          npx cdk diff --verbose
           
-          # Deploy with explicit approval
-          npx cdk deploy --require-approval never --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
+          # Deploy with explicit approval and more verbose output
+          echo "Starting CDK deployment..."
+          npx cdk deploy --require-approval never --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose --debug
           
           if [ $? -ne 0 ]; then
             echo "CDK deploy failed. Exiting."
             exit 1
           fi
+          
+          # List deployed stacks after deployment
+          echo "Listing deployed stacks:"
+          aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --query "StackSummaries[?contains(StackName, '${{ inputs.environment }}')]"
           
           echo "CDK deploy completed successfully." 
