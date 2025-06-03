@@ -55,16 +55,16 @@ regions.forEach(region => {
     const accountId = process.env.AWS_ACCOUNT_ID
 
     // Create VPC stack
-    const vpc_stack = new VpcStack(app, `${baseStackName}-vpc-${region}`, {
-        env: {
-            account: accountId,
-            region: region
-        },
-        tags: {
-            ...COMMON_TAGS,
-            Region: region
-        }
-    })
+    // const vpc_stack = new VpcStack(app, `${baseStackName}-vpc-${region}`, {
+    //     env: {
+    //         account: accountId,
+    //         region: region
+    //     },
+    //     tags: {
+    //         ...COMMON_TAGS,
+    //         Region: region
+    //     }
+    // })
 
     // Create Database stack
     // const database_stack = new DatabaseStack(app, `${baseStackName}-database-${region}`, {
@@ -146,28 +146,28 @@ regions.forEach(region => {
     // })
 
     // Create S3 stack
-    // const s3_stack = new S3Stack(app, `${baseStackName}-s3-${region}`, {
-    //     env: {
-    //         account: accountId,
-    //         region: region
-    //     },
-    //     tags: {
-    //         ...COMMON_TAGS,
-    //         Region: region
-    //     }
-    // })
+    const s3_stack = new S3Stack(app, `${baseStackName}-s3-${region}`, {
+        env: {
+            account: accountId,
+            region: region
+        },
+        tags: {
+            ...COMMON_TAGS,
+            Region: region
+        }
+    })
 
     // Create CloudWatch stack
-    // const cloudwatch_stack = new CloudWatchStack(app, `${baseStackName}-cloudwatch-${region}`, {
-    //     env: {
-    //         account: accountId,
-    //         region: region
-    //     },
-    //     tags: {
-    //         ...COMMON_TAGS,
-    //         Region: region
-    //     }
-    // })
+    const cloudwatch_stack = new CloudWatchStack(app, `${baseStackName}-cloudwatch-${region}`, {
+        env: {
+            account: accountId,
+            region: region
+        },
+        tags: {
+            ...COMMON_TAGS,
+            Region: region
+        }
+    })
 
     // Add stack dependencies
     // database_stack.addDependency(vpc_stack)
