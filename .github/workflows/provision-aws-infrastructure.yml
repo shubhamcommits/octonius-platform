@@ -35,21 +35,23 @@ jobs:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       NODE_ENV: ${{ inputs.environment }}
       APP_NAME: 'octonius'
-      DOMAIN_NAME: ${{ vars.DOMAIN_NAME || 'octonius.example.com' }}
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME || 'dev.octonius.com' }}
     steps:
       - uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm install
 
       - name: Install CDK
-        run: npm install -g aws-cdk@2.99.1
+        run: |
+          npm install -g aws-cdk@2.99.1
+          cdk --version
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -128,19 +130,50 @@ jobs:
 
       - name: Bootstrap CDK
         run: |
-          npx cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
+          echo "Bootstrapping CDK for environment: ${{ inputs.environment }}"
+          
+          # Check if bootstrap is already done
+          if aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1; then
+            echo "CDK bootstrap stack already exists, checking if update is needed..."
+            BOOTSTRAP_VERSION=$(aws ssm get-parameter --name "/cdk-bootstrap/${inputs.environment}/version" --query "Parameter.Value" --output text 2>/dev/null || echo "0")
+            if [ "$BOOTSTRAP_VERSION" != "2" ]; then
+              echo "Updating CDK bootstrap stack..."
+              npx cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
+            else
+              echo "CDK bootstrap stack is up to date"
+            fi
+          else
+            echo "Creating new CDK bootstrap stack..."
+            npx cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
+          fi
+          
           if [ $? -ne 0 ]; then
             echo "CDK bootstrap failed. Exiting."
             exit 1
           fi
+          
+          # Store bootstrap version
+          aws ssm put-parameter \
+            --name "/cdk-bootstrap/${inputs.environment}/version" \
+            --value "2" \
+            --type String \
+            --overwrite || true
+          
           echo "CDK bootstrap completed successfully."
 
       - name: Deploy CDK stack
         run: |
           echo "Deploying CDK stack for environment: ${{ inputs.environment }}"
-          npx cdk deploy --require-approval never --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }}
+          
+          # Ensure we're using the right context
+          npx cdk context --clear
+          
+          # Deploy with explicit approval
+          npx cdk deploy --require-approval never --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
+          
           if [ $? -ne 0 ]; then
             echo "CDK deploy failed. Exiting."
             exit 1
           fi
+          
           echo "CDK deploy completed successfully." 
