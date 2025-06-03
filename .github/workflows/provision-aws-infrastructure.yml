@@ -65,19 +65,11 @@ jobs:
 
       - name: Preprocess policy files
         run: |
-          # Replace variables in all policy files
           for policy_file in cdk/*-policy.json; do
-            echo "Processing $policy_file"
-            # Replace AWS_ACCOUNT_ID
             sed -i "s/\${AWS_ACCOUNT_ID}/${{ env.AWS_ACCOUNT_ID }}/g" "$policy_file"
-            # Replace AWS_REGION
             sed -i "s/\${AWS_REGION}/${{ env.AWS_REGION }}/g" "$policy_file"
-            # Replace S3 bucket names
             sed -i "s/\${DEV_S3_BUCKET}/${{ secrets.DEV_S3_BUCKET }}/g" "$policy_file"
             sed -i "s/\${PROD_S3_BUCKET}/${{ secrets.PROD_S3_BUCKET }}/g" "$policy_file"
-            # Print the processed file for debugging
-            echo "Processed $policy_file contents:"
-            cat "$policy_file"
           done
 
       - name: Configure AWS credentials
@@ -91,7 +83,6 @@ jobs:
 
       - name: Create/Update IAM Policy for CDK CloudFormation Execution
         run: |
-          # Function to create or update a policy
           create_or_update_policy() {
             local policy_name=$1
             local policy_file=$2
@@ -99,145 +90,51 @@ jobs:
             local account_id="${{ env.AWS_ACCOUNT_ID }}"
             local expected_policy_arn="arn:aws:iam::${account_id}:policy/${policy_name}"
 
-            echo "Managing policy ${policy_name} from ${policy_file}"
-            echo "Expected Policy ARN: ${expected_policy_arn}"
-
             if aws iam get-policy --policy-arn ${expected_policy_arn} > /dev/null 2>&1; then
-              echo "Policy ${policy_name} found. Managing versions and updating."
-
-              # List versions and count them
               POLICY_VERSIONS_JSON=$(aws iam list-policy-versions --policy-arn "${expected_policy_arn}")
               VERSION_COUNT=$(echo "${POLICY_VERSIONS_JSON}" | jq '.Versions | length')
 
-              echo "Current version count: ${VERSION_COUNT}"
-              echo "Policy versions details:"
-              echo "${POLICY_VERSIONS_JSON}" | jq '.Versions[] | {VersionId, IsDefaultVersion, CreateDate}'
-
-              # If version count is at the limit (5)
               if [ "${VERSION_COUNT}" -ge 5 ]; then
-                echo "Version limit (5) reached. Deleting oldest non-default version."
-                
-                # Get VersionId of the oldest non-default version
                 OLDEST_NON_DEFAULT_VERSION_ID=$(echo "${POLICY_VERSIONS_JSON}" | \
                   jq -r '.Versions | sort_by(.CreateDate) | map(select(.IsDefaultVersion == false)) | .[0].VersionId // null')
 
                 if [ -n "${OLDEST_NON_DEFAULT_VERSION_ID}" ] && [ "${OLDEST_NON_DEFAULT_VERSION_ID}" != "null" ] && [ "${OLDEST_NON_DEFAULT_VERSION_ID}" != "" ]; then
-                  echo "Deleting oldest non-default version: ${OLDEST_NON_DEFAULT_VERSION_ID}"
                   aws iam delete-policy-version --policy-arn "${expected_policy_arn}" --version-id "${OLDEST_NON_DEFAULT_VERSION_ID}"
-                  if [ $? -ne 0 ]; then
-                    echo "Failed to delete old policy version ${OLDEST_NON_DEFAULT_VERSION_ID}. Exiting."
-                    exit 1
-                  fi
-                  echo "Successfully deleted version ${OLDEST_NON_DEFAULT_VERSION_ID}"
-                else
-                  echo "ERROR: Could not find a non-default version to delete."
-                  echo "This is unusual - all 5 versions appear to be default or there's a parsing issue."
-                  echo "Attempting to proceed with policy update anyway..."
                 fi
               fi
 
-              # Now, create the new version and set it as default
-              echo "Creating new policy version and setting as default."
-              VERSION_INFO=$(aws iam create-policy-version --policy-arn "${expected_policy_arn}" --policy-document file://${policy_file} --set-as-default)
-              if [ $? -ne 0 ]; then
-                echo "Failed to create new version for policy ${policy_name}. Exiting."
-                exit 1
-              fi
-              echo "New version created and set as default: $VERSION_INFO"
+              aws iam create-policy-version --policy-arn "${expected_policy_arn}" --policy-document file://${policy_file} --set-as-default
             else
-              echo "Policy ${policy_name} not found. Creating it."
-              POLICY_INFO=$(aws iam create-policy --policy-name ${policy_name} --policy-document file://${policy_file} --description "${description}")
-              if [ $? -ne 0 ]; then
-                echo "Failed to create policy ${policy_name}. Exiting."
-                exit 1
-              fi
-              echo "Policy ${policy_name} created: $POLICY_INFO"
+              aws iam create-policy --policy-name ${policy_name} --policy-document file://${policy_file} --description "${description}"
             fi
-            
-            echo "Successfully prepared policy ${expected_policy_arn}"
-            echo "${policy_name}_ARN=${expected_policy_arn}" >> $GITHUB_ENV
           }
 
-          # Create base CDK policy
-          create_or_update_policy \
-            "${{ inputs.environment }}-cdk-base-policy" \
-            "cdk/cdk-base-policy.json" \
-            "Base policy for CDK operations, managed by GitHub Actions for environment ${{ inputs.environment }}"
+          create_or_update_policy "${{ inputs.environment }}-cdk-base-policy" "cdk/cdk-base-policy.json" "Base policy for CDK operations"
+          create_or_update_policy "${{ inputs.environment }}-cdk-cloudformation-policy" "cdk/cdk-cloudformation-policy.json" "CloudFormation policy for CDK operations"
+          create_or_update_policy "${{ inputs.environment }}-cdk-s3-policy" "cdk/cdk-s3-policy.json" "S3 policy for CDK operations"
+          create_or_update_policy "${{ inputs.environment }}-cdk-iam-policy" "cdk/cdk-iam-policy.json" "IAM policy for CDK operations"
+          create_or_update_policy "${{ inputs.environment }}-cdk-services-policy" "cdk/cdk-services-policy.json" "Services policy for CDK operations"
+          create_or_update_policy "${{ inputs.environment }}-cdk-network-policy" "cdk/cdk-network-policy.json" "Network policy for CDK operations"
 
-          # Create CloudFormation policy
-          create_or_update_policy \
-            "${{ inputs.environment }}-cdk-cloudformation-policy" \
-            "cdk/cdk-cloudformation-policy.json" \
-            "CloudFormation policy for CDK operations, managed by GitHub Actions for environment ${{ inputs.environment }}"
-
-          # Create S3 policy
-          create_or_update_policy \
-            "${{ inputs.environment }}-cdk-s3-policy" \
-            "cdk/cdk-s3-policy.json" \
-            "S3 policy for CDK operations, managed by GitHub Actions for environment ${{ inputs.environment }}"
-
-          # Create IAM policy
-          create_or_update_policy \
-            "${{ inputs.environment }}-cdk-iam-policy" \
-            "cdk/cdk-iam-policy.json" \
-            "IAM policy for CDK operations, managed by GitHub Actions for environment ${{ inputs.environment }}"
-
-          # Create Services policy
-          create_or_update_policy \
-            "${{ inputs.environment }}-cdk-services-policy" \
-            "cdk/cdk-services-policy.json" \
-            "Services policy for CDK operations, managed by GitHub Actions for environment ${{ inputs.environment }}"
-
-          # Create Network policy
-          create_or_update_policy \
-            "${{ inputs.environment }}-cdk-network-policy" \
-            "cdk/cdk-network-policy.json" \
-            "Network policy for CDK operations, managed by GitHub Actions for environment ${{ inputs.environment }}"
-
-          # Combine all policy ARNs for CDK bootstrap
           echo "AWS_CDK_POLICY_ARN_FROM_FILE=${{ inputs.environment }}-cdk-base-policy_ARN,${{ inputs.environment }}-cdk-cloudformation-policy_ARN,${{ inputs.environment }}-cdk-s3-policy_ARN,${{ inputs.environment }}-cdk-iam-policy_ARN,${{ inputs.environment }}-cdk-services-policy_ARN,${{ inputs.environment }}-cdk-network-policy_ARN" >> $GITHUB_ENV
         shell: bash
 
       - name: Bootstrap CDK
         run: |
-          echo "Bootstrapping CDK for environment: ${{ inputs.environment }}"
-          
-          # Check if bootstrap is already done
           if aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1; then
-            echo "CDK bootstrap stack already exists, checking if update is needed..."
             BOOTSTRAP_VERSION=$(aws ssm get-parameter --name "/cdk-bootstrap/${{ inputs.environment }}/version" --query "Parameter.Value" --output text 2>/dev/null || echo "0")
             if [ "$BOOTSTRAP_VERSION" != "2" ]; then
-              echo "Updating CDK bootstrap stack..."
-              npx cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
-            else
-              echo "CDK bootstrap stack is up to date"
+              cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
             fi
           else
-            echo "Creating new CDK bootstrap stack..."
-            npx cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
+            cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
           fi
-          
-          if [ $? -ne 0 ]; then
-            echo "CDK bootstrap failed. Exiting."
-            exit 1
-          fi
-          
-          # Store bootstrap version
+
           aws ssm put-parameter \
             --name "/cdk-bootstrap/${{ inputs.environment }}/version" \
             --value "2" \
             --type String \
             --overwrite || true
-          
-          echo "CDK bootstrap completed successfully."
-
-      - name: List CDK Stacks
-        run: |
-          echo "Listing available CDK stacks..."
-          npx aws-cdk list --verbose
-          
-          echo "Current CDK context:"
-          npx aws-cdk context --json
 
       - name: CDK Deploy
         env:
@@ -248,6 +145,5 @@ jobs:
           elif [ "$NODE_ENV" = "dev" ]; then
             cdk deploy --all --require-approval never --parameters env=dev
           else
-            echo "Unknown environment: $NODE_ENV"
             exit 1
           fi 
