@@ -253,10 +253,10 @@ jobs:
       - name: List CDK Stacks
         run: |
           echo "Listing available CDK stacks..."
-          npx cdk list --verbose
+          npx aws-cdk list --verbose
           
           echo "Current CDK context:"
-          npx cdk context --json
+          npx aws-cdk context --json
 
       - name: Deploy CDK stack
         run: |
@@ -264,19 +264,19 @@ jobs:
           
           # Debug CDK configuration
           echo "CDK Configuration:"
-          npx cdk context --json
+          npx aws-cdk context --json
           
           # Show the diff before deploying
           echo "Showing changes that will be deployed:"
-          npx cdk diff --verbose || true
+          npx aws-cdk diff --verbose || true
           
           # List all stacks that will be deployed
           echo "Stacks to be deployed:"
-          npx cdk list --verbose
+          npx aws-cdk list --verbose
           
           # Deploy with explicit approval and more verbose output
           echo "Starting CDK deployment..."
-          npx cdk deploy --require-approval never --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose --debug --all --outputs-file cdk-outputs.json
+          npx aws-cdk deploy --require-approval never --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose --debug --all --outputs-file cdk-outputs.json
           
           if [ $? -ne 0 ]; then
             echo "CDK deploy failed. Exiting."
