@@ -63,6 +63,21 @@ jobs:
         run: |
           npm install -g aws-cdk@2.99.1
 
+      - name: Build
+        run: |
+          # Clean the dist directory first
+          rm -rf dist/
+          # Build the project
+          npm run build
+          # Verify the build output exists
+          if [ ! -f "dist/cdk/bin/cdk.js" ]; then
+            echo "Build failed: dist/cdk/bin/cdk.js not found"
+            exit 1
+          fi
+          # List the contents of dist directory for debugging
+          echo "Contents of dist directory:"
+          ls -R dist/
+
       - name: Preprocess policy files
         run: |
           # Replace variables in all policy files

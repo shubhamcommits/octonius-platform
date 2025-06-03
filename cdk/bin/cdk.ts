@@ -23,39 +23,48 @@ if (process.env.NODE_ENV === 'local') {
     dotenv.config()
 }
 
+// Validate required environment variables
+const required_env_vars = ['AWS_ACCOUNT_ID', 'AWS_REGION', 'NODE_ENV', 'APP_NAME']
+const missing_env_vars = required_env_vars.filter(envVar => !process.env[envVar])
+
+if (missing_env_vars.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing_env_vars.join(', ')}`)
+}
+
 // Initialize CDK app
 const app = new cdk.App()
 
 // Define regions to deploy to
-const regions = ['eu-central-1']
+const regions = [process.env.AWS_REGION || 'eu-central-1']
 
 // Define common tags
 const COMMON_TAGS = {
-    Environment: process.env.NODE_ENV || 'Production',
-    Project: process.env.APP_NAME || 'Octonius',
+    Environment: process.env.NODE_ENV!,
+    Project: process.env.APP_NAME!,
     Owner: process.env.OWNER || 'Octonius Team',
     ManagedBy: 'CDK'
 }
 
 // For each region create the stacks
 regions.forEach(region => {
-    // Define base stack name
-    const baseStackName = `${process.env.NODE_ENV || 'dev'}-${process.env.APP_NAME || 'octonius'}`
     
-    // Get account ID from various possible sources
-    const accountId = process.env.AWS_ACCOUNT_NUMBER || process.env.AWS_ACCOUNT_ID || process.env.CDK_DEFAULT_ACCOUNT
+    // Define base stack name
+    const baseStackName = `${process.env.NODE_ENV}-${process.env.APP_NAME}`
+    
+    // Get account ID
+    const accountId = process.env.AWS_ACCOUNT_ID
 
     // Create VPC stack
-    // const vpc_stack = new VpcStack(app, `${baseStackName}-vpc-${region}`, {
-    //     env: {
-    //         account: accountId,
-    //         region: region
-    //     },
-    //     tags: {
-    //         ...COMMON_TAGS,
-    //         Region: region
-    //     }
-    // })
+    const vpc_stack = new VpcStack(app, `${baseStackName}-vpc-${region}`, {
+        env: {
+            account: accountId,
+            region: region
+        },
+        tags: {
+            ...COMMON_TAGS,
+            Region: region
+        }
+    })
 
     // Create Database stack
     // const database_stack = new DatabaseStack(app, `${baseStackName}-database-${region}`, {
@@ -99,7 +108,7 @@ regions.forEach(region => {
     // Create API stack
     // const api_stack = new ApiStack(app, `${baseStackName}-api-${region}`, {
     //     vpc: vpc_stack.vpc,
-    //     domain_name: process.env.DOMAIN_NAME || 'octonius.example.com',
+    //     domain_name: process.env.DOMAIN_NAME,
     //     env: {
     //         account: accountId,
     //         region: region
@@ -112,7 +121,7 @@ regions.forEach(region => {
 
     // Create Frontend stack
     // const frontend_stack = new FrontendStack(app, `${baseStackName}-frontend-${region}`, {
-    //     domain_name: process.env.DOMAIN_NAME || 'octonius.example.com',
+    //     domain_name: process.env.DOMAIN_NAME,
     //     env: {
     //         account: accountId,
     //         region: region
@@ -125,7 +134,7 @@ regions.forEach(region => {
 
     // Create Media stack
     // const media_stack = new MediaStack(app, `${baseStackName}-media-${region}`, {
-    //     domain_name: process.env.DOMAIN_NAME || 'octonius.example.com',
+    //     domain_name: process.env.DOMAIN_NAME,
     //     env: {
     //         account: accountId,
     //         region: region
