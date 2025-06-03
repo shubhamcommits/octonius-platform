@@ -151,6 +151,25 @@ jobs:
                   {
                       "Effect": "Allow",
                       "Action": [
+                          "iam:*",
+                          "rds:*",
+                          "s3:*",
+                          "kms:*",
+                          "ssm:*",
+                          "lambda:*",
+                          "cloudformation:*",
+                          "ec2:*",
+                          "apigateway:*",
+                          "kafka-cluster:*",
+                          "kafka:*",
+                          "kafkaconnect:*",
+                          "elasticache:*"
+                      ],
+                      "Resource": "*"
+                  },
+                  {
+                      "Effect": "Allow",
+                      "Action": [
                           "iam:CreatePolicy",
                           "iam:GetPolicy",
                           "iam:CreatePolicyVersion",
