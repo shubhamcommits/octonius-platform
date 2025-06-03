@@ -47,7 +47,7 @@ const accountId = process.env.AWS_ACCOUNT_ID
 console.log(`Account ID: ${accountId}`)
 
 // Create main stack
-new MainStack(app, baseStackName, {
+const stack = new MainStack(app, baseStackName, {
     env: {
         account: accountId,
         region: region
@@ -65,4 +65,19 @@ console.log(JSON.stringify({
     baseStackName,
     accountId,
     tags: COMMON_TAGS
+}, null, 2))
+
+// Synthesize the stack
+console.log('Synthesizing stack...')
+const synth = app.synth()
+console.log('Stack synthesis complete')
+
+// Output stack details
+console.log('Stack details:')
+console.log(JSON.stringify({
+    stackName: stack.stackName,
+    stackId: stack.stackId,
+    region: stack.region,
+    account: stack.account,
+    environment: stack.environment
 }, null, 2)) 
