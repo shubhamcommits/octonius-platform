@@ -242,30 +242,6 @@ bootstrap_cdk() {
         exit 1
     fi
     
-    # Explicitly disable CDK tagging to avoid ECR issues
-    export CDK_DISABLE_TAGGING=true
-    unset CDK_DEFAULT_TAGS
-    # Disable AWS CLI default tags
-    unset AWS_CLI_AUTO_PROMPT
-    export AWS_CLI_DISABLE_TAGS=true
-    # Disable any environment variables that might add tags
-    unset OWNER
-    unset COMMON_TAGS
-    # Temporarily unset app-level environment variables that might add tags
-    local original_app_name="$APP_NAME"
-    local original_node_env="$NODE_ENV"
-    unset APP_NAME
-    unset NODE_ENV
-    log_verbose "All tagging mechanisms disabled for bootstrap compatibility"
-    
-    # Check for and clean up any existing ECR repositories that might conflict
-    log_verbose "Checking for conflicting ECR repositories..."
-    local ecr_repo_name="cdk-*"
-    if aws ecr describe-repositories --region "$AWS_REGION" --repository-names cdk-bootstrap-container-assets >/dev/null 2>&1; then
-        log_warning "Found existing CDK ECR repository, removing it..."
-        aws ecr delete-repository --region "$AWS_REGION" --repository-name cdk-bootstrap-container-assets --force 2>/dev/null || true
-    fi
-    
     local bootstrap_success=false
     
     # Try bootstrap with existing bucket first (no tags for ECR compatibility)
@@ -337,11 +313,6 @@ bootstrap_cdk() {
             exit 1
         fi
     fi
-    
-    # Restore environment variables after bootstrap
-    export APP_NAME="$original_app_name"
-    export NODE_ENV="$original_node_env"
-    log_verbose "Environment variables restored after bootstrap"
     
     log_info "Using bootstrap bucket: $BOOTSTRAP_BUCKET"
 }
