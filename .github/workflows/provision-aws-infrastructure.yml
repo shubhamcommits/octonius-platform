@@ -140,10 +140,4 @@ jobs:
         env:
           NODE_ENV: ${{ inputs.environment }}
         run: |
-          if [ "$NODE_ENV" = "prod" ]; then
-            cdk deploy --all --require-approval never --parameters env=prod
-          elif [ "$NODE_ENV" = "dev" ]; then
-            cdk deploy --all --require-approval never --parameters env=dev
-          else
-            exit 1
-          fi 
+          cdk deploy --all --require-approval never 
