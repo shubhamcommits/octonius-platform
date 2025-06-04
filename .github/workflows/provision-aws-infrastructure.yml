@@ -83,7 +83,7 @@ jobs:
           cache: 'npm'
 
       - name: 📥 Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: 🛠️ Install CDK
         run: npm install -g aws-cdk
@@ -255,7 +255,7 @@ jobs:
           cache: 'npm'
 
       - name: 📥 Restore dependencies
-        run: npm ci
+        run: npm install
 
       - name: 🛠️ Install CDK
         run: npm install -g aws-cdk
