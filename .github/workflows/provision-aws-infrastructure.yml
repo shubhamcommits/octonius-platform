@@ -74,7 +74,7 @@ jobs:
       environment: ${{ inputs.environment }}
     steps:
       - name: 📦 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
@@ -129,7 +129,7 @@ jobs:
           echo "Generated cache key: $CACHE_KEY"
 
       - name: 📦 Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-artifacts-${{ inputs.environment }}
           path: |
@@ -161,7 +161,7 @@ jobs:
       policy-arns: ${{ steps.create-policies.outputs.policy_arns }}
     steps:
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: build-artifacts-${{ inputs.environment }}
 
@@ -244,7 +244,7 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: build-artifacts-${{ inputs.environment }}
 
@@ -315,7 +315,7 @@ jobs:
 
       - name: 📦 Upload deployment artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: deployment-artifacts-${{ inputs.environment }}
           path: |
