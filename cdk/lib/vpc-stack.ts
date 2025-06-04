@@ -23,6 +23,9 @@ export class VpcStack extends cdk.Stack {
             // Maximum number of availability zones to use
             maxAzs: 2,
 
+            // VPC name
+            vpcName: id,
+
             // Subnet configuration array
             subnetConfiguration: [
                 {
