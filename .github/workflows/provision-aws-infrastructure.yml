@@ -116,11 +116,25 @@ jobs:
           create_or_update_policy "${{ inputs.environment }}-cdk-services-policy" "cdk/cdk-services-policy.json" "Services policy for CDK operations"
           create_or_update_policy "${{ inputs.environment }}-cdk-network-policy" "cdk/cdk-network-policy.json" "Network policy for CDK operations"
 
-          echo "AWS_CDK_POLICY_ARN_FROM_FILE=${{ inputs.environment }}-cdk-base-policy_ARN,${{ inputs.environment }}-cdk-cloudformation-policy_ARN,${{ inputs.environment }}-cdk-s3-policy_ARN,${{ inputs.environment }}-cdk-iam-policy_ARN,${{ inputs.environment }}-cdk-services-policy_ARN,${{ inputs.environment }}-cdk-network-policy_ARN" >> $GITHUB_ENV
+          # Construct the actual policy ARNs
+          ACCOUNT_ID="${{ env.AWS_ACCOUNT_ID }}"
+          BASE_POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${{ inputs.environment }}-cdk-base-policy"
+          CLOUDFORMATION_POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${{ inputs.environment }}-cdk-cloudformation-policy"
+          S3_POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${{ inputs.environment }}-cdk-s3-policy"
+          IAM_POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${{ inputs.environment }}-cdk-iam-policy"
+          SERVICES_POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${{ inputs.environment }}-cdk-services-policy"
+          NETWORK_POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${{ inputs.environment }}-cdk-network-policy"
+
+          echo "AWS_CDK_POLICY_ARN_FROM_FILE=${BASE_POLICY_ARN},${CLOUDFORMATION_POLICY_ARN},${S3_POLICY_ARN},${IAM_POLICY_ARN},${SERVICES_POLICY_ARN},${NETWORK_POLICY_ARN}" >> $GITHUB_ENV
+          
+          # Debug: Show the constructed policy ARNs
+          echo "Constructed policy ARNs: ${BASE_POLICY_ARN},${CLOUDFORMATION_POLICY_ARN},${S3_POLICY_ARN},${IAM_POLICY_ARN},${SERVICES_POLICY_ARN},${NETWORK_POLICY_ARN}"
         shell: bash
 
       - name: Bootstrap CDK
-        run: npx cdk bootstrap --cloudformation-execution-policies ${AWS_CDK_POLICY_ARN_FROM_FILE}
+        run: |
+          echo "Using policy ARNs: ${AWS_CDK_POLICY_ARN_FROM_FILE}"
+          cdk bootstrap --cloudformation-execution-policies "${AWS_CDK_POLICY_ARN_FROM_FILE}"
 
       - name: CDK Deploy
         env:
