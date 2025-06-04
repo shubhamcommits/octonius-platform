@@ -26,8 +26,8 @@ export class S3Stack extends cdk.Stack {
         const { account, region } = props.env
 
         // Create assets bucket
-        this.assets_bucket = new s3.Bucket(this, 'OctoniusAssetsBucket', {
-            bucketName: `octonius-assets-${account}-${region}`,
+        this.assets_bucket = new s3.Bucket(this, 'assets', {
+            bucketName: `${process.env.NODE_ENV}-${process.env.APP_NAME}-assets-${account}-${region}`,
             versioned: true,
             encryption: s3.BucketEncryption.S3_MANAGED,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -50,8 +50,8 @@ export class S3Stack extends cdk.Stack {
         })
 
         // Create backups bucket
-        this.backups_bucket = new s3.Bucket(this, 'OctoniusBackupsBucket', {
-            bucketName: `octonius-backups-${account}-${region}`,
+        this.backups_bucket = new s3.Bucket(this, 'backups', {
+            bucketName: `${process.env.NODE_ENV}-${process.env.APP_NAME}-backups-${account}-${region}`,
             versioned: true,
             encryption: s3.BucketEncryption.S3_MANAGED,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,

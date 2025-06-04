@@ -19,18 +19,18 @@ export class VpcStack extends cdk.Stack {
         super(scope, id, props)
 
         // Create the VPC with 2 AZs, public and private subnets
-        this.vpc = new ec2.Vpc(this, 'octonius_vpc', {
+        this.vpc = new ec2.Vpc(this, 'vpc', {
             // Maximum number of availability zones to use
             maxAzs: 2,
 
             // VPC name
-            vpcName: id,
+            vpcName: `${process.env.NODE_ENV}-${process.env.APP_NAME}-vpc`,
 
             // Subnet configuration array
             subnetConfiguration: [
                 {
                     // Name of the public subnet group
-                    name: 'public_subnet',
+                    name: 'public',
 
                     // Subnet type: public
                     subnetType: ec2.SubnetType.PUBLIC,
@@ -40,7 +40,7 @@ export class VpcStack extends cdk.Stack {
                 },
                 {
                     // Name of the private subnet group
-                    name: 'private_subnet',
+                    name: 'private',
 
                     // Subnet type: private with egress
                     subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,

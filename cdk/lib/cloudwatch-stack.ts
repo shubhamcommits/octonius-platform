@@ -22,14 +22,14 @@ export class CloudWatchStack extends cdk.Stack {
         super(scope, id, props)
 
         // Create log group
-        this.log_group = new logs.LogGroup(this, 'OctoniusLogGroup', {
+        this.log_group = new logs.LogGroup(this, 'logs', {
             logGroupName: '/octonius/application',
             retention: logs.RetentionDays.ONE_MONTH,
             removalPolicy: cdk.RemovalPolicy.RETAIN
         })
 
         // Create CloudWatch dashboard
-        this.dashboard = new cloudwatch.Dashboard(this, 'OctoniusDashboard', {
+        this.dashboard = new cloudwatch.Dashboard(this, 'dashboard', {
             dashboardName: 'Octonius-Metrics'
         })
 
