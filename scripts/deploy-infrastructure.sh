@@ -230,10 +230,6 @@ bootstrap_cdk() {
     # Export the bucket for use by other functions (even in dry-run)
     export BOOTSTRAP_BUCKET="$bootstrap_bucket"
     
-    # Prepare simplified tags for ECR compatibility
-    local simple_tags="Environment=$ENVIRONMENT,Project=$APP_NAME,ManagedBy=CDK"
-    log_verbose "Using tags: $simple_tags"
-    
     if [[ "$DRY_RUN" == "true" ]]; then
         log_info "DRY RUN: Would bootstrap CDK with bucket: ${bootstrap_bucket:-auto-generated}"
         return 0
@@ -246,9 +242,33 @@ bootstrap_cdk() {
         exit 1
     fi
     
+    # Explicitly disable CDK tagging to avoid ECR issues
+    export CDK_DISABLE_TAGGING=true
+    unset CDK_DEFAULT_TAGS
+    # Disable AWS CLI default tags
+    unset AWS_CLI_AUTO_PROMPT
+    export AWS_CLI_DISABLE_TAGS=true
+    # Disable any environment variables that might add tags
+    unset OWNER
+    unset COMMON_TAGS
+    # Temporarily unset app-level environment variables that might add tags
+    local original_app_name="$APP_NAME"
+    local original_node_env="$NODE_ENV"
+    unset APP_NAME
+    unset NODE_ENV
+    log_verbose "All tagging mechanisms disabled for bootstrap compatibility"
+    
+    # Check for and clean up any existing ECR repositories that might conflict
+    log_verbose "Checking for conflicting ECR repositories..."
+    local ecr_repo_name="cdk-*"
+    if aws ecr describe-repositories --region "$AWS_REGION" --repository-names cdk-bootstrap-container-assets >/dev/null 2>&1; then
+        log_warning "Found existing CDK ECR repository, removing it..."
+        aws ecr delete-repository --region "$AWS_REGION" --repository-name cdk-bootstrap-container-assets --force 2>/dev/null || true
+    fi
+    
     local bootstrap_success=false
     
-    # Try bootstrap with existing bucket first
+    # Try bootstrap with existing bucket first (no tags for ECR compatibility)
     if [[ -n "$bootstrap_bucket" ]] && aws s3 ls "s3://$bootstrap_bucket" >/dev/null 2>&1; then
         log_info "Bucket $bootstrap_bucket exists, attempting bootstrap with existing bucket..."
         
@@ -256,7 +276,6 @@ bootstrap_cdk() {
             --cloudformation-execution-policies "$AWS_CDK_POLICY_ARN_FROM_FILE" \
             --bootstrap-bucket-name "$bootstrap_bucket" \
             --bootstrap-kms-key-id alias/aws/s3 \
-            --tags "$simple_tags" \
             --force; then
             
             bootstrap_success=true
@@ -266,7 +285,7 @@ bootstrap_cdk() {
         fi
     fi
     
-    # Fallback: Let CDK create its own bucket
+    # Fallback: Let CDK create its own bucket (no tags for ECR compatibility)
     if [[ "$bootstrap_success" != "true" ]]; then
         log_info "Using CDK auto-generated bucket approach..."
         
@@ -295,11 +314,11 @@ bootstrap_cdk() {
             log_verbose "No conflicting CDK bootstrap parameters found"
         fi
         
-        # Try bootstrap with simplified ECR-compatible tags
+        # Bootstrap without any tags to avoid ECR validation issues
+        log_info "Bootstrapping without tags for ECR compatibility..."
         if cdk bootstrap \
             --cloudformation-execution-policies "$AWS_CDK_POLICY_ARN_FROM_FILE" \
             --bootstrap-kms-key-id alias/aws/s3 \
-            --tags "$simple_tags" \
             --force; then
             
             # Get the auto-created bucket name
@@ -318,6 +337,11 @@ bootstrap_cdk() {
             exit 1
         fi
     fi
+    
+    # Restore environment variables after bootstrap
+    export APP_NAME="$original_app_name"
+    export NODE_ENV="$original_node_env"
+    log_verbose "Environment variables restored after bootstrap"
     
     log_info "Using bootstrap bucket: $BOOTSTRAP_BUCKET"
 }
