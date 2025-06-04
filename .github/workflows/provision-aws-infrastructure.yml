@@ -135,10 +135,119 @@ jobs:
       - name: Bootstrap CDK
         run: |
           echo "Using policy ARNs: ${AWS_CDK_POLICY_ARN_FROM_FILE}"
-          cdk bootstrap --cloudformation-execution-policies "${AWS_CDK_POLICY_ARN_FROM_FILE}"
+        
+          if [ "${{ inputs.environment }}" = "dev" ]; then
+            BOOTSTRAP_BUCKET="${{ secrets.DEV_S3_BUCKET }}"
+          else
+            BOOTSTRAP_BUCKET="${{ secrets.PROD_S3_BUCKET }}"
+          fi
+          
+          echo "Using bootstrap bucket: ${BOOTSTRAP_BUCKET}"
+          
+          cdk bootstrap \
+            --cloudformation-execution-policies "${AWS_CDK_POLICY_ARN_FROM_FILE}" \
+            --bootstrap-bucket-name "${BOOTSTRAP_BUCKET}" \
+            --bootstrap-kms-key-id alias/aws/s3 \
+            --tags "Environment=${{ inputs.environment }},Project=${{ env.APP_NAME }},ManagedBy=CDK"
+
+      - name: Create Deployment Manifest
+        run: |
+          # Create deployment tracking manifest
+          DEPLOYMENT_ID="deploy-$(date +%Y%m%d-%H%M%S)-${{ github.sha }}"
+          
+          if [ "${{ inputs.environment }}" = "dev" ]; then
+            BOOTSTRAP_BUCKET="${{ secrets.DEV_S3_BUCKET }}"
+          else
+            BOOTSTRAP_BUCKET="${{ secrets.PROD_S3_BUCKET }}"
+          fi
+          
+          # Create deployment manifest
+          cat > deployment-manifest.json << EOF
+          {
+            "deploymentId": "${DEPLOYMENT_ID}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
+            "environment": "${{ inputs.environment }}",
+            "gitCommit": "${{ github.sha }}",
+            "gitRef": "${{ github.ref }}",
+            "gitActor": "${{ github.actor }}",
+            "runId": "${{ github.run_id }}",
+            "runNumber": "${{ github.run_number }}",
+            "workflowName": "${{ github.workflow }}",
+            "cdkVersion": "$(cdk --version)",
+            "nodeVersion": "$(node --version)",
+            "awsRegion": "${{ env.AWS_REGION }}",
+            "awsAccount": "${{ env.AWS_ACCOUNT_ID }}",
+            "appName": "${{ env.APP_NAME }}",
+            "bootstrapBucket": "${BOOTSTRAP_BUCKET}",
+            "status": "deploying"
+          }
+          EOF
+          
+          # Upload deployment manifest to bootstrap bucket
+          aws s3 cp deployment-manifest.json "s3://${BOOTSTRAP_BUCKET}/deployments/${DEPLOYMENT_ID}/manifest.json"
+          
+          # Also create a latest deployment pointer
+          aws s3 cp deployment-manifest.json "s3://${BOOTSTRAP_BUCKET}/deployments/latest-${{ inputs.environment }}.json"
+          
+          # Export deployment ID for next steps
+          echo "DEPLOYMENT_ID=${DEPLOYMENT_ID}" >> $GITHUB_ENV
+          echo "BOOTSTRAP_BUCKET=${BOOTSTRAP_BUCKET}" >> $GITHUB_ENV
+          
+          echo "Created deployment manifest: ${DEPLOYMENT_ID}"
 
       - name: CDK Deploy
         env:
           NODE_ENV: ${{ inputs.environment }}
         run: |
           cdk deploy --all --require-approval never 
+
+      - name: Update Deployment Status
+        if: always()
+        run: |
+          # Capture deployment outcome
+          if [ "${{ job.status }}" = "success" ]; then
+            DEPLOYMENT_STATUS="success"
+          else
+            DEPLOYMENT_STATUS="failed"
+          fi
+          
+          # Get list of deployed stacks
+          DEPLOYED_STACKS=$(aws cloudformation list-stacks --region ${{ env.AWS_REGION }} --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --query 'StackSummaries[?contains(StackName, `${{ env.APP_NAME }}`)].[StackName]' --output text | tr '\n' ',' | sed 's/,$//')
+          
+          # Create final deployment manifest
+          cat > final-deployment-manifest.json << EOF
+          {
+            "deploymentId": "${DEPLOYMENT_ID}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
+            "completedAt": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
+            "environment": "${{ inputs.environment }}",
+            "gitCommit": "${{ github.sha }}",
+            "gitRef": "${{ github.ref }}",
+            "gitActor": "${{ github.actor }}",
+            "runId": "${{ github.run_id }}",
+            "runNumber": "${{ github.run_number }}",
+            "workflowName": "${{ github.workflow }}",
+            "cdkVersion": "$(cdk --version)",
+            "nodeVersion": "$(node --version)",
+            "awsRegion": "${{ env.AWS_REGION }}",
+            "awsAccount": "${{ env.AWS_ACCOUNT_ID }}",
+            "appName": "${{ env.APP_NAME }}",
+            "bootstrapBucket": "${BOOTSTRAP_BUCKET}",
+            "status": "${DEPLOYMENT_STATUS}",
+            "deployedStacks": "${DEPLOYED_STACKS}",
+            "duration": "$(echo $(($(date +%s) - $(date -d '${{ job.started_at }}' +%s))) seconds"
+          }
+          EOF
+          
+          # Upload final manifest
+          aws s3 cp final-deployment-manifest.json "s3://${BOOTSTRAP_BUCKET}/deployments/${DEPLOYMENT_ID}/final-manifest.json"
+          
+          # Update latest pointer if successful
+          if [ "${DEPLOYMENT_STATUS}" = "success" ]; then
+            aws s3 cp final-deployment-manifest.json "s3://${BOOTSTRAP_BUCKET}/deployments/latest-${{ inputs.environment }}-success.json"
+          fi
+          
+          # Create deployment history entry
+          aws s3 cp final-deployment-manifest.json "s3://${BOOTSTRAP_BUCKET}/deployments/history/$(date +%Y/%m/%d)/${DEPLOYMENT_ID}.json"
+          
+          echo "Deployment tracking completed: ${DEPLOYMENT_STATUS}" 
