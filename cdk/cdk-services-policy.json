@@ -121,7 +121,24 @@
                 "servicediscovery:ListNamespaces",
                 "servicediscovery:ListServices",
                 "servicediscovery:TagResource",
-                "servicediscovery:UntagResource"
+                "servicediscovery:UntagResource",
+                "lambda:CreateFunction",
+                "lambda:DeleteFunction",
+                "lambda:GetFunction",
+                "lambda:UpdateFunctionCode",
+                "lambda:UpdateFunctionConfiguration",
+                "lambda:InvokeFunction",
+                "lambda:TagResource",
+                "lambda:UntagResource",
+                "lambda:AddPermission",
+                "lambda:RemovePermission",
+                "lambda:GetPolicy",
+                "lambda:ListVersionsByFunction",
+                "lambda:PublishVersion",
+                "lambda:CreateAlias",
+                "lambda:DeleteAlias",
+                "lambda:GetAlias",
+                "lambda:UpdateAlias"
             ],
             "Resource": "*"
         }

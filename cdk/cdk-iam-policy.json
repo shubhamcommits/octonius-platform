@@ -10,14 +10,40 @@
                 "iam:PutRolePolicy",
                 "iam:GetRole",
                 "iam:TagRole",
+                "iam:UntagRole",
                 "iam:UpdateRole",
                 "iam:DeleteRole",
                 "iam:DetachRolePolicy",
                 "iam:DeleteRolePolicy",
-                "iam:UpdateAssumeRolePolicy"
+                "iam:UpdateAssumeRolePolicy",
+                "iam:ListRolePolicies",
+                "iam:GetRolePolicy",
+                "iam:ListAttachedRolePolicies",
+                "iam:PassRole"
             ],
             "Resource": [
-                "arn:aws:iam::${AWS_ACCOUNT_ID}:role/cdk-*"
+                "arn:aws:iam::${AWS_ACCOUNT_ID}:role/cdk-*",
+                "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${NODE_ENV}*",
+                "arn:aws:iam::${AWS_ACCOUNT_ID}:role/*Custom*",
+                "arn:aws:iam::${AWS_ACCOUNT_ID}:role/*Lambda*",
+                "arn:aws:iam::${AWS_ACCOUNT_ID}:role/*Provider*"
+            ]
+        },
+        {
+            "Sid": "IAMPolicyManagement",
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreatePolicy",
+                "iam:GetPolicy",
+                "iam:CreatePolicyVersion",
+                "iam:DeletePolicyVersion",
+                "iam:SetDefaultPolicyVersion",
+                "iam:ListPolicyVersions",
+                "iam:DeletePolicy"
+            ],
+            "Resource": [
+                "arn:aws:iam::${AWS_ACCOUNT_ID}:policy/cdk-*",
+                "arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${NODE_ENV}*"
             ]
         },
         {
