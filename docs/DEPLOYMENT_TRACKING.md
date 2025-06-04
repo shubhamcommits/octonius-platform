@@ -31,9 +31,9 @@ Each deployment creates multiple manifest files with this information:
   "cdkVersion": "2.110.0",
   "nodeVersion": "v20.9.0",
   "awsRegion": "eu-central-1",
-  "awsAccount": "566545930933",
+  "awsAccount": "123456789012",
   "appName": "octonius",
-  "bootstrapBucket": "dev-octonius-assets-566545930933-eu-central-1",
+  "bootstrapBucket": "dev-octonius-platform-deployment-bucket-eu-central-1",
   "status": "success",
   "deployedStacks": "dev-octonius-cdk-stack-eu-central-1",
   "duration": "330 seconds"
