@@ -21,7 +21,7 @@ if [[ -z "$ENVIRONMENT" || -z "$AWS_ACCOUNT_ID" ]]; then
     exit 1
 fi
 
-echo "Creating/updating IAM policies for $ENVIRONMENT environment..."
+echo "🔐 Creating/updating IAM policies for $ENVIRONMENT environment..."
 
 # Function to create or update a policy
 create_or_update_policy() {
@@ -31,10 +31,10 @@ create_or_update_policy() {
     local account_id="$AWS_ACCOUNT_ID"
     local expected_policy_arn="arn:aws:iam::${account_id}:policy/${policy_name}"
 
-    echo "Processing policy: $policy_name"
+    echo "🔄 Processing policy: $policy_name"
 
     if aws iam get-policy --policy-arn ${expected_policy_arn} > /dev/null 2>&1; then
-        echo "  Policy exists, updating..."
+        echo "  📝 Policy exists, updating..."
         
         # Clean up old versions if needed
         POLICY_VERSIONS_JSON=$(aws iam list-policy-versions --policy-arn "${expected_policy_arn}")
@@ -45,24 +45,24 @@ create_or_update_policy() {
                 jq -r '.Versions | sort_by(.CreateDate) | map(select(.IsDefaultVersion == false)) | .[0].VersionId // null')
 
             if [ -n "${OLDEST_NON_DEFAULT_VERSION_ID}" ] && [ "${OLDEST_NON_DEFAULT_VERSION_ID}" != "null" ] && [ "${OLDEST_NON_DEFAULT_VERSION_ID}" != "" ]; then
-                echo "  Removing oldest policy version: ${OLDEST_NON_DEFAULT_VERSION_ID}"
+                echo "  🗑️  Removing oldest policy version: ${OLDEST_NON_DEFAULT_VERSION_ID}"
                 aws iam delete-policy-version --policy-arn "${expected_policy_arn}" --version-id "${OLDEST_NON_DEFAULT_VERSION_ID}"
             fi
         fi
 
         aws iam create-policy-version --policy-arn "${expected_policy_arn}" --policy-document file://${policy_file} --set-as-default
-        echo "  Policy updated: $policy_name"
+        echo "  ✅ Policy updated: $policy_name"
     else
-        echo "  Creating new policy..."
+        echo "  🆕 Creating new policy..."
         aws iam create-policy --policy-name ${policy_name} --policy-document file://${policy_file} --description "${description}"
-        echo "  Policy created: $policy_name"
+        echo "  ✅ Policy created: $policy_name"
     fi
     
     echo "${expected_policy_arn}"
 }
 
 # Create/update all policies
-echo "Starting policy creation process..."
+echo "🚀 Starting policy creation process..."
 
 BASE_POLICY_ARN=$(create_or_update_policy "${ENVIRONMENT}-cdk-base-policy" "processed-policies/cdk-base-policy.json" "Base policy for CDK operations")
 CLOUDFORMATION_POLICY_ARN=$(create_or_update_policy "${ENVIRONMENT}-cdk-cloudformation-policy" "processed-policies/cdk-cloudformation-policy.json" "CloudFormation policy for CDK operations")
@@ -74,8 +74,8 @@ NETWORK_POLICY_ARN=$(create_or_update_policy "${ENVIRONMENT}-cdk-network-policy"
 # Combine all policy ARNs
 POLICY_ARNS="${BASE_POLICY_ARN},${CLOUDFORMATION_POLICY_ARN},${S3_POLICY_ARN},${IAM_POLICY_ARN},${SERVICES_POLICY_ARN},${NETWORK_POLICY_ARN}"
 
-echo "All policies processed successfully"
-echo "Policy ARNs: ${POLICY_ARNS}"
+echo "✅ All policies processed successfully"
+echo "📋 Policy ARNs: ${POLICY_ARNS}"
 
 # Output the policy ARNs for GitHub Actions to capture
 echo "POLICY_ARNS=${POLICY_ARNS}" 

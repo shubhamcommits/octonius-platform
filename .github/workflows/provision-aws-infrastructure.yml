@@ -188,9 +188,9 @@ jobs:
           echo "AWS_CDK_POLICY_ARN_FROM_FILE=${POLICY_ARNS}" >> $GITHUB_ENV
           
           # Create summary
-          echo "### Policy Management Completed" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔐 Policy Management Completed" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Policies Created/Updated**: 6" >> $GITHUB_STEP_SUMMARY
+          echo "- **Policies Created/Updated**: 6 ✅" >> $GITHUB_STEP_SUMMARY
           echo "- **Policy ARNs**: \`${POLICY_ARNS}\`" >> $GITHUB_STEP_SUMMARY
 
   # Job 3: Deploy infrastructure
@@ -261,10 +261,17 @@ jobs:
             DEPLOYMENT_ID=$(jq -r '.deploymentId' final-deployment-manifest.json)
             DEPLOYED_STACKS=$(jq -r '.deployedStacks' final-deployment-manifest.json)
             
+            # Add appropriate emoji based on status
+            if [[ "$DEPLOYMENT_STATUS" == "success" || "$DEPLOYMENT_STATUS" == "dry-run-success" ]]; then
+              STATUS_EMOJI="✅"
+            else
+              STATUS_EMOJI="❌"
+            fi
+            
             echo "### 📊 Deployment Results" >> $GITHUB_STEP_SUMMARY
-            echo "- **Status**: $DEPLOYMENT_STATUS" >> $GITHUB_STEP_SUMMARY
-            echo "- **Deployment ID**: $DEPLOYMENT_ID" >> $GITHUB_STEP_SUMMARY
-            echo "- **Deployed Stacks**: $DEPLOYED_STACKS" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: $DEPLOYMENT_STATUS $STATUS_EMOJI" >> $GITHUB_STEP_SUMMARY
+            echo "- **Deployment ID**: $DEPLOYMENT_ID 🆔" >> $GITHUB_STEP_SUMMARY
+            echo "- **Deployed Stacks**: $DEPLOYED_STACKS 📦" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
             echo "No deployment manifest found - deployment may have failed early" >> $GITHUB_STEP_SUMMARY
