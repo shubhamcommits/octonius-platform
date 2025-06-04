@@ -231,7 +231,7 @@ bootstrap_cdk() {
     export BOOTSTRAP_BUCKET="$bootstrap_bucket"
     
     # Prepare simplified tags for ECR compatibility
-    local simple_tags="Environment=$ENVIRONMENT,Project=$APP_NAME,ManagedBy=CDK,Owner=Octonius-Team"
+    local simple_tags="Environment=$ENVIRONMENT,Project=$APP_NAME,ManagedBy=CDK"
     log_verbose "Using tags: $simple_tags"
     
     if [[ "$DRY_RUN" == "true" ]]; then
@@ -273,10 +273,34 @@ bootstrap_cdk() {
         # Clean up any failed attempt first
         cleanup_failed_stack
         
+        # Clean up specific conflicting resources if they exist
+        log_info "Cleaning up any conflicting resources..."
+        
+        # Find and remove any existing CDK bootstrap parameters dynamically
+        log_verbose "Checking for existing CDK bootstrap parameters..."
+        local bootstrap_params
+        bootstrap_params=$(aws ssm describe-parameters \
+            --region "$AWS_REGION" \
+            --parameter-filters "Key=Name,Option=BeginsWith,Values=/cdk-bootstrap/" \
+            --query 'Parameters[].Name' \
+            --output text 2>/dev/null || echo "")
+        
+        if [[ -n "$bootstrap_params" ]]; then
+            log_warning "Found existing CDK bootstrap parameters, removing them..."
+            for param in $bootstrap_params; do
+                log_verbose "Removing parameter: $param"
+                aws ssm delete-parameter --name "$param" --region "$AWS_REGION" 2>/dev/null || true
+            done
+        else
+            log_verbose "No conflicting CDK bootstrap parameters found"
+        fi
+        
+        # Try bootstrap with simplified ECR-compatible tags
         if cdk bootstrap \
             --cloudformation-execution-policies "$AWS_CDK_POLICY_ARN_FROM_FILE" \
             --bootstrap-kms-key-id alias/aws/s3 \
-            --tags "$simple_tags"; then
+            --tags "$simple_tags" \
+            --force; then
             
             # Get the auto-created bucket name
             bootstrap_bucket=$(aws cloudformation describe-stack-resources \
