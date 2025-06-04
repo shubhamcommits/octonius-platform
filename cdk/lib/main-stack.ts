@@ -27,6 +27,8 @@ export class MainStack extends cdk.Stack {
     if (!process.env.DOMAIN_NAME) {
       throw new Error('DOMAIN_NAME environment variable is required')
     }
+
+    // Set domain name
     this.domain_name = process.env.DOMAIN_NAME
 
     // Initialize stacks
