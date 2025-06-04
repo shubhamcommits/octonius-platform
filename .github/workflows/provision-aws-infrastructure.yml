@@ -120,21 +120,7 @@ jobs:
         shell: bash
 
       - name: Bootstrap CDK
-        run: |
-          if aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1; then
-            BOOTSTRAP_VERSION=$(aws ssm get-parameter --name "/cdk-bootstrap/${{ inputs.environment }}/version" --query "Parameter.Value" --output text 2>/dev/null || echo "0")
-            if [ "$BOOTSTRAP_VERSION" != "2" ]; then
-              cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
-            fi
-          else
-            cdk bootstrap --cloudformation-execution-policies ${{ env.AWS_CDK_POLICY_ARN_FROM_FILE }} --verbose
-          fi
-
-          aws ssm put-parameter \
-            --name "/cdk-bootstrap/${{ inputs.environment }}/version" \
-            --value "2" \
-            --type String \
-            --overwrite || true
+        run: npx cdk bootstrap --cloudformation-execution-policies ${AWS_CDK_POLICY_ARN_FROM_FILE}
 
       - name: CDK Deploy
         env:
