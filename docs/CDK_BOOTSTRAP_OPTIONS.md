@@ -1,6 +1,6 @@
 # CDK Bootstrap Assets Bucket Options
 
-This document explains your options for customizing the CDK bootstrap assets bucket instead of using the default auto-generated bucket like `cdk-hnb659fds-assets-566545930933-eu-central-1`.
+This document explains your options for customizing the CDK bootstrap deployment bucket instead of using the default auto-generated bucket like `cdk-hnb659fds-assets-123456789012-eu-central-1`.
 
 ## Current Default Behavior
 
@@ -48,7 +48,7 @@ cdk bootstrap --bootstrap-bucket-name "${BOOTSTRAP_BUCKET}"
 
 **Implementation:**
 ```bash
-CUSTOM_BUCKET_NAME="dev-octonius-cdk-assets-566545930933-eu-central-1"
+CUSTOM_BUCKET_NAME="dev-octonius-platform-deployment-bucket-eu-central-1"
 cdk bootstrap --bootstrap-bucket-name "${CUSTOM_BUCKET_NAME}"
 ```
 
@@ -84,10 +84,10 @@ ${environment}-${app_name}-cdk-assets-${account_id}-${region}
 **Implementation:**
 ```bash
 # Development
-cdk bootstrap --bootstrap-bucket-name "dev-octonius-cdk-assets-566545930933-eu-central-1"
+cdk bootstrap --bootstrap-bucket-name "dev-octonius-platform-deployment-bucket-eu-central-1"
 
 # Production  
-cdk bootstrap --bootstrap-bucket-name "prod-octonius-cdk-assets-566545930933-eu-central-1"
+cdk bootstrap --bootstrap-bucket-name "prod-octonius-platform-deployment-bucket-eu-central-1"
 ```
 
 ## Comparison Table

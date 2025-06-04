@@ -93,6 +93,33 @@ A modern, scalable platform built with Node.js, Express, and PostgreSQL.
    ```
    The server will start on port 3000.
 
+### Deploy Infrastructure
+
+```bash
+# Set required environment variables
+export AWS_ACCOUNT_ID="your-account-id"
+export DEV_S3_BUCKET="dev-octonius-platform-deployment-bucket-eu-central-1"
+
+# Deploy to development
+./scripts/deploy-infrastructure.sh --env dev
+
+# Preview deployment without making changes
+./scripts/deploy-infrastructure.sh --env dev --dry-run
+```
+
+### Query Deployment History
+
+```bash
+# Show latest deployment
+./scripts/deployment-tracker.sh latest --env dev
+
+# Show deployment history
+./scripts/deployment-tracker.sh history --env dev --limit 5
+
+# Check deployment status
+./scripts/deployment-tracker.sh status --env dev
+```
+
 ## 📋 Development Guidelines
 
 ### Branch Management
@@ -286,3 +313,221 @@ Log levels:
    - Enable caching
    - Start in cluster mode
    - Use production logging
+
+## 📁 Architecture
+
+### Deployment Scripts (New ✨)
+
+We've refactored from complex YAML workflows to reusable, testable deployment scripts:
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| **`deploy-infrastructure.sh`** | Main deployment with bootstrap & tracking | `./scripts/deploy-infrastructure.sh --env dev` |
+| **`deployment-tracker.sh`** | Query deployment history & status | `./scripts/deployment-tracker.sh latest --env dev` |
+| **`cleanup-cdk-bootstrap.sh`** | Clean up failed CDK stacks | `./scripts/cleanup-cdk-bootstrap.sh --force` |
+
+**Benefits:**
+- ✅ **96% reduction** in YAML complexity (300 → 12 lines)
+- ✅ **Local testing** and debugging capability
+- ✅ **Reusable** across different CI/CD platforms
+- ✅ **Enhanced error handling** with automatic recovery
+
+### Infrastructure
+
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| **CDK Stacks** | Infrastructure as Code | `cdk/lib/` |
+| **S3 Buckets** | Assets, backups, deployment tracking | Auto-created or custom |
+| **CloudFront** | CDN for frontend and media | `cdk/lib/frontend-stack.ts` |
+| **VPC** | Network isolation | `cdk/lib/vpc-stack.ts` |
+| **ECS** | Container orchestration | `cdk/lib/ecs-stack.ts` |
+
+## 📚 Documentation
+
+> 📁 **All documentation is organized in the [`docs/`](docs/) folder** - [Browse documentation index](docs/README.md)
+
+- **[Deployment Scripts Architecture](docs/DEPLOYMENT_SCRIPTS.md)** - New script-based deployment system
+- **[CDK Error Handling](docs/CDK_ERROR_HANDLING.md)** - Robust bootstrap and error recovery  
+- **[Deployment Tracking](docs/DEPLOYMENT_TRACKING.md)** - Complete deployment history and monitoring
+- **[CDK Bootstrap Options](docs/CDK_BOOTSTRAP_OPTIONS.md)** - Custom bucket configurations
+- **[Environment Variables](docs/ENV_VARIABLES.md)** - Required and optional configuration
+
+## 🛠️ Development Workflow
+
+### Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Build project
+npm run build
+
+# Deploy to dev environment with tracking
+./scripts/deploy-infrastructure.sh --env dev --verbose
+
+# Test deployment without changes
+./scripts/deploy-infrastructure.sh --env dev --dry-run
+
+# Check deployment status
+./scripts/deployment-tracker.sh latest --env dev
+```
+
+### GitHub Actions
+
+The deployment automatically runs via GitHub Actions using the simplified workflow:
+
+```yaml
+- name: Deploy Infrastructure
+  run: |
+    ./scripts/deploy-infrastructure.sh \
+      --env ${{ inputs.environment }} \
+      --region ${{ env.AWS_REGION }} \
+      --verbose
+```
+
+## 🔧 Configuration
+
+### Required Environment Variables
+
+```bash
+AWS_ACCOUNT_ID                    # Your AWS Account ID
+AWS_CDK_POLICY_ARN_FROM_FILE     # Comma-separated policy ARNs
+```
+
+### Optional Environment Variables
+
+```bash
+AWS_REGION="eu-central-1"        # AWS Region
+DEV_S3_BUCKET                    # Custom dev bucket name
+PROD_S3_BUCKET                   # Custom prod bucket name
+```
+
+### GitHub Secrets
+
+Set these in your repository secrets for automated deployments:
+
+- `AWS_ACCOUNT_ID` - AWS Account ID
+- `AWS_REGION` - Deployment region  
+- `AWS_ROLE_NAME` - IAM role for GitHub Actions
+- `DEV_S3_BUCKET` - Development assets bucket
+- `PROD_S3_BUCKET` - Production assets bucket
+- `DEV_CLOUDFRONT_ID` - Development CloudFront distribution
+- `PROD_CLOUDFRONT_ID` - Production CloudFront distribution
+
+## 🚨 Troubleshooting
+
+### CDK Bootstrap Issues
+
+If you encounter CDK bootstrap failures:
+
+```bash
+# Clean up failed stack automatically
+./scripts/cleanup-cdk-bootstrap.sh
+
+# Or force cleanup
+./scripts/cleanup-cdk-bootstrap.sh --force
+
+# Then deploy normally
+./scripts/deploy-infrastructure.sh --env dev
+```
+
+### Common Issues
+
+**AWS Credentials:**
+```bash
+aws configure
+# or
+export AWS_PROFILE=your-profile
+```
+
+**Missing Dependencies:**
+```bash
+npm install -g aws-cdk
+pip install awscli
+```
+
+**Permission Errors:**
+```bash
+chmod +x scripts/*.sh
+```
+
+### Debug Mode
+
+```bash
+# Verbose logging
+./scripts/deploy-infrastructure.sh --env dev --verbose
+
+# Bash debug mode
+bash -x ./scripts/deploy-infrastructure.sh --env dev --dry-run
+```
+
+## 📊 Deployment Tracking
+
+Every deployment creates detailed tracking manifests with:
+
+- **Deployment metadata** - Git commit, actor, timestamp
+- **Infrastructure details** - AWS account, region, deployed stacks  
+- **Performance metrics** - Deployment duration and status
+- **History tracking** - Complete audit trail in S3
+
+### Example Deployment Manifest
+
+```json
+{
+  "deploymentId": "deploy-20231201-120000-abc123",
+  "environment": "dev",
+  "gitCommit": "abc123def456",
+  "gitActor": "john.doe", 
+  "status": "success",
+  "deployedStacks": "dev-octonius-cdk-stack-eu-central-1",
+  "duration": "330 seconds",
+  "bootstrapBucket": "dev-octonius-platform-deployment-bucket-eu-central-1"
+}
+```
+
+## 🌟 Features
+
+- **🛡️ Fault-tolerant bootstrap** - Automatic recovery from failed CDK stacks
+- **📊 Complete deployment tracking** - Full audit trail and history
+- **🎯 Smart bucket management** - Custom or auto-generated S3 buckets
+- **🔄 Multi-environment support** - Dev, staging, prod configurations
+- **🚀 CI/CD ready** - Works with GitHub Actions, GitLab, Jenkins
+- **🔍 Comprehensive logging** - Colored output with debug modes
+- **⚡ Fast recovery** - Automatic cleanup and retry logic
+
+## 🏗️ Project Structure
+
+```
+.
+├── docs/                         # Documentation
+│   ├── DEPLOYMENT_SCRIPTS.md     # Script-based deployment system
+│   ├── CDK_ERROR_HANDLING.md     # Bootstrap error recovery
+│   ├── DEPLOYMENT_TRACKING.md    # Deployment history & monitoring
+│   ├── CDK_BOOTSTRAP_OPTIONS.md  # Custom bucket configurations
+│   └── ENV_VARIABLES.md          # Environment variable reference
+├── cdk/                          # CDK Infrastructure
+│   ├── lib/                      # CDK Stack definitions
+│   ├── bin/                      # CDK app entry point
+│   └── *.json                    # IAM policies and configurations
+├── scripts/                      # Deployment scripts
+│   ├── deploy-infrastructure.sh  # Main deployment script
+│   ├── deployment-tracker.sh     # Deployment history queries
+│   └── cleanup-cdk-bootstrap.sh  # CDK cleanup utilities
+├── .github/workflows/            # GitHub Actions
+├── src/                          # Application source code
+├── services/                     # Service layer
+└── README.md                     # This file
+```
+
+---
+
+## Getting Started
+
+1. **Clone the repository**
+2. **Set up AWS credentials** (`aws configure`)
+3. **Install dependencies** (`npm install`)
+4. **Deploy to dev** (`./scripts/deploy-infrastructure.sh --env dev`)
+5. **Track deployment** (`./scripts/deployment-tracker.sh latest --env dev`)
+
+For detailed documentation, see the linked guides above. For issues, check the troubleshooting section or create an issue.

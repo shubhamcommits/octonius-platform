@@ -48,6 +48,8 @@ jobs:
       NODE_ENV: ${{ inputs.environment }}
       APP_NAME: 'octonius'
       DOMAIN_NAME: ${{ vars.DOMAIN_NAME || 'dev.octonius.com' }}
+      DEV_S3_BUCKET: ${{ secrets.DEV_S3_BUCKET }}
+      PROD_S3_BUCKET: ${{ secrets.PROD_S3_BUCKET }}
     steps:
       - uses: actions/checkout@v3
 
@@ -79,10 +81,7 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build
-        run: npm run build
-
-      - name: Create/Update IAM Policy for CDK CloudFormation Execution
+      - name: Create/Update IAM Policies for CDK
         run: |
           create_or_update_policy() {
             local policy_name=$1
@@ -127,195 +126,11 @@ jobs:
           NETWORK_POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${{ inputs.environment }}-cdk-network-policy"
 
           echo "AWS_CDK_POLICY_ARN_FROM_FILE=${BASE_POLICY_ARN},${CLOUDFORMATION_POLICY_ARN},${S3_POLICY_ARN},${IAM_POLICY_ARN},${SERVICES_POLICY_ARN},${NETWORK_POLICY_ARN}" >> $GITHUB_ENV
-          
-          # Debug: Show the constructed policy ARNs
-          echo "Constructed policy ARNs: ${BASE_POLICY_ARN},${CLOUDFORMATION_POLICY_ARN},${S3_POLICY_ARN},${IAM_POLICY_ARN},${SERVICES_POLICY_ARN},${NETWORK_POLICY_ARN}"
         shell: bash
 
-      - name: Bootstrap CDK
+      - name: Deploy Infrastructure
         run: |
-          echo "Using policy ARNs: ${AWS_CDK_POLICY_ARN_FROM_FILE}"
-        
-          if [ "${{ inputs.environment }}" = "dev" ]; then
-            BOOTSTRAP_BUCKET="${{ secrets.DEV_S3_BUCKET }}"
-          else
-            BOOTSTRAP_BUCKET="${{ secrets.PROD_S3_BUCKET }}"
-          fi
-          
-          echo "Using bootstrap bucket: ${BOOTSTRAP_BUCKET}"
-          
-          # Clean up any failed CDKToolkit stack first
-          echo "Checking for existing CDKToolkit stack..."
-          EXISTING_STACK=$(aws cloudformation describe-stacks --stack-name CDKToolkit --region ${{ env.AWS_REGION }} --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "NONE")
-          
-          if [[ "$EXISTING_STACK" == "ROLLBACK_COMPLETE" || "$EXISTING_STACK" == "CREATE_FAILED" || "$EXISTING_STACK" == "UPDATE_ROLLBACK_COMPLETE" ]]; then
-            echo "Found failed CDKToolkit stack in state: $EXISTING_STACK. Deleting it..."
-            aws cloudformation delete-stack --stack-name CDKToolkit --region ${{ env.AWS_REGION }}
-            
-            echo "Waiting for stack deletion to complete..."
-            aws cloudformation wait stack-delete-complete --stack-name CDKToolkit --region ${{ env.AWS_REGION }}
-            echo "CDKToolkit stack deleted successfully"
-          elif [[ "$EXISTING_STACK" != "NONE" ]]; then
-            echo "CDKToolkit stack exists in state: $EXISTING_STACK"
-          fi
-          
-          # Bootstrap with proper error handling and simplified tags
-          echo "Starting CDK bootstrap..."
-          
-          # Use simplified tags to avoid ECR tag validation issues
-          SIMPLE_TAGS="Environment=${{ inputs.environment }},Project=${{ env.APP_NAME }},ManagedBy=CDK,Owner=Octonius Team"
-          
-          # Try bootstrap with existing bucket first
-          if aws s3 ls "s3://${BOOTSTRAP_BUCKET}" >/dev/null 2>&1; then
-            echo "Bucket ${BOOTSTRAP_BUCKET} exists, bootstrapping with existing bucket..."
-            
-            cdk bootstrap \
-              --cloudformation-execution-policies "${AWS_CDK_POLICY_ARN_FROM_FILE}" \
-              --bootstrap-bucket-name "${BOOTSTRAP_BUCKET}" \
-              --bootstrap-kms-key-id alias/aws/s3 \
-              --tags "${SIMPLE_TAGS}" \
-              --force || {
-                
-                echo "Bootstrap with existing bucket failed. Trying without specifying bucket name..."
-                
-                # Fallback: Let CDK create its own bucket but clean up the failed attempt first
-                if aws cloudformation describe-stacks --stack-name CDKToolkit --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
-                  echo "Cleaning up failed bootstrap attempt..."
-                  aws cloudformation delete-stack --stack-name CDKToolkit --region ${{ env.AWS_REGION }}
-                  aws cloudformation wait stack-delete-complete --stack-name CDKToolkit --region ${{ env.AWS_REGION }}
-                fi
-                
-                # Bootstrap without specifying bucket (let CDK create one)
-                cdk bootstrap \
-                  --cloudformation-execution-policies "${AWS_CDK_POLICY_ARN_FROM_FILE}" \
-                  --bootstrap-kms-key-id alias/aws/s3 \
-                  --tags "${SIMPLE_TAGS}"
-                  
-                # Get the auto-created bucket name for tracking
-                BOOTSTRAP_BUCKET=$(aws cloudformation describe-stack-resources \
-                  --stack-name CDKToolkit \
-                  --logical-resource-id StagingBucket \
-                  --query 'StackResources[0].PhysicalResourceId' \
-                  --output text)
-                  
-                echo "CDK created bucket: ${BOOTSTRAP_BUCKET}"
-              }
-          else
-            echo "Bucket ${BOOTSTRAP_BUCKET} not found. Using CDK auto-generated bucket..."
-            
-            cdk bootstrap \
-              --cloudformation-execution-policies "${AWS_CDK_POLICY_ARN_FROM_FILE}" \
-              --bootstrap-kms-key-id alias/aws/s3 \
-              --tags "${SIMPLE_TAGS}"
-              
-            # Get the auto-created bucket name
-            BOOTSTRAP_BUCKET=$(aws cloudformation describe-stack-resources \
-              --stack-name CDKToolkit \
-              --logical-resource-id StagingBucket \
-              --query 'StackResources[0].PhysicalResourceId' \
-              --output text)
-              
-            echo "CDK created bucket: ${BOOTSTRAP_BUCKET}"
-          fi
-          
-          # Export the actual bucket being used for deployment tracking
-          echo "BOOTSTRAP_BUCKET=${BOOTSTRAP_BUCKET}" >> $GITHUB_ENV
-          echo "Bootstrap completed successfully with bucket: ${BOOTSTRAP_BUCKET}"
-
-      - name: Create Deployment Manifest
-        run: |
-          # Create deployment tracking manifest
-          DEPLOYMENT_ID="deploy-$(date +%Y%m%d-%H%M%S)-${{ github.sha }}"
-          
-          # Use the bootstrap bucket that was determined/created in the previous step
-          echo "Using bootstrap bucket from previous step: ${BOOTSTRAP_BUCKET}"
-          
-          # Create deployment manifest
-          cat > deployment-manifest.json << EOF
-          {
-            "deploymentId": "${DEPLOYMENT_ID}",
-            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
-            "environment": "${{ inputs.environment }}",
-            "gitCommit": "${{ github.sha }}",
-            "gitRef": "${{ github.ref }}",
-            "gitActor": "${{ github.actor }}",
-            "runId": "${{ github.run_id }}",
-            "runNumber": "${{ github.run_number }}",
-            "workflowName": "${{ github.workflow }}",
-            "cdkVersion": "$(cdk --version)",
-            "nodeVersion": "$(node --version)",
-            "awsRegion": "${{ env.AWS_REGION }}",
-            "awsAccount": "${{ env.AWS_ACCOUNT_ID }}",
-            "appName": "${{ env.APP_NAME }}",
-            "bootstrapBucket": "${BOOTSTRAP_BUCKET}",
-            "status": "deploying"
-          }
-          EOF
-          
-          # Upload deployment manifest to bootstrap bucket
-          aws s3 cp deployment-manifest.json "s3://${BOOTSTRAP_BUCKET}/deployments/${DEPLOYMENT_ID}/manifest.json"
-          
-          # Also create a latest deployment pointer
-          aws s3 cp deployment-manifest.json "s3://${BOOTSTRAP_BUCKET}/deployments/latest-${{ inputs.environment }}.json"
-          
-          # Export deployment ID for next steps
-          echo "DEPLOYMENT_ID=${DEPLOYMENT_ID}" >> $GITHUB_ENV
-          
-          echo "Created deployment manifest: ${DEPLOYMENT_ID}"
-
-      - name: CDK Deploy
-        env:
-          NODE_ENV: ${{ inputs.environment }}
-        run: |
-          cdk deploy --all --require-approval never 
-
-      - name: Update Deployment Status
-        if: always()
-        run: |
-          # Capture deployment outcome
-          if [ "${{ job.status }}" = "success" ]; then
-            DEPLOYMENT_STATUS="success"
-          else
-            DEPLOYMENT_STATUS="failed"
-          fi
-          
-          # Get list of deployed stacks
-          DEPLOYED_STACKS=$(aws cloudformation list-stacks --region ${{ env.AWS_REGION }} --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --query 'StackSummaries[?contains(StackName, `${{ env.APP_NAME }}`)].[StackName]' --output text | tr '\n' ',' | sed 's/,$//')
-          
-          # Create final deployment manifest
-          cat > final-deployment-manifest.json << EOF
-          {
-            "deploymentId": "${DEPLOYMENT_ID}",
-            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
-            "completedAt": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
-            "environment": "${{ inputs.environment }}",
-            "gitCommit": "${{ github.sha }}",
-            "gitRef": "${{ github.ref }}",
-            "gitActor": "${{ github.actor }}",
-            "runId": "${{ github.run_id }}",
-            "runNumber": "${{ github.run_number }}",
-            "workflowName": "${{ github.workflow }}",
-            "cdkVersion": "$(cdk --version)",
-            "nodeVersion": "$(node --version)",
-            "awsRegion": "${{ env.AWS_REGION }}",
-            "awsAccount": "${{ env.AWS_ACCOUNT_ID }}",
-            "appName": "${{ env.APP_NAME }}",
-            "bootstrapBucket": "${BOOTSTRAP_BUCKET}",
-            "status": "${DEPLOYMENT_STATUS}",
-            "deployedStacks": "${DEPLOYED_STACKS}",
-            "duration": "$(echo $(($(date +%s) - $(date -d '${{ job.started_at }}' +%s))) seconds"
-          }
-          EOF
-          
-          # Upload final manifest
-          aws s3 cp final-deployment-manifest.json "s3://${BOOTSTRAP_BUCKET}/deployments/${DEPLOYMENT_ID}/final-manifest.json"
-          
-          # Update latest pointer if successful
-          if [ "${DEPLOYMENT_STATUS}" = "success" ]; then
-            aws s3 cp final-deployment-manifest.json "s3://${BOOTSTRAP_BUCKET}/deployments/latest-${{ inputs.environment }}-success.json"
-          fi
-          
-          # Create deployment history entry
-          aws s3 cp final-deployment-manifest.json "s3://${BOOTSTRAP_BUCKET}/deployments/history/$(date +%Y/%m/%d)/${DEPLOYMENT_ID}.json"
-          
-          echo "Deployment tracking completed: ${DEPLOYMENT_STATUS}" 
+          ./scripts/deploy-infrastructure.sh \
+            --env ${{ inputs.environment }} \
+            --region ${{ env.AWS_REGION }} \
+            --verbose 
