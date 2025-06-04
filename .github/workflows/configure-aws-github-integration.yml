@@ -164,7 +164,13 @@ jobs:
                           "kafka-cluster:*",
                           "kafka:*",
                           "kafkaconnect:*",
-                          "elasticache:*"
+                          "elasticache:*",
+                          "ecr:*",
+                          "ecs:*",
+                          "logs:*",
+                          "cloudwatch:*",
+                          "cloudwatch-events:*",
+                          "cloudwatch-logs:*"
                       ],
                       "Resource": "*"
                   },
