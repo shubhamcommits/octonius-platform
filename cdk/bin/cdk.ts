@@ -38,7 +38,7 @@ const COMMON_TAGS = {
 }
 
 // Define base stack name
-const baseStackName = `${process.env.NODE_ENV}-${process.env.APP_NAME}`
+const baseStackName = `${process.env.NODE_ENV}-${process.env.APP_NAME}-cdk-stack-${region}`
 
 // Get account ID
 const accountId = process.env.AWS_ACCOUNT_ID

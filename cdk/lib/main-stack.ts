@@ -11,25 +11,18 @@ export class MainStack extends cdk.Stack {
   private vpc_stack?: VpcStack
   private s3_stack?: S3Stack
   private cloudwatch_stack?: CloudWatchStack
-  private domain_name: string
+  // private domain_name: string
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
 
-    // Define the 'env' parameter
-    new cdk.CfnParameter(this, 'env', {
-      type: 'String',
-      default: `${process.env.NODE_ENV}`,
-      allowedValues: ['dev', 'prod', 'staging'],
-    })
-
     // Validate domain name
-    if (!process.env.DOMAIN_NAME) {
-      throw new Error('DOMAIN_NAME environment variable is required')
-    }
+    // if (!process.env.DOMAIN_NAME) {
+    //   throw new Error('DOMAIN_NAME environment variable is required')
+    // }
 
     // Set domain name
-    this.domain_name = process.env.DOMAIN_NAME
+    // this.domain_name = process.env.DOMAIN_NAME
 
     // Initialize stacks
     this.initializeVpcStack(props)
