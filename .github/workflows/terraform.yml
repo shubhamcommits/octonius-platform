@@ -7,9 +7,6 @@ on:
       - development
       - 'feature/*'
       - 'hotfix/*'
-    paths: 
-      - 'terraform/**'
-      - '.github/workflows/terraform.yml'
   pull_request:
     branches: 
       - master
@@ -49,6 +46,34 @@ jobs:
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
+
+      - name: 🔍 Debug Workflow Context
+        run: |
+          echo "🔍 Workflow Debug Information:"
+          echo "Event Name: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Ref Name: ${{ github.ref_name }}"
+          echo "Head Ref: ${{ github.head_ref }}"
+          echo "Base Ref: ${{ github.base_ref }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Actor: ${{ github.actor }}"
+          
+          # Show environment variables
+          echo ""
+          echo "🔧 Environment Variables:"
+          echo "TF_VERSION: ${{ env.TF_VERSION }}"
+          echo "PROJECT_NAME: ${{ env.PROJECT_NAME }}"
+          
+          # Show if this is a push or PR
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "📤 This is a PUSH event to: ${{ github.ref_name }}"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "📋 This is a PULL_REQUEST event from: ${{ github.head_ref }} to: ${{ github.base_ref }}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "🎯 This is a MANUAL workflow dispatch"
+            echo "Manual action: ${{ github.event.inputs.action }}"
+            echo "Manual environment: ${{ github.event.inputs.environment }}"
+          fi
 
       - name: 🎯 Determine Environment & Bucket
         id: env
@@ -124,15 +149,26 @@ jobs:
       - name: 🎯 Determine Action
         id: action
         run: |
+          echo "🎯 Determining whether to apply infrastructure..."
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "📝 Manual workflow dispatch detected"
+            echo "Action input: ${{ github.event.inputs.action }}"
             if [[ "${{ github.event.inputs.action }}" == "apply" || "${{ github.event.inputs.action }}" == "destroy" ]]; then
+              echo "✅ Should apply: true (manual apply/destroy)"
               echo "should-apply=true" >> $GITHUB_OUTPUT
             else
+              echo "❌ Should apply: false (manual plan only)"
               echo "should-apply=false" >> $GITHUB_OUTPUT
             fi
           elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "✅ Should apply: true (push to master branch)"
             echo "should-apply=true" >> $GITHUB_OUTPUT
           else
+            echo "❌ Should apply: false (not master branch or manual apply)"
+            echo "Current ref: ${{ github.ref }}"
             echo "should-apply=false" >> $GITHUB_OUTPUT
           fi
 
@@ -187,7 +223,7 @@ jobs:
                 Key=Environment,Value="$ENV" \
                 Key=Project,Value="${{ env.PROJECT_NAME }}" \
                 Key=Purpose,Value=terraform-locks \
-                Key=Repository,Value="${{ vars.REPO_NAME }}"
+                Key=Repository,Value="${{ github.repository }}"
             
             echo "⏳ Waiting for DynamoDB table to become active..."
             aws dynamodb wait table-exists --table-name "$TABLE_NAME"
@@ -356,7 +392,7 @@ jobs:
               Environment = local.environment
               Project     = local.project_name
               ManagedBy   = "terraform"
-              Repository  = "${{ vars.REPO_NAME }}"
+              Repository  = "${{ github.repository }}"
               Branch      = local.environment # Since env is derived from branch
               Account     = local.account_id
               Region      = local.aws_region
@@ -531,7 +567,7 @@ jobs:
                 Key=Environment,Value="$ENV" \
                 Key=Project,Value="${{ env.PROJECT_NAME }}" \
                 Key=Purpose,Value=terraform-locks \
-                Key=Repository,Value="${{ vars.REPO_NAME }}"
+                Key=Repository,Value="${{ github.repository }}"
             
             echo "⏳ Waiting for DynamoDB table to become active..."
             aws dynamodb wait table-exists --table-name "$TABLE_NAME"
