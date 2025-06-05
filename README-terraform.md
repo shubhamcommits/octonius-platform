@@ -19,14 +19,16 @@ This is our **100% pipeline-native** infrastructure system for the Octonius Plat
 Set these in your GitHub repository (Settings → Secrets and variables → Actions):
 
 ```bash
-# Required Variables
+# Required Secrets (Secrets tab)
 AWS_ACCESS_KEY      # Your AWS access key
 AWS_SECRET_KEY      # Your AWS secret key
+DEV_S3_BUCKET       # Dev S3 bucket name
+PROD_S3_BUCKET      # Prod S3 bucket name
+
+# Required Variables (Variables tab)
 AWS_ACCOUNT_ID      # Your AWS account ID
 AWS_REGION          # AWS region (e.g., eu-central-1)
 AWS_ROLE_NAME       # IAM role name
-DEV_S3_BUCKET       # Dev S3 bucket name
-PROD_S3_BUCKET      # Prod S3 bucket name
 DEV_CLOUDFRONT_ID   # Dev CloudFront distribution ID
 PROD_CLOUDFRONT_ID  # Prod CloudFront distribution ID
 REPO_NAME           # Repository name
@@ -216,8 +218,8 @@ Unexpected environment name
 ```bash
 Error: bucket does not exist
 ```
-→ Check your existing S3 buckets and environment variables:
-- Ensure `PROD_S3_BUCKET` and `DEV_S3_BUCKET` variables are set correctly
+→ Check your existing S3 buckets and GitHub secrets:
+- Ensure `PROD_S3_BUCKET` and `DEV_S3_BUCKET` secrets are set correctly
 - Verify the buckets actually exist in your AWS account
 - Check AWS permissions for S3 and DynamoDB access
 

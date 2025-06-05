@@ -31,14 +31,16 @@ Our infrastructure system is **100% pipeline-native** - everything is computed d
 Configure these in your GitHub repository:
 
 ```bash
-# Required Variables (Repository Settings → Secrets and variables → Actions)
+# Required Secrets (Repository Settings → Secrets and variables → Actions → Secrets)
 AWS_ACCESS_KEY     # AWS access key
 AWS_SECRET_KEY     # AWS secret key  
+DEV_S3_BUCKET      # Dev S3 bucket name
+PROD_S3_BUCKET     # Prod S3 bucket name
+
+# Required Variables (Repository Settings → Secrets and variables → Actions → Variables)
 AWS_ACCOUNT_ID     # Your AWS account ID
 AWS_REGION         # AWS region (e.g., eu-central-1)
 AWS_ROLE_NAME      # IAM role name
-DEV_S3_BUCKET      # Dev S3 bucket name
-PROD_S3_BUCKET     # Prod S3 bucket name
 DEV_CLOUDFRONT_ID  # Dev CloudFront distribution ID
 PROD_CLOUDFRONT_ID # Prod CloudFront distribution ID
 REPO_NAME          # Repository name
@@ -269,8 +271,8 @@ feature/user@auth, feature/user#123
 Error: bucket does not exist
 ```
 
-**Solution**: Check your existing S3 buckets and environment variables:
-- Ensure `PROD_S3_BUCKET` and `DEV_S3_BUCKET` variables are set correctly
+**Solution**: Check your existing S3 buckets and GitHub secrets:
+- Ensure `PROD_S3_BUCKET` and `DEV_S3_BUCKET` secrets are set correctly
 - Verify the buckets actually exist in your AWS account
 - Check AWS permissions for S3 and DynamoDB access
 - Verify region settings match
@@ -382,13 +384,17 @@ terraform destroy -auto-approve
 
 ```bash
 # GitHub Repository Settings → Secrets and variables → Actions
+
+# Secrets tab:
 AWS_ACCESS_KEY      # Your AWS access key
 AWS_SECRET_KEY      # Your AWS secret key
+DEV_S3_BUCKET       # Dev S3 bucket
+PROD_S3_BUCKET      # Prod S3 bucket
+
+# Variables tab:
 AWS_ACCOUNT_ID      # Your AWS account ID
 AWS_REGION          # AWS region (e.g., eu-central-1)
 AWS_ROLE_NAME       # IAM role name
-DEV_S3_BUCKET       # Dev S3 bucket
-PROD_S3_BUCKET      # Prod S3 bucket
 DEV_CLOUDFRONT_ID   # Dev CloudFront ID
 PROD_CLOUDFRONT_ID  # Prod CloudFront ID
 REPO_NAME           # Repository name

@@ -64,14 +64,14 @@ jobs:
           # Determine S3 bucket based on environment
           case "$ENV" in
             prod)
-              BUCKET_NAME="${{ vars.PROD_S3_BUCKET }}"
+              BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
               ;;
             dev)
-              BUCKET_NAME="${{ vars.DEV_S3_BUCKET }}"
+              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
               ;;
             *)
               # For feature branches, use dev bucket with different key path
-              BUCKET_NAME="${{ vars.DEV_S3_BUCKET }}"
+              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
               ;;
           esac
           
