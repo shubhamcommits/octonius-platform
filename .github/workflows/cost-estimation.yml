@@ -3,8 +3,8 @@ name: 💰 100% Pipeline-Native Cost Estimation
 on:
   pull_request:
     branches: 
-      - main
-      - develop
+      - master
+      - development
     paths:
       - 'terraform/**'
       - '.github/workflows/cost-estimation.yml'
@@ -43,10 +43,10 @@ jobs:
           else
             # Convert branch to environment
             case "$BRANCH" in
-              main|master)
+              master)
                 ENV="prod"
                 ;;
-              develop|development|dev)
+              development|dev)
                 ENV="dev"
                 ;;
               feature/*)
