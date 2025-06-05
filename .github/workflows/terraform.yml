@@ -148,12 +148,12 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: 🗃️ Create DynamoDB Table (State Locking)
         run: |
           ENV="${{ needs.setup.outputs.environment }}"
-          TABLE_NAME="${ENV}-${{ env.PROJECT_NAME }}-terraform-locks-${{ vars.AWS_REGION }}"
+          TABLE_NAME="${ENV}-${{ env.PROJECT_NAME }}-terraform-locks-${{ secrets.AWS_REGION }}"
           
           echo "🗃️ Setting up DynamoDB table for state locking: $TABLE_NAME"
           
@@ -194,9 +194,9 @@ jobs:
             backend "s3" {
               bucket         = "${{ needs.setup.outputs.state_bucket }}"
               key            = "terraform/${{ needs.setup.outputs.environment }}/terraform.tfstate"
-              region         = "${{ vars.AWS_REGION }}"
+              region         = "${{ secrets.AWS_REGION }}"
               encrypt        = true
-              dynamodb_table = "${{ needs.setup.outputs.environment }}-${{ env.PROJECT_NAME }}-terraform-locks-${{ vars.AWS_REGION }}"
+              dynamodb_table = "${{ needs.setup.outputs.environment }}-${{ env.PROJECT_NAME }}-terraform-locks-${{ secrets.AWS_REGION }}"
             }
           }
           EOF
@@ -205,9 +205,9 @@ jobs:
           cat > terraform/config/backend.hcl << EOF
           bucket         = "${{ needs.setup.outputs.state_bucket }}"
           key            = "terraform/${{ needs.setup.outputs.environment }}/terraform.tfstate"
-          region         = "${{ vars.AWS_REGION }}"
+          region         = "${{ secrets.AWS_REGION }}"
           encrypt        = true
-          dynamodb_table = "${{ needs.setup.outputs.environment }}-${{ env.PROJECT_NAME }}-terraform-locks-${{ vars.AWS_REGION }}"
+          dynamodb_table = "${{ needs.setup.outputs.environment }}-${{ env.PROJECT_NAME }}-terraform-locks-${{ secrets.AWS_REGION }}"
           EOF
 
       - name: 📝 Generate Variables Configuration
@@ -242,7 +242,7 @@ jobs:
           cat > terraform/config/terraform.tfvars << EOF
           environment  = "$ENV"
           project_name = "${{ env.PROJECT_NAME }}"
-          aws_region   = "${{ vars.AWS_REGION }}"
+          aws_region   = "${{ secrets.AWS_REGION }}"
           
           vpc_cidr           = "$VPC_CIDR"
           public_subnets     = $PUBLIC_SUBNETS
@@ -392,7 +392,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: 🏗️ Initialize Terraform
         working-directory: terraform
