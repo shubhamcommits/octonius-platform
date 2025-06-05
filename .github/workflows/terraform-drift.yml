@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Only check main environments for scheduled runs
+        # Only check master and development environments for scheduled runs
         # Feature environments are typically short-lived
         environment: [prod, dev]
     

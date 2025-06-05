@@ -40,12 +40,12 @@ REPO_NAME           # Repository name
 
 ```bash
 # Deploy to production (auto-apply)
-git checkout main
-git push origin main
+git checkout master
+git push origin master
 
 # Plan for development
-git checkout develop
-git push origin develop
+git checkout development
+git push origin development
 
 # Create feature environment
 git checkout -b feature/user-authentication
@@ -62,8 +62,8 @@ git push origin feature/user-authentication
 
 | Branch Pattern | Environment | Action | Infrastructure Level |
 |----------------|-------------|--------|---------------------|
-| `main/master` | `prod` | **Auto-Deploy** | High Availability (Multi-AZ, Multiple NATs) |
-| `develop/dev` | `dev` | Plan Only | Cost-Optimized (Multi-AZ, Single NAT) |
+| `master` | `prod` | **Auto-Deploy** | High Availability (Multi-AZ, Multiple NATs) |
+| `development` | `dev` | Plan Only | Cost-Optimized (Multi-AZ, Single NAT) |
 | `feature/*` | `feature-{name}` | Plan Only | Minimal (Basic setup, Single NAT) |
 | `hotfix/*` | `hotfix-{name}` | Plan Only | Isolated (Temporary testing) |
 
@@ -96,7 +96,7 @@ graph TB
     C --> D[Generate Terraform Config]
     D --> E[Plan Infrastructure]
     E --> F{Apply?}
-    F -->|main branch| G[Auto-Apply]
+    F -->|master branch| G[Auto-Apply]
     F -->|other branches| H[Plan Only]
     
     C --> C1[Use Existing S3 Bucket]
@@ -109,7 +109,7 @@ graph TB
 
 ## 🎯 Environment-Specific Configurations
 
-### Production (`main` → `prod`)
+### Production (`master` → `prod`)
 ```hcl
 vpc_cidr           = "10.0.0.0/16"
 public_subnets     = ["10.0.1.0/24", "10.0.2.0/24"]
@@ -117,7 +117,7 @@ private_subnets    = ["10.0.10.0/24", "10.0.20.0/24"]
 single_nat_gateway = false  # Multiple NATs for HA
 ```
 
-### Development (`develop` → `dev`)
+### Development (`development` → `dev`)
 ```hcl
 vpc_cidr           = "10.1.0.0/16"
 public_subnets     = ["10.1.1.0/24", "10.1.2.0/24"]
@@ -285,13 +285,13 @@ terraform plan
 ### Environment Promotion
 ```bash
 # Deploy to dev first
-git checkout develop
-git push origin develop
+git checkout development
+git push origin development
 
 # Review and promote to prod
-git checkout main
-git merge develop
-git push origin main  # Auto-deploys to production
+git checkout master
+git merge development
+git push origin master  # Auto-deploys to production
 ```
 
 ## 📚 Additional Workflows
@@ -308,7 +308,7 @@ All workflows are self-contained with **zero external dependencies**.
 
 ```bash
 # Deploy to production
-git checkout main && git push origin main
+git checkout master && git push origin master
 
 # Create feature environment  
 git checkout -b feature/my-feature && git push origin feature/my-feature

@@ -18,8 +18,8 @@ Our infrastructure system is **100% pipeline-native** - everything is computed d
 
 | Branch Pattern | Environment | Use Case | Infrastructure |
 |----------------|-------------|----------|---------------|
-| `main/master` | `prod` | Production | High availability, multiple AZs |
-| `develop/dev` | `dev` | Development | Cost-optimized, single NAT |
+| `master` | `prod` | Production | High availability, multiple AZs |
+| `development` | `dev` | Development | Cost-optimized, single NAT |
 | `feature/*` | `feature-{name}` | Feature development | Minimal, temporary |
 | `hotfix/*` | `hotfix-{name}` | Critical fixes | Isolated testing |
 | Other branches | `{branch-name}` | Custom environments | Configurable |
@@ -51,13 +51,13 @@ REPO_NAME          # Repository name
 Simply push to your branch - everything happens automatically:
 
 ```bash
-# Push to main → auto-deploys to prod (with S3/DynamoDB auto-created)
-git checkout main
-git push origin main
+# Push to master → auto-deploys to prod (with S3/DynamoDB auto-created)
+git checkout master
+git push origin master
 
-# Push to develop → plans for dev (with S3/DynamoDB auto-created)
-git checkout develop  
-git push origin develop
+# Push to development → plans for dev (with S3/DynamoDB auto-created)
+git checkout development
+git push origin development
 
 # Push to feature branch → plans for feature environment (with S3/DynamoDB auto-created)
 git checkout feature/user-auth
@@ -165,10 +165,10 @@ The pipeline is **completely self-contained** with **zero external scripts**:
 on:
   push:
     branches: 
-      - main        # → prod environment (auto-deploy)
-      - develop     # → dev environment (plan only)
-      - 'feature/*' # → feature-{name} environment (plan only)
-      - 'hotfix/*'  # → hotfix-{name} environment (plan only)
+      - master        # → prod environment (auto-deploy)
+      - development   # → dev environment (plan only)
+      - 'feature/*'   # → feature-{name} environment (plan only)
+      - 'hotfix/*'    # → hotfix-{name} environment (plan only)
 
 workflow_dispatch:  # Manual deployment with environment override
 ```
@@ -177,8 +177,8 @@ workflow_dispatch:  # Manual deployment with environment override
 
 | Branch | Trigger | Action | Environment |
 |--------|---------|--------|-------------|
-| `main` | Push | Auto-apply | `prod` |
-| `develop` | Push | Plan only | `dev` |
+| `master` | Push | Auto-apply | `prod` |
+| `development` | Push | Plan only | `dev` |
 | `feature/*` | Push | Plan only | `feature-{name}` |
 | Manual | Dispatch | Configurable | Any |
 
@@ -259,7 +259,7 @@ Error: AccessDenied
 Check your branch naming:
 ```bash
 # Good branch names
-main, develop, feature/user-auth, hotfix/critical-bug
+master, development, feature/user-auth, hotfix/critical-bug
 
 # Avoid special characters that don't translate well
 feature/user@auth, feature/user#123
@@ -324,13 +324,13 @@ Promote changes through environments:
 
 ```bash
 # Deploy to dev first
-git checkout develop
-git push origin develop
+git checkout development
+git push origin development
 
 # Review, then promote to prod
-git checkout main  
-git merge develop
-git push origin main  # Auto-deploys to prod
+git checkout master  
+git merge development
+git push origin master  # Auto-deploys to prod
 ```
 
 ### Feature Environment Cleanup

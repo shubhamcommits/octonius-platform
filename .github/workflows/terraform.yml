@@ -3,8 +3,8 @@ name: 🏗️ 100% Pipeline-Native Terraform
 on:
   push:
     branches: 
-      - main
-      - develop
+      - master
+      - development
       - 'feature/*'
       - 'hotfix/*'
     paths: 
@@ -12,8 +12,8 @@ on:
       - '.github/workflows/terraform.yml'
   pull_request:
     branches: 
-      - main
-      - develop
+      - master
+      - development
     paths:
       - 'terraform/**'
       - '.github/workflows/terraform.yml'
@@ -66,10 +66,10 @@ jobs:
           else
             # Convert branch to environment
             case "$BRANCH" in
-              main|master)
+              master)
                 ENV="prod"
                 ;;
-              develop|development|dev)
+              development|dev)
                 ENV="dev"
                 ;;
               feature/*)
@@ -113,7 +113,7 @@ jobs:
             else
               echo "should-apply=false" >> $GITHUB_OUTPUT
             fi
-          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
             echo "should-apply=true" >> $GITHUB_OUTPUT
           else
             echo "should-apply=false" >> $GITHUB_OUTPUT
