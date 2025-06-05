@@ -1,0 +1,231 @@
+name: 🏗️ Terraform Infrastructure
+
+on:
+  push:
+    branches: [main]
+    paths: 
+      - 'terraform/**'
+      - '.github/workflows/terraform.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+env:
+  TF_VERSION: '1.6.0'
+  AWS_REGION: 'eu-central-1'
+
+jobs:
+  setup:
+    name: 🔧 Setup & Validate
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.determine-env.outputs.environment }}
+      should-apply: ${{ steps.determine-action.outputs.should-apply }}
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🏷️ Determine Environment from Branch/Input
+        id: determine-env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENV="${{ github.event.inputs.environment }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            ENV="prod"
+          else
+            ENV="dev"
+          fi
+          
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "🎯 Detected environment: $ENV"
+
+      - name: 🎯 Determine Action
+        id: determine-action
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event.inputs.action }}" == "apply" || "${{ github.event.inputs.action }}" == "destroy" ]]; then
+              echo "should-apply=true" >> $GITHUB_OUTPUT
+            else
+              echo "should-apply=false" >> $GITHUB_OUTPUT
+            fi
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "should-apply=true" >> $GITHUB_OUTPUT
+          else
+            echo "should-apply=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: ⚙️ Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: 🔍 Terraform Format Check
+        run: terraform fmt -check -recursive terraform/
+
+  plan:
+    name: 📋 Plan Infrastructure (${{ needs.setup.outputs.environment }})
+    runs-on: ubuntu-latest
+    needs: setup
+    environment: ${{ needs.setup.outputs.environment }}
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🏗️ Initialize Terraform with Dynamic Backend
+        working-directory: terraform
+        env:
+          TF_ENV: ${{ needs.setup.outputs.environment }}
+        run: |
+          echo "🔄 Initializing Terraform for $TF_ENV environment..."
+          echo "📁 Using backend config: config/$TF_ENV.backend.hcl"
+          echo "📋 Using variables: config/$TF_ENV.tfvars"
+          
+          terraform init -backend-config=config/$TF_ENV.backend.hcl
+
+      - name: ✅ Validate Terraform
+        working-directory: terraform
+        run: |
+          echo "🔍 Validating Terraform configuration..."
+          terraform validate
+
+      - name: 📋 Plan Terraform with Environment Variables
+        working-directory: terraform
+        env:
+          TF_ENV: ${{ needs.setup.outputs.environment }}
+        run: |
+          echo "📋 Creating Terraform plan for $TF_ENV environment..."
+          terraform plan \
+            -var-file=config/$TF_ENV.tfvars \
+            -out=tfplan-$TF_ENV \
+            -detailed-exitcode || exit_code=$?
+          
+          if [[ $exit_code -eq 1 ]]; then
+            echo "❌ Terraform plan failed"
+            exit 1
+          elif [[ $exit_code -eq 2 ]]; then
+            echo "✅ Plan created with changes for $TF_ENV"
+            echo "has-changes=true" >> $GITHUB_ENV
+          else
+            echo "✅ No changes detected for $TF_ENV"
+            echo "has-changes=false" >> $GITHUB_ENV
+          fi
+
+      - name: 💾 Upload Plan Artifact
+        if: env.has-changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ needs.setup.outputs.environment }}
+          path: terraform/tfplan-${{ needs.setup.outputs.environment }}
+          retention-days: 7
+
+  apply:
+    name: 🚀 Apply Infrastructure (${{ needs.setup.outputs.environment }})
+    runs-on: ubuntu-latest
+    needs: [setup, plan]
+    if: needs.setup.outputs.should-apply == 'true'
+    environment: ${{ needs.setup.outputs.environment }}
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🏗️ Initialize Terraform with Dynamic Backend
+        working-directory: terraform
+        env:
+          TF_ENV: ${{ needs.setup.outputs.environment }}
+        run: |
+          echo "🔄 Initializing Terraform for $TF_ENV environment..."
+          terraform init -backend-config=config/$TF_ENV.backend.hcl
+
+      - name: 📥 Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ needs.setup.outputs.environment }}
+          path: terraform/
+
+      - name: 🚀 Apply Terraform Changes
+        working-directory: terraform
+        env:
+          TF_ENV: ${{ needs.setup.outputs.environment }}
+        run: |
+          if [[ "${{ github.event.inputs.action }}" == "destroy" ]]; then
+            echo "🗂️ Destroying infrastructure for $TF_ENV environment..."
+            terraform destroy -var-file=config/$TF_ENV.tfvars -auto-approve
+          else
+            echo "🚀 Applying infrastructure for $TF_ENV environment..."
+            terraform apply tfplan-$TF_ENV
+          fi
+
+      - name: 📊 Show Infrastructure Outputs
+        if: github.event.inputs.action != 'destroy'
+        working-directory: terraform
+        env:
+          TF_ENV: ${{ needs.setup.outputs.environment }}
+        run: |
+          echo "📊 Infrastructure outputs for $TF_ENV:"
+          terraform output -json
+
+      - name: 📝 Deployment Summary
+        env:
+          TF_ENV: ${{ needs.setup.outputs.environment }}
+        run: |
+          echo "## 🎉 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: $TF_ENV (detected from pipeline)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action**: ${{ github.event.inputs.action || 'apply' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend**: $TF_ENV-octonius-platform-terraform-state-eu-central-1" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Dynamic Configuration Used:" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend Config: \`config/$TF_ENV.backend.hcl\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Variables: \`config/$TF_ENV.tfvars\`" >> $GITHUB_STEP_SUMMARY 

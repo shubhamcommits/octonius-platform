@@ -1,0 +1,316 @@
+name: 💰 Infrastructure Cost Estimation
+
+on:
+  pull_request:
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/cost-estimation.yml'
+      - '.infracost.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to estimate costs for'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  TF_VERSION: '1.6.0'
+  AWS_REGION: 'eu-central-1'
+  # Infracost API key - set this in your repository secrets
+  INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+jobs:
+  cost-estimation:
+    name: 💰 Estimate Infrastructure Costs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 📥 Checkout Base Branch
+        uses: actions/checkout@v4
+        with:
+          ref: '${{ github.event.pull_request.base.ref }}'
+          path: base
+
+      - name: ⚙️ Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 💰 Setup Infracost
+        uses: infracost/actions/setup@v2
+        with:
+          api-key: ${{ env.INFRACOST_API_KEY }}
+
+      # Generate cost estimates for all environments
+      - name: 💰 Generate Cost Estimates - Current Branch
+        id: current-costs
+        run: |
+          echo "💰 Generating cost estimates for current branch..."
+          
+          # Create cost estimates for all environments
+          for env in dev staging prod; do
+            echo "🔄 Processing $env environment..."
+            
+            cd terraform
+            
+            # Initialize Terraform for this environment
+            terraform init -backend-config=config/$env.backend.hcl
+            
+            # Generate Terraform plan
+            terraform plan -var-file=config/$env.tfvars -out=tfplan-$env
+            
+            # Generate cost estimate
+            infracost breakdown \
+              --path=. \
+              --terraform-plan-path=tfplan-$env \
+              --format=json \
+              --out-file=../infracost-$env-current.json
+            
+            cd ..
+          done
+
+      - name: 💰 Generate Cost Estimates - Base Branch
+        id: base-costs
+        run: |
+          echo "💰 Generating cost estimates for base branch..."
+          
+          # Create cost estimates for base branch
+          for env in dev staging prod; do
+            echo "🔄 Processing $env environment (base)..."
+            
+            cd base/terraform
+            
+            # Initialize Terraform for this environment
+            terraform init -backend-config=config/$env.backend.hcl
+            
+            # Generate Terraform plan
+            terraform plan -var-file=config/$env.tfvars -out=tfplan-$env
+            
+            # Generate cost estimate
+            infracost breakdown \
+              --path=. \
+              --terraform-plan-path=tfplan-$env \
+              --format=json \
+              --out-file=../../infracost-$env-base.json
+            
+            cd ../..
+          done
+
+      - name: 💰 Generate Cost Comparison
+        id: cost-comparison
+        run: |
+          echo "💰 Generating cost comparison between branches..."
+          
+          # Generate cost comparison for each environment
+          for env in dev staging prod; do
+            echo "🔄 Comparing costs for $env environment..."
+            
+            infracost diff \
+              --path=infracost-$env-base.json \
+              --compare-to=infracost-$env-current.json \
+              --format=table \
+              --out-file=cost-diff-$env.txt
+              
+            infracost diff \
+              --path=infracost-$env-base.json \
+              --compare-to=infracost-$env-current.json \
+              --format=json \
+              --out-file=cost-diff-$env.json
+          done
+          
+          # Generate combined summary
+          echo "📊 Creating cost summary..."
+          cat > cost-summary.md << 'EOF'
+          # 💰 Infrastructure Cost Analysis
+          
+          This pull request includes infrastructure changes. Here's the cost impact analysis:
+          
+          EOF
+          
+          # Add cost breakdown for each environment
+          for env in dev staging prod; do
+            echo "## 🏷️ $env Environment" >> cost-summary.md
+            echo "" >> cost-summary.md
+            echo '```' >> cost-summary.md
+            cat cost-diff-$env.txt >> cost-summary.md
+            echo '```' >> cost-summary.md
+            echo "" >> cost-summary.md
+            
+            # Extract key metrics from JSON
+            current_cost=$(jq -r '.totalMonthlyCost // "0"' infracost-$env-current.json)
+            base_cost=$(jq -r '.totalMonthlyCost // "0"' infracost-$env-base.json)
+            diff_cost=$(jq -r '.totalMonthlyCost // "0"' cost-diff-$env.json)
+            
+            echo "- **Current monthly cost**: \$${current_cost}" >> cost-summary.md
+            echo "- **Previous monthly cost**: \$${base_cost}" >> cost-summary.md
+            echo "- **Monthly cost change**: \$${diff_cost}" >> cost-summary.md
+            echo "" >> cost-summary.md
+          done
+          
+          # Add recommendations
+          cat >> cost-summary.md << 'EOF'
+          ## 💡 Cost Optimization Recommendations
+          
+          - Review the cost changes above and ensure they align with expectations
+          - Consider using smaller instance types for non-production environments
+          - Implement auto-shutdown for development resources during off-hours
+          - Use spot instances where appropriate for cost savings
+          - Review resource tagging for better cost allocation and monitoring
+          
+          ## 🔗 Useful Links
+          
+          - [Infracost Documentation](https://www.infracost.io/docs/)
+          - [AWS Cost Optimization](https://aws.amazon.com/aws-cost-management/aws-cost-optimization/)
+          - [Terraform Cost Estimation Best Practices](https://learn.hashicorp.com/tutorials/terraform/cost-estimation)
+          
+          ---
+          
+          💰 *Cost estimates are provided by [Infracost](https://infracost.io) and may vary from actual AWS costs.*
+          EOF
+
+      - name: 🚨 Check Cost Thresholds
+        id: cost-check
+        run: |
+          echo "🚨 Checking cost thresholds..."
+          
+          # Check if any environment exceeds cost thresholds
+          threshold_exceeded=false
+          high_cost_envs=""
+          
+          for env in dev staging prod; do
+            # Get cost difference from JSON
+            if [[ -f "cost-diff-$env.json" ]]; then
+              diff_cost=$(jq -r '.totalMonthlyCost // "0"' cost-diff-$env.json | tr -d '$' | tr -d ',' || echo "0")
+              
+              # Set different thresholds for different environments
+              case $env in
+                "dev")
+                  threshold=50
+                  ;;
+                "staging")
+                  threshold=100
+                  ;;
+                "prod")
+                  threshold=200
+                  ;;
+              esac
+              
+              # Check if threshold is exceeded (handle negative values)
+              if (( $(echo "$diff_cost > $threshold" | bc -l 2>/dev/null || echo "0") )); then
+                threshold_exceeded=true
+                high_cost_envs="$high_cost_envs $env(\$$diff_cost)"
+                echo "⚠️ Cost threshold exceeded for $env: \$$diff_cost > \$$threshold"
+              fi
+            fi
+          done
+          
+          echo "threshold_exceeded=$threshold_exceeded" >> $GITHUB_OUTPUT
+          echo "high_cost_envs=$high_cost_envs" >> $GITHUB_OUTPUT
+
+      - name: 📝 Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            try {
+              const costSummary = fs.readFileSync('cost-summary.md', 'utf8');
+              const thresholdExceeded = '${{ steps.cost-check.outputs.threshold_exceeded }}' === 'true';
+              const highCostEnvs = '${{ steps.cost-check.outputs.high_cost_envs }}';
+              
+              let commentBody = costSummary;
+              
+              if (thresholdExceeded) {
+                commentBody = `🚨 **High Cost Alert** 🚨\n\nCost thresholds exceeded for: ${highCostEnvs}\n\n` + commentBody;
+              }
+              
+              // Check if there's already a cost comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number
+              });
+              
+              const existingComment = comments.find(comment => 
+                comment.user.login === 'github-actions[bot]' && 
+                comment.body.includes('Infrastructure Cost Analysis')
+              );
+              
+              if (existingComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existingComment.id,
+                  body: commentBody
+                });
+                console.log('Updated existing cost analysis comment');
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: commentBody
+                });
+                console.log('Created new cost analysis comment');
+              }
+            } catch (error) {
+              console.error('Error posting cost analysis comment:', error);
+            }
+
+      - name: 📊 Upload Cost Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: cost-analysis-reports
+          path: |
+            cost-diff-*.txt
+            cost-diff-*.json
+            infracost-*-current.json
+            infracost-*-base.json
+            cost-summary.md
+          retention-days: 30
+
+      - name: 📊 Summary
+        run: |
+          echo "## 💰 Cost Analysis Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ steps.cost-check.outputs.threshold_exceeded }}" == "true" ]]; then
+            echo "⚠️ **Cost thresholds exceeded for**: ${{ steps.cost-check.outputs.high_cost_envs }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "### 📋 Environment Cost Changes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          for env in dev staging prod; do
+            if [[ -f "cost-diff-$env.json" ]]; then
+              current_cost=$(jq -r '.totalMonthlyCost // "0"' infracost-$env-current.json)
+              diff_cost=$(jq -r '.totalMonthlyCost // "0"' cost-diff-$env.json)
+              echo "- **$env**: \$$current_cost/month (change: \$$diff_cost)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📁 **Detailed reports available in job artifacts**" >> $GITHUB_STEP_SUMMARY 
