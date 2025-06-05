@@ -634,8 +634,13 @@ jobs:
           else
             # Check if plan file exists
             if [[ -f "tfplan-${{ needs.setup.outputs.environment }}" ]]; then
-              echo "🚀 Applying infrastructure for ${{ needs.setup.outputs.environment }} environment using saved plan..."
-              terraform apply tfplan-${{ needs.setup.outputs.environment }}
+              echo "🚀 Attempting to apply saved plan for ${{ needs.setup.outputs.environment }} environment..."
+              if ! terraform apply tfplan-${{ needs.setup.outputs.environment }}; then
+                echo "⚠️ Saved plan is stale or invalid. Creating new plan..."
+                terraform plan -var-file=config/terraform.tfvars -out=tfplan-${{ needs.setup.outputs.environment }}
+                echo "🚀 Applying newly created plan..."
+                terraform apply tfplan-${{ needs.setup.outputs.environment }}
+              fi
             else
               echo "📋 No saved plan found. Creating new plan and applying..."
               terraform plan -var-file=config/terraform.tfvars -out=tfplan-${{ needs.setup.outputs.environment }}
