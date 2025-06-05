@@ -52,7 +52,7 @@ jobs:
             ENV="${{ matrix.environment }}"
           fi
           
-          # Determine S3 bucket based on environment
+          # Determine S3 bucket based on environment and secrets
           case "$ENV" in
             prod)
               BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
@@ -65,6 +65,20 @@ jobs:
               BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
               ;;
           esac
+          
+          # Validate bucket name is not empty
+          if [[ -z "$BUCKET_NAME" ]]; then
+            echo "❌ ERROR: S3 bucket name is empty for environment: $ENV"
+            case "$ENV" in
+              prod)
+                echo "Missing secret: PROD_S3_BUCKET"
+                ;;
+              *)
+                echo "Missing secret: DEV_S3_BUCKET"
+                ;;
+            esac
+            exit 1
+          fi
           
           echo "🎯 Generating configuration for environment: $ENV"
           echo "🎯 Using S3 bucket: $BUCKET_NAME"

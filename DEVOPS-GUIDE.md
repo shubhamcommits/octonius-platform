@@ -423,11 +423,11 @@ terraform destroy -auto-approve
 AWS_ACCESS_KEY      # Your AWS access key
 AWS_SECRET_KEY      # Your AWS secret key
 AWS_REGION          # AWS region (e.g., eu-central-1)
+AWS_ACCOUNT_ID      # Your AWS account ID
 DEV_S3_BUCKET       # Dev S3 bucket
 PROD_S3_BUCKET      # Prod S3 bucket
 
 # Variables tab:
-AWS_ACCOUNT_ID      # Your AWS account ID
 AWS_ROLE_NAME       # IAM role name
 DEV_CLOUDFRONT_ID   # Dev CloudFront ID
 PROD_CLOUDFRONT_ID  # Prod CloudFront ID
@@ -465,4 +465,4 @@ cd terraform && terraform init && terraform apply
 
 ---
 
-**100% Pipeline-Native!** 🚀 Zero scripts, zero complexity - just push your code and watch the magic happen! 
+**100% Pipeline-Native!** 🚀 Zero scripts, zero complexity - just push your code and watch the magic happen!
