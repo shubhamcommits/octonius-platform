@@ -397,6 +397,9 @@ jobs:
               Branch      = local.environment # Since env is derived from branch
               Account     = local.account_id
               Region      = local.aws_region
+              Owner      = "Octonius-Team"
+              CreatedBy   = "${{ github.actor }}"
+              CreatedAt   = "$(date -u +"%Y-%m-%d")"
             }
             
             # Environment-specific configurations

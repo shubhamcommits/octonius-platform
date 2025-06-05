@@ -41,14 +41,7 @@ provider "aws" {
 
   # Default tags applied to all resources
   default_tags {
-    tags = {
-      Environment  = var.environment
-      Project      = var.project_name
-      ManagedBy    = "Terraform"
-      Owner        = "Octonius-Team"
-      Repository   = "octonius-platform"
-      LastModified = timestamp()
-    }
+    tags = local.common_tags
   }
 
   # Common configuration
