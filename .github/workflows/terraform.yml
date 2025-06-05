@@ -163,12 +163,13 @@ jobs:
               echo "❌ Should apply: false (manual plan only)"
               echo "should-apply=false" >> $GITHUB_OUTPUT
             fi
-          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
-            echo "✅ Should apply: true (push to master branch)"
+          elif [[ "${{ github.ref_name }}" == "master" || "${{ github.ref_name }}" == "development" ]]; then
+            echo "✅ Should apply: true (push to master or development branch)"
+            echo "Branch: ${{ github.ref_name }}"
             echo "should-apply=true" >> $GITHUB_OUTPUT
           else
-            echo "❌ Should apply: false (not master branch or manual apply)"
-            echo "Current ref: ${{ github.ref }}"
+            echo "❌ Should apply: false (not master/development branch or manual apply)"
+            echo "Current branch: ${{ github.ref_name }}"
             echo "should-apply=false" >> $GITHUB_OUTPUT
           fi
 
@@ -524,7 +525,32 @@ jobs:
     if: needs.setup.outputs.should-apply == 'true'
     environment: ${{ needs.setup.outputs.environment }}
     
+    # Debug information about why apply might be skipped
+    env:
+      DEBUG_EVENT: ${{ github.event_name }}
+      DEBUG_BRANCH: ${{ github.ref_name }}
+      DEBUG_SHOULD_APPLY: ${{ needs.setup.outputs.should-apply }}
+    
     steps:
+      - name: 🔍 Debug Apply Job
+        run: |
+          echo "🔍 Debug Information for Apply Job:"
+          echo "Event Type: ${{ env.DEBUG_EVENT }}"
+          echo "Branch: ${{ env.DEBUG_BRANCH }}"
+          echo "Should Apply: ${{ env.DEBUG_SHOULD_APPLY }}"
+          echo "Environment: ${{ needs.setup.outputs.environment }}"
+          
+          if [[ "${{ env.DEBUG_SHOULD_APPLY }}" != "true" ]]; then
+            echo "❌ Apply job was skipped because should-apply is not true"
+            echo "This usually means:"
+            echo "1. You're not on master or development branch (current: ${{ env.DEBUG_BRANCH }})"
+            echo "2. This isn't a manual workflow run with apply action"
+            echo ""
+            echo "To fix this, either:"
+            echo "1. Push to master or development branch"
+            echo "2. Use manual workflow dispatch with apply action"
+          fi
+
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
