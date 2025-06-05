@@ -98,6 +98,23 @@ jobs:
               ;;
           esac
           
+          # Validate that bucket name is not empty
+          if [[ -z "$BUCKET_NAME" ]]; then
+            echo "❌ ERROR: S3 bucket name is empty!"
+            echo "Environment: $ENV"
+            case "$ENV" in
+              prod)
+                echo "Missing secret: PROD_S3_BUCKET"
+                echo "Please set the PROD_S3_BUCKET secret in your repository"
+                ;;
+              *)
+                echo "Missing secret: DEV_S3_BUCKET"
+                echo "Please set the DEV_S3_BUCKET secret in your repository"
+                ;;
+            esac
+            exit 1
+          fi
+          
           echo "Branch: $BRANCH"
           echo "Environment: $ENV"
           echo "S3 Bucket: $BUCKET_NAME"

@@ -277,6 +277,33 @@ Error: bucket does not exist
 - Check AWS permissions for S3 and DynamoDB access
 - Verify region settings match
 
+#### 4. Empty Bucket Configuration Error
+
+```bash
+Error: Invalid Value - The value cannot be empty or all whitespace
+  on backend.tf line 6, in terraform:
+   6:     bucket         = ""
+```
+
+**Solution**: This means your S3 bucket secrets are not set:
+
+1. **Check your GitHub repository secrets**:
+   - Go to Settings → Secrets and variables → Actions → Secrets
+   - Verify these secrets exist and have values:
+     - `DEV_S3_BUCKET` (for dev/feature environments)
+     - `PROD_S3_BUCKET` (for production environment)
+
+2. **Verify secret values**:
+   ```bash
+   # Your secrets should contain actual S3 bucket names like:
+   # DEV_S3_BUCKET = "my-company-dev-terraform-state"
+   # PROD_S3_BUCKET = "my-company-prod-terraform-state"
+   ```
+
+3. **Check bucket permissions**:
+   - Ensure the buckets exist in your AWS account
+   - Verify your AWS credentials have access to these buckets
+
 ### Debug Mode
 
 Enable verbose logging:
@@ -395,12 +422,12 @@ terraform destroy -auto-approve
 # Secrets tab:
 AWS_ACCESS_KEY      # Your AWS access key
 AWS_SECRET_KEY      # Your AWS secret key
+AWS_REGION          # AWS region (e.g., eu-central-1)
 DEV_S3_BUCKET       # Dev S3 bucket
 PROD_S3_BUCKET      # Prod S3 bucket
 
 # Variables tab:
 AWS_ACCOUNT_ID      # Your AWS account ID
-AWS_REGION          # AWS region (e.g., eu-central-1)
 AWS_ROLE_NAME       # IAM role name
 DEV_CLOUDFRONT_ID   # Dev CloudFront ID
 PROD_CLOUDFRONT_ID  # Prod CloudFront ID
