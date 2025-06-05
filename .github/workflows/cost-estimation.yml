@@ -104,9 +104,39 @@ jobs:
           mkdir -p terraform/config
           ENV="${{ steps.env.outputs.environment }}"
           
+          # Determine S3 bucket directly from environment and secrets
+          case "$ENV" in
+            prod)
+              BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
+              ;;
+            dev)
+              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
+              ;;
+            *)
+              # For feature branches, use dev bucket with different key path
+              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
+              ;;
+          esac
+          
+          # Validate bucket name is not empty
+          if [[ -z "$BUCKET_NAME" ]]; then
+            echo "❌ ERROR: S3 bucket name is empty for environment: $ENV"
+            case "$ENV" in
+              prod)
+                echo "Missing secret: PROD_S3_BUCKET"
+                ;;
+              *)
+                echo "Missing secret: DEV_S3_BUCKET"
+                ;;
+            esac
+            exit 1
+          fi
+          
+          echo "🗂️ Using S3 bucket: $BUCKET_NAME for environment: $ENV"
+          
           # Generate backend configuration
           cat > terraform/config/backend.hcl << EOF
-          bucket         = "${{ steps.env.outputs.state_bucket }}"
+          bucket         = "$BUCKET_NAME"
           key            = "terraform/${ENV}/terraform.tfstate"
           region         = "${{ secrets.AWS_REGION }}"
           encrypt        = true
@@ -181,17 +211,31 @@ jobs:
           behavior: update
 
       - name: 📈 Generate Cost Summary
+        if: env.INFRACOST_API_KEY != ''
         run: |
+          # Determine bucket name for summary
+          ENV="${{ steps.env.outputs.environment }}"
+          case "$ENV" in
+            prod)
+              BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
+              ;;
+            *)
+              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
+              ;;
+          esac
+          
           echo "## 💰 Infrastructure Cost Estimation" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Environment**: \`${{ steps.env.outputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**State Bucket**: \`${{ steps.env.outputs.state_bucket }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**State Bucket**: \`$BUCKET_NAME\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Generate table from cost estimate
           infracost output \
             --path=cost-estimate.json \
             --format=table >> $GITHUB_STEP_SUMMARY
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
       - name: 🔍 Cost Validation
         run: |
@@ -236,4 +280,32 @@ jobs:
       - name: ⚠️ Cost Warning
         if: env.cost_warning == 'true'
         run: |
-          echo "::warning title=High Cost Estimate::The estimated monthly cost exceeds the threshold for this environment type." 
+          echo "::warning title=High Cost Estimate::The estimated monthly cost exceeds the threshold for this environment type."
+
+      - name: ℹ️ Infracost Not Configured
+        if: env.INFRACOST_API_KEY == ''
+        run: |
+          # Determine bucket name for summary
+          ENV="${{ steps.env.outputs.environment }}"
+          case "$ENV" in
+            prod)
+              BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
+              ;;
+            *)
+              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
+              ;;
+          esac
+          
+          echo "## 💰 Cost Estimation Not Available" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "ℹ️ **Infracost is not configured for this repository.**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To enable automatic cost estimation:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Sign up at https://www.infracost.io/ (free)" >> $GITHUB_STEP_SUMMARY
+          echo "2. Get your API key from the dashboard" >> $GITHUB_STEP_SUMMARY
+          echo "3. Add it as a GitHub secret: \`INFRACOST_API_KEY\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: \`${{ steps.env.outputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**State Bucket**: \`$BUCKET_NAME\`" >> $GITHUB_STEP_SUMMARY
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }} 
