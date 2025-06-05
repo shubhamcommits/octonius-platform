@@ -85,7 +85,7 @@ graph TB
     C --> C1[Create S3 Bucket]
     C --> C2[Create DynamoDB Table]
     
-    D --> D1[Generate backend.hcl]
+    D --> D1[Generate backend.tf]
     D --> D2[Generate terraform.tfvars]
     D --> D3[Generate locals.tf]
 ```
@@ -297,14 +297,21 @@ case "$ENV" in
   prod) BUCKET="your-prod-s3-bucket" ;;
   *) BUCKET="your-dev-s3-bucket" ;;
 esac
-cat > terraform/config/backend.hcl << EOF
-bucket = "$BUCKET"
-key = "terraform/$ENV/terraform.tfstate"
-region = "eu-central-1"
-encrypt = true
-dynamodb_table = "$ENV-octonius-terraform-locks-eu-central-1"
+
+# Generate backend configuration (normally done by pipeline)
+cat > terraform/backend.tf << EOF
+terraform {
+  backend "s3" {
+    bucket         = "$BUCKET"
+    key            = "terraform/$ENV/terraform.tfstate"
+    region         = "eu-central-1"
+    encrypt        = true
+    dynamodb_table = "$ENV-octonius-terraform-locks-eu-central-1"
+  }
+}
 EOF
-cd terraform && terraform init -backend-config=config/backend.hcl && terraform apply
+
+cd terraform && terraform init && terraform apply
 ```
 
 ## 🔄 Advanced Workflows
@@ -412,14 +419,21 @@ case "$ENV" in
   prod) BUCKET="your-prod-s3-bucket" ;;
   *) BUCKET="your-dev-s3-bucket" ;;
 esac
-cat > terraform/config/backend.hcl << EOF
-bucket = "$BUCKET"
-key = "terraform/$ENV/terraform.tfstate"
-region = "eu-central-1"
-encrypt = true
-dynamodb_table = "$ENV-octonius-terraform-locks-eu-central-1"
+
+# Generate backend configuration (normally done by pipeline)
+cat > terraform/backend.tf << EOF
+terraform {
+  backend "s3" {
+    bucket         = "$BUCKET"
+    key            = "terraform/$ENV/terraform.tfstate"
+    region         = "eu-central-1"
+    encrypt        = true
+    dynamodb_table = "$ENV-octonius-terraform-locks-eu-central-1"
+  }
+}
 EOF
-cd terraform && terraform init -backend-config=config/backend.hcl && terraform apply
+
+cd terraform && terraform init && terraform apply
 ```
 
 ---

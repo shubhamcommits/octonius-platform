@@ -41,7 +41,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: 📝 Generate Terraform Configuration
         run: |
@@ -75,9 +75,9 @@ jobs:
           cat > terraform/config/backend.hcl << EOF
           bucket         = "$BUCKET_NAME"
           key            = "terraform/${ENV}/terraform.tfstate"
-          region         = "${{ vars.AWS_REGION }}"
+          region         = "${{ secrets.AWS_REGION }}"
           encrypt        = true
-          dynamodb_table = "${ENV}-${{ env.PROJECT_NAME }}-terraform-locks-${{ vars.AWS_REGION }}"
+          dynamodb_table = "${ENV}-${{ env.PROJECT_NAME }}-terraform-locks-${{ secrets.AWS_REGION }}"
           EOF
           
           # Determine environment-specific settings
@@ -109,7 +109,7 @@ jobs:
           cat > terraform/config/terraform.tfvars << EOF
           environment  = "$ENV"
           project_name = "${{ env.PROJECT_NAME }}"
-          aws_region   = "${{ vars.AWS_REGION }}"
+          aws_region   = "${{ secrets.AWS_REGION }}"
           
           vpc_cidr           = "$VPC_CIDR"
           public_subnets     = $PUBLIC_SUBNETS
