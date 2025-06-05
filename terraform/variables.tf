@@ -1,7 +1,7 @@
 # Variables for Terraform Infrastructure - Dynamic Environment
 
 variable "environment" {
-  description = "Environment name (dev, prod, staging, etc.)"
+  description = "Environment name (automatically computed from branch name: main->prod, develop->dev, feature/*->feature-name)"
   type        = string
 }
 

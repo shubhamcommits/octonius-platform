@@ -1,21 +1,25 @@
-# Octonius Platform Infrastructure - Dynamic Environment
-# This configuration works with any environment via backend configuration
+# Octonius Platform Infrastructure - Dynamic Branch-Based Deployment
+# This configuration automatically adapts to any branch/environment
 
 # Data source for availability zones
 data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# Data source for current AWS caller identity
+data "aws_caller_identity" "current" {}
+
 # VPC Module
 module "vpc" {
   source = "./modules/vpc"
 
-  environment  = var.environment
-  project_name = var.project_name
-  aws_region   = var.aws_region
+  # Use locals for dynamic values
+  environment  = local.environment
+  project_name = local.project_name
+  aws_region   = local.aws_region
 
   vpc_cidr = var.vpc_cidr
-  azs      = data.aws_availability_zones.available.names
+  azs      = slice(data.aws_availability_zones.available.names, 0, 2) # Use first 2 AZs
 
   # Subnets
   public_subnets  = var.public_subnets
@@ -29,8 +33,6 @@ module "vpc" {
   enable_nat_gateway = true
   single_nat_gateway = var.single_nat_gateway
 
-  tags = {
-    Environment = var.environment
-    Project     = var.project_name
-  }
+  # Apply common tags
+  tags = local.common_tags
 } 

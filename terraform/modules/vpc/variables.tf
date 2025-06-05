@@ -1,18 +1,20 @@
 # Variables for VPC Module
 
 variable "environment" {
-  description = "Environment name (e.g., dev, staging, prod)"
+  description = "Environment name (dynamically computed from branch: main->prod, develop->dev, feature/*->feature-name)"
   type        = string
 }
 
 variable "project_name" {
   description = "Project name"
   type        = string
+  default     = "octonius"
 }
 
 variable "aws_region" {
   description = "AWS region"
   type        = string
+  default     = "eu-central-1"
 }
 
 variable "vpc_cidr" {
@@ -36,13 +38,13 @@ variable "private_subnets" {
 }
 
 variable "enable_dns_hostnames" {
-  description = "Enable DNS hostnames in the VPC"
+  description = "Enable DNS hostnames in VPC"
   type        = bool
   default     = true
 }
 
 variable "enable_dns_support" {
-  description = "Enable DNS support in the VPC"
+  description = "Enable DNS support in VPC"
   type        = bool
   default     = true
 }
@@ -54,13 +56,13 @@ variable "enable_nat_gateway" {
 }
 
 variable "single_nat_gateway" {
-  description = "Use single NAT gateway for all private subnets"
+  description = "Use single NAT gateway for cost optimization"
   type        = bool
   default     = false
 }
 
 variable "tags" {
-  description = "Additional tags for all resources"
+  description = "Tags to apply to resources"
   type        = map(string)
   default     = {}
 } 
