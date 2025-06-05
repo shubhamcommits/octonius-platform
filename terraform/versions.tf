@@ -9,22 +9,22 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.31"
     }
-    
+
     random = {
       source  = "hashicorp/random"
       version = "~> 3.4"
     }
-    
+
     local = {
       source  = "hashicorp/local"
       version = "~> 2.4"
     }
-    
+
     tls = {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
-    
+
     null = {
       source  = "hashicorp/null"
       version = "~> 3.2"
@@ -43,12 +43,12 @@ provider "aws" {
   # Default tags applied to all resources
   default_tags {
     tags = {
-      Environment   = var.environment
-      Project       = var.project_name
-      ManagedBy     = "Terraform"
-      Owner         = "Octonius-Team"
-      Repository    = "octonius-platform"
-      LastModified  = timestamp()
+      Environment  = var.environment
+      Project      = var.project_name
+      ManagedBy    = "Terraform"
+      Owner        = "Octonius-Team"
+      Repository   = "octonius-platform"
+      LastModified = timestamp()
     }
   }
 
