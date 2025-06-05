@@ -1,0 +1,239 @@
+name: 💰 100% Pipeline-Native Cost Estimation
+
+on:
+  pull_request:
+    branches: 
+      - main
+      - develop
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/cost-estimation.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to estimate costs for (auto-detected from branch if not provided)'
+        required: false
+        type: string
+
+env:
+  PROJECT_NAME: 'octonius'
+
+jobs:
+  estimate-costs:
+    name: 💰 Cost Estimation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🎯 Determine Environment & Bucket
+        id: env
+        run: |
+          # Get branch name
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH="${{ github.head_ref }}"
+          else
+            BRANCH="${{ github.ref_name }}"
+          fi
+          
+          # Use manual environment if provided
+          if [[ -n "${{ github.event.inputs.environment }}" ]]; then
+            ENV="${{ github.event.inputs.environment }}"
+          else
+            # Convert branch to environment
+            case "$BRANCH" in
+              main|master)
+                ENV="prod"
+                ;;
+              develop|development|dev)
+                ENV="dev"
+                ;;
+              feature/*)
+                ENV=$(echo "$BRANCH" | sed 's|feature/|feature-|' | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]')
+                ;;
+              hotfix/*)
+                ENV=$(echo "$BRANCH" | sed 's|hotfix/|hotfix-|' | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]')
+                ;;
+              *)
+                ENV=$(echo "$BRANCH" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]')
+                ;;
+            esac
+          fi
+          
+          # Determine S3 bucket based on environment
+          case "$ENV" in
+            prod)
+              BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
+              ;;
+            dev)
+              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
+              ;;
+            *)
+              # For feature branches, use dev bucket with different key path
+              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
+              ;;
+          esac
+          
+          echo "Branch: $BRANCH"
+          echo "Environment: $ENV"
+          echo "S3 Bucket: $BUCKET_NAME"
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "state_bucket=$BUCKET_NAME" >> $GITHUB_OUTPUT
+
+      - name: 🔧 Setup Infracost
+        uses: infracost/actions/setup@v2
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: ⚙️ Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.6.0'
+          terraform_wrapper: false
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: 📝 Generate Terraform Configuration
+        run: |
+          mkdir -p terraform/config
+          ENV="${{ steps.env.outputs.environment }}"
+          
+          # Generate backend configuration
+          cat > terraform/config/backend.hcl << EOF
+          bucket         = "${{ steps.env.outputs.state_bucket }}"
+          key            = "terraform/${ENV}/terraform.tfstate"
+          region         = "${{ vars.AWS_REGION }}"
+          encrypt        = true
+          dynamodb_table = "${ENV}-${{ env.PROJECT_NAME }}-terraform-locks-${{ vars.AWS_REGION }}"
+          EOF
+          
+          # Determine environment-specific settings
+          case "$ENV" in
+            prod)
+              VPC_CIDR="10.0.0.0/16"
+              PUBLIC_SUBNETS='["10.0.1.0/24", "10.0.2.0/24"]'
+              PRIVATE_SUBNETS='["10.0.10.0/24", "10.0.20.0/24"]'
+              SINGLE_NAT="false"
+              ;;
+            dev)
+              VPC_CIDR="10.1.0.0/16"
+              PUBLIC_SUBNETS='["10.1.1.0/24", "10.1.2.0/24"]'
+              PRIVATE_SUBNETS='["10.1.10.0/24", "10.1.20.0/24"]'
+              SINGLE_NAT="true"
+              ;;
+            *)
+              # For feature branches and other environments
+              ENV_HASH=$(echo -n "$ENV" | md5sum | cut -c1-2)
+              SECOND_OCTET=$((0x$ENV_HASH % 240 + 10))
+              VPC_CIDR="10.${SECOND_OCTET}.0.0/16"
+              PUBLIC_SUBNETS="[\"10.${SECOND_OCTET}.1.0/24\", \"10.${SECOND_OCTET}.2.0/24\"]"
+              PRIVATE_SUBNETS="[\"10.${SECOND_OCTET}.10.0/24\", \"10.${SECOND_OCTET}.20.0/24\"]"
+              SINGLE_NAT="true"
+              ;;
+          esac
+          
+          # Generate variables configuration
+          cat > terraform/config/terraform.tfvars << EOF
+          environment  = "$ENV"
+          project_name = "${{ env.PROJECT_NAME }}"
+          aws_region   = "${{ vars.AWS_REGION }}"
+          
+          vpc_cidr           = "$VPC_CIDR"
+          public_subnets     = $PUBLIC_SUBNETS
+          private_subnets    = $PRIVATE_SUBNETS
+          single_nat_gateway = $SINGLE_NAT
+          EOF
+
+      - name: 🏗️ Initialize Terraform
+        working-directory: terraform
+        run: |
+          echo "🔄 Initializing Terraform for ${{ steps.env.outputs.environment }}..."
+          terraform init -backend-config=config/backend.hcl
+
+      - name: 📋 Generate Terraform Plan
+        working-directory: terraform
+        run: |
+          echo "📋 Creating Terraform plan for cost estimation..."
+          terraform plan \
+            -var-file=config/terraform.tfvars \
+            -out=tfplan.binary
+
+      - name: 💰 Generate Cost Estimate
+        run: |
+          echo "💰 Generating cost estimate..."
+          infracost breakdown \
+            --path=terraform \
+            --terraform-plan-path=terraform/tfplan.binary \
+            --format=json \
+            --out-file=cost-estimate.json
+
+      - name: 📊 Post Cost Comment
+        if: github.event_name == 'pull_request'
+        uses: infracost/actions/comment@v1
+        with:
+          path: cost-estimate.json
+          behavior: update
+
+      - name: 📈 Generate Cost Summary
+        run: |
+          echo "## 💰 Infrastructure Cost Estimation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: \`${{ steps.env.outputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**State Bucket**: \`${{ steps.env.outputs.state_bucket }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Generate table from cost estimate
+          infracost output \
+            --path=cost-estimate.json \
+            --format=table >> $GITHUB_STEP_SUMMARY
+
+      - name: 🔍 Cost Validation
+        run: |
+          # Extract monthly cost
+          MONTHLY_COST=$(jq -r '.totalMonthlyCost // "0"' cost-estimate.json)
+          
+          echo "Monthly cost estimate: \$$MONTHLY_COST"
+          
+          # Set cost thresholds based on environment
+          ENVIRONMENT="${{ steps.env.outputs.environment }}"
+          
+          case "$ENVIRONMENT" in
+            "prod")
+              COST_THRESHOLD=500
+              ;;
+            "dev")
+              COST_THRESHOLD=200
+              ;;
+            *)
+              COST_THRESHOLD=100  # Feature branches and other environments
+              ;;
+          esac
+          
+          echo "Cost threshold for $ENVIRONMENT: \$$COST_THRESHOLD"
+          
+          # Compare costs
+          if (( $(echo "$MONTHLY_COST > $COST_THRESHOLD" | bc -l) )); then
+            echo "⚠️ Cost estimate (\$$MONTHLY_COST) exceeds threshold (\$$COST_THRESHOLD) for $ENVIRONMENT environment"
+            echo "cost_warning=true" >> $GITHUB_ENV
+          else
+            echo "✅ Cost estimate (\$$MONTHLY_COST) is within threshold (\$$COST_THRESHOLD) for $ENVIRONMENT environment"
+            echo "cost_warning=false" >> $GITHUB_ENV
+          fi
+
+      - name: 📤 Upload Cost Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cost-estimate-${{ github.run_id }}
+          path: cost-estimate.json
+          retention-days: 30
+
+      - name: ⚠️ Cost Warning
+        if: env.cost_warning == 'true'
+        run: |
+          echo "::warning title=High Cost Estimate::The estimated monthly cost exceeds the threshold for this environment type." 
