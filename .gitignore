@@ -121,6 +121,8 @@ override.tf.json
 .terraformrc
 terraform.rc
 .terraform.lock.hcl
+terraform/config/
+terraform/backend.tf  # Generated dynamically by GitHub Actions
 
 # Jupyter Notebook
 # - Checkpoint files for notebook recovery

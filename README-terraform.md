@@ -83,7 +83,7 @@ The pipeline automatically creates these resources for each environment:
 - **Created**: Automatically on first deployment
 
 ### Generated Configuration Files
-- **backend.hcl**: Backend configuration for state storage
+- **backend.tf**: Backend configuration for state storage (generated dynamically)
 - **terraform.tfvars**: Environment-specific variables
 - **locals.tf**: Dynamic locals with account ID, region, tags
 
@@ -102,7 +102,7 @@ graph TB
     C --> C1[Use Existing S3 Bucket]
     C --> C2[Create DynamoDB Table]
     
-    D --> D1[Generate backend.hcl]
+    D --> D1[Generate backend.tf]
     D --> D2[Generate terraform.tfvars]
     D --> D3[Generate locals.tf]
 ```
@@ -140,14 +140,18 @@ While everything is designed to be automatic, you can deploy manually:
 ```bash
 # Manual deployment (if needed)
 ENV="prod"; case "$ENV" in prod) BUCKET="your-prod-s3-bucket" ;; *) BUCKET="your-dev-s3-bucket" ;; esac
-cat > terraform/config/backend.hcl << EOF
-bucket = "$BUCKET"
-key = "terraform/$ENV/terraform.tfstate"
-region = "eu-central-1"
-encrypt = true
-dynamodb_table = "$ENV-octonius-terraform-locks-eu-central-1"
+cat > terraform/backend.tf << EOF
+terraform {
+  backend "s3" {
+    bucket = "$BUCKET"
+    key = "terraform/$ENV/terraform.tfstate"
+    region = "eu-central-1"
+    encrypt = true
+    dynamodb_table = "$ENV-octonius-terraform-locks-eu-central-1"
+  }
+}
 EOF
-cd terraform && terraform init -backend-config=config/backend.hcl && terraform apply
+cd terraform && terraform init && terraform apply
 ```
 
 ## 🔐 Security Features
@@ -318,14 +322,18 @@ git checkout -b feature/my-feature && git push origin feature/my-feature
 
 # Manual deployment (if needed)
 ENV="prod"; case "$ENV" in prod) BUCKET="your-prod-s3-bucket" ;; *) BUCKET="your-dev-s3-bucket" ;; esac
-cat > terraform/config/backend.hcl << EOF
-bucket = "$BUCKET"
-key = "terraform/$ENV/terraform.tfstate"
-region = "eu-central-1"
-encrypt = true
-dynamodb_table = "$ENV-octonius-terraform-locks-eu-central-1"
+cat > terraform/backend.tf << EOF
+terraform {
+  backend "s3" {
+    bucket = "$BUCKET"
+    key = "terraform/$ENV/terraform.tfstate"
+    region = "eu-central-1"
+    encrypt = true
+    dynamodb_table = "$ENV-octonius-terraform-locks-eu-central-1"
+  }
+}
 EOF
-cd terraform && terraform init -backend-config=config/backend.hcl && terraform apply
+cd terraform && terraform init && terraform apply
 ```
 
 ---

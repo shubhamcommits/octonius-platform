@@ -31,9 +31,8 @@ terraform {
     }
   }
 
-  # Backend configuration is provided via -backend-config flag
-  # See config/*.backend.hcl files for environment-specific settings
-  backend "s3" {}
+  # Backend configuration is generated dynamically by GitHub Actions
+  # See backend.tf file which is created during workflow execution
 }
 
 # Configure the AWS Provider with default settings
