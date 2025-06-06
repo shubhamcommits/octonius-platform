@@ -126,4 +126,20 @@ output "redis_node_type" {
 output "common_tags" {
   description = "Map of tags applied to all resources"
   value       = local.common_tags
+}
+
+# App Runner Outputs
+output "app_runner_service_url" {
+  description = "The URL of the App Runner service"
+  value       = module.app_runner.service_url
+}
+
+output "app_runner_service_status" {
+  description = "The current status of the App Runner service"
+  value       = module.app_runner.service_status
+}
+
+output "app_runner_service_arn" {
+  description = "The ARN of the App Runner service"
+  value       = module.app_runner.service_arn
 } 
