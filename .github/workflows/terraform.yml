@@ -206,7 +206,7 @@ jobs:
           mkdir -p terraform/config
           
           # Get environment and determine bucket
-          ENV="${{ steps.env.outputs.environment }}"
+          ENV="${{ needs.setup.outputs.environment }}"
           case "$ENV" in
             prod)
               BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
