@@ -40,7 +40,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.env.outputs.environment }}
-      state_bucket: ${{ steps.env.outputs.state_bucket }}
       should-apply: ${{ steps.action.outputs.should-apply }}
     
     steps:
@@ -142,9 +141,8 @@ jobs:
           
           echo "Branch: $BRANCH"
           echo "Environment: $ENV"
-          echo "S3 Bucket: $BUCKET_NAME"
+          echo "S3 Bucket: ***"
           echo "environment=$ENV" >> $GITHUB_OUTPUT
-          echo "state_bucket=$BUCKET_NAME" >> $GITHUB_OUTPUT
 
       - name: 🎯 Determine Action
         id: action
@@ -233,26 +231,11 @@ jobs:
             echo "✅ DynamoDB table already exists: $TABLE_NAME"
           fi
           
-          echo "📦 Using existing S3 bucket: ${{ needs.setup.outputs.state_bucket }}"
+          echo "📦 Using S3 bucket (name masked for security)"
 
       - name: 📝 Generate Backend Configuration
         run: |
           mkdir -p terraform/config
-          
-          # Determine S3 bucket directly from environment and secrets
-          ENV="${{ needs.setup.outputs.environment }}"
-          case "$ENV" in
-            prod)
-              BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
-              ;;
-            dev)
-              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
-              ;;
-            *)
-              # For feature branches, use dev bucket with different key path
-              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
-              ;;
-          esac
           
           # Validate bucket name is not empty
           if [[ -z "$BUCKET_NAME" ]]; then
