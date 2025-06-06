@@ -10,16 +10,13 @@ variable "environment" {
 }
 
 variable "account_id" {
-  description = "AWS account ID"
+  description = "AWS account ID (automatically set by pipeline)"
   type        = string
-  validation {
-    condition     = can(regex("^[0-9]+$", var.account_id))
-    error_message = "Account ID must be a valid AWS account ID"
-  }
+  default     = "000000000000"
 }
 
 variable "project_name" {
-  description = "Project name"
+  description = "Project name (automatically set by pipeline)"
   type        = string
   default     = "octonius"
   validation {
