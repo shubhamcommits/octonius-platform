@@ -65,7 +65,7 @@ resource "aws_apprunner_vpc_connector" "main" {
 
 # Auto Scaling Configuration
 resource "aws_apprunner_auto_scaling_configuration_version" "main" {
-  auto_scaling_configuration_name = "${var.environment}-${var.project_name}-auto-scaling-configuration"
+  auto_scaling_configuration_name = "${var.environment}-${var.project_name}-asc"
 
   max_concurrency = var.max_concurrency
   max_size        = var.max_size
