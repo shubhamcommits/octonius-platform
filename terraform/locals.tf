@@ -6,7 +6,7 @@ locals {
   environment  = var.environment
   project_name = var.project_name
   aws_region   = var.aws_region
-  account_id   = data.aws_caller_identity.current.account_id
+  account_id   = var.account_id
 
   # Computed names and identifiers
   name_prefix = "${local.environment}-${local.project_name}"
@@ -20,17 +20,41 @@ locals {
 
   # Common tags applied to all resources
   common_tags = {
-    Environment = local.environment
-    Project     = local.project_name
-    ManagedBy   = "terraform"
-    Repository  = "octonius-platform"
-    Branch      = local.environment # Since env is derived from branch
-    Account     = local.account_id
-    Region      = local.aws_region
+    Environment     = local.environment
+    Project        = local.project_name
+    ManagedBy      = "terraform"
+    Repository     = "octonius-platform"
+    Branch         = local.environment # Since env is derived from branch
+    Account        = local.account_id
+    Region         = local.aws_region
+    
+    # Cost allocation tags
+    CostCenter     = local.is_production ? "PROD-OCTONIUS" : "DEV-OCTONIUS"
+    BusinessUnit   = "Engineering"
+    BudgetCategory = local.is_production ? "Production" : "Development"
+    
+    # Backup and compliance tags
+    BackupPolicy   = local.is_production ? "Daily" : "Weekly"
+    DataSensitivity = "Confidential"
+    
+    # Technical tags
+    AutoShutdown   = local.is_production ? "false" : "true"
+    MaintenanceWindow = local.is_production ? "sat:22:00-sun:02:00" : "sun:02:00-sun:06:00"
   }
 
   # Environment-specific configurations
   is_production     = local.environment == "prod"
   is_development    = local.environment == "dev"
   is_feature_branch = !local.is_production && !local.is_development
+
+  # Resource sizing and limits
+  rds_instance_class = {
+    prod = "db.t4g.medium"
+    dev  = "db.t4g.micro"
+  }
+  
+  redis_node_type = {
+    prod = "cache.t4g.medium"
+    dev  = "cache.t4g.micro"
+  }
 } 
