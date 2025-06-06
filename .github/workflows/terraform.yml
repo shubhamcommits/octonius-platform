@@ -148,10 +148,48 @@ jobs:
       - name: 🔍 Terraform Format Check
         run: terraform fmt -check -recursive terraform/
 
+  # build-and-push:
+  #   name: 🐳 Build and Push Docker Image
+  #   runs-on: ubuntu-latest
+  #   needs: setup
+  #   if: needs.setup.outputs.should-apply == 'true'
+    
+  #   steps:
+  #     - name: 📥 Checkout Code
+  #       uses: actions/checkout@v4
+
+  #     - name: 🔐 Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+
+  #     - name: 🐳 Login to Amazon ECR
+  #       id: login-ecr
+  #       uses: aws-actions/amazon-ecr-login@v2
+
+  #     - name: 🏗️ Build, tag, and push image to Amazon ECR
+  #       env:
+  #         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+  #         ECR_REPOSITORY: ${{ needs.setup.outputs.environment }}/${{ env.PROJECT_NAME }}
+  #         IMAGE_TAG: ${{ github.sha }}
+  #       run: |
+  #         # Build a docker container and push it to ECR
+  #         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+  #         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
+  #         # Also tag as latest for the current environment
+  #         docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest-${{ needs.setup.outputs.environment }}
+  #         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest-${{ needs.setup.outputs.environment }}
+          
+  #         echo "✅ Successfully built and pushed image to ECR"
+  #         echo "Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
   plan:
     name: 📋 Plan (${{ needs.setup.outputs.environment }})
     runs-on: ubuntu-latest
-    needs: setup
+    needs: [setup]
     
     steps:
       - name: 📥 Checkout Code
