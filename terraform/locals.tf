@@ -20,25 +20,25 @@ locals {
 
   # Common tags applied to all resources
   common_tags = {
-    Environment     = local.environment
-    Project        = local.project_name
-    ManagedBy      = "terraform"
-    Repository     = "octonius-platform"
-    Branch         = local.environment # Since env is derived from branch
-    Account        = local.account_id
-    Region         = local.aws_region
-    
+    Environment = local.environment
+    Project     = local.project_name
+    ManagedBy   = "terraform"
+    Repository  = "octonius-platform"
+    Branch      = local.environment # Since env is derived from branch
+    Account     = local.account_id
+    Region      = local.aws_region
+
     # Cost allocation tags
     CostCenter     = local.is_production ? "PROD-OCTONIUS" : "DEV-OCTONIUS"
     BusinessUnit   = "Engineering"
     BudgetCategory = local.is_production ? "Production" : "Development"
-    
+
     # Backup and compliance tags
-    BackupPolicy   = local.is_production ? "Daily" : "Weekly"
+    BackupPolicy    = local.is_production ? "Daily" : "Weekly"
     DataSensitivity = "Confidential"
-    
+
     # Technical tags
-    AutoShutdown   = local.is_production ? "false" : "true"
+    AutoShutdown      = local.is_production ? "false" : "true"
     MaintenanceWindow = local.is_production ? "sat:22:00-sun:02:00" : "sun:02:00-sun:06:00"
   }
 
@@ -52,7 +52,7 @@ locals {
     prod = "db.t4g.medium"
     dev  = "db.t4g.micro"
   }
-  
+
   redis_node_type = {
     prod = "cache.t4g.medium"
     dev  = "cache.t4g.micro"
