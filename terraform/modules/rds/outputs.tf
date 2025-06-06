@@ -8,6 +8,11 @@ output "port" {
   value       = aws_db_instance.main.port
 }
 
+output "database_name" {
+  description = "The name of the database"
+  value       = aws_db_instance.main.db_name
+}
+
 output "security_group_id" {
   description = "The security group ID of the RDS instance"
   value       = aws_security_group.rds.id
