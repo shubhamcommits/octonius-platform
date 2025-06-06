@@ -199,7 +199,16 @@ jobs:
             echo "✅ DynamoDB table already exists: $TABLE_NAME"
           fi
           
-          echo "📦 Using existing S3 bucket: ${{ needs.setup.outputs.state_bucket }}"
+          # Get bucket name based on environment
+          case "$ENV" in
+            prod)
+              BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
+              ;;
+            *)
+              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
+              ;;
+          esac
+          echo "📦 Using existing S3 bucket: $BUCKET_NAME"
 
       - name: 📝 Generate Backend Configuration
         run: |
