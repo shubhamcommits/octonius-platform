@@ -13,7 +13,7 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -36,7 +36,7 @@ RUN apk add --no-cache postgresql-client
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
@@ -54,5 +54,7 @@ USER nodejs
 # Expose the port
 EXPOSE ${PORT}
 
-# Start the application
-CMD ["npm", "run", "start"] 
+# Start the application based on NODE_ENV
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+CMD ["docker-entrypoint.sh"] 
