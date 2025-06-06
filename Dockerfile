@@ -16,7 +16,9 @@ COPY package*.json ./
 RUN npm install
 
 # Copy source code
-COPY . .
+COPY tsconfig.json ./
+COPY src/ ./src/
+COPY server.ts ./
 
 # Build the application
 RUN npm run build
@@ -40,7 +42,6 @@ RUN npm install --only=production
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src ./src
 
 # Copy other necessary files
 COPY .env ./
