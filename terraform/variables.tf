@@ -65,10 +65,7 @@ variable "single_nat_gateway" {
 }
 
 variable "database_username" {
-  description = "Username for the RDS database"
+  description = "Username for the RDS database (defaults to project_name)"
   type        = string
-  validation {
-    condition     = length(var.database_username) >= 3 && can(regex("^[a-zA-Z][a-zA-Z0-9_]+$", var.database_username))
-    error_message = "Database username must start with a letter and contain only alphanumeric characters and underscores"
-  }
+  default     = "octonius"  # Same as project_name default
 } 
