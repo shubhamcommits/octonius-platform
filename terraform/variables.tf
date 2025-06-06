@@ -9,6 +9,15 @@ variable "environment" {
   }
 }
 
+variable "account_id" {
+  description = "AWS account ID"
+  type        = string
+  validation {
+    condition     = can(regex("^[0-9]+$", var.account_id))
+    error_message = "Account ID must be a valid AWS account ID"
+  }
+}
+
 variable "project_name" {
   description = "Project name"
   type        = string

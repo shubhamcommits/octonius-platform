@@ -6,7 +6,7 @@ locals {
   environment  = var.environment
   project_name = var.project_name
   aws_region   = var.aws_region
-  account_id   = data.aws_caller_identity.current.account_id
+  account_id   = var.account_id
 
   # Computed names and identifiers
   name_prefix = "${local.environment}-${local.project_name}"
