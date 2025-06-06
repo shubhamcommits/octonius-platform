@@ -121,7 +121,7 @@ module "rds" {
   subnet_ids            = module.vpc.private_subnet_ids
   ecs_security_group_id = aws_security_group.app_runner.id
 
-  instance_class          = var.environment == "prod" ? "db.t4g.medium" : "db.t4g.micro"
+  instance_class          = var.environment == "prod" ? "db.t4g.small" : "db.t4g.micro"
   allocated_storage       = var.environment == "prod" ? 100 : 20
   max_allocated_storage   = var.environment == "prod" ? 1000 : 100
   database_name           = "octoniusdb"
