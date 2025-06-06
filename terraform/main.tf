@@ -1,6 +1,15 @@
 # Octonius Platform Infrastructure - Dynamic Branch-Based Deployment
 # This configuration automatically adapts to any branch/environment
 
+# Configure AWS Provider
+provider "aws" {
+  region = var.aws_region
+
+  default_tags {
+    tags = local.common_tags
+  }
+}
+
 # Data source for availability zones
 data "aws_availability_zones" "available" {
   state = "available"
@@ -95,30 +104,46 @@ module "vpc" {
   tags = local.common_tags
 }
 
+# Security Group for App Runner
+resource "aws_security_group" "app_runner" {
+  name        = "${local.name_prefix}-app-runner"
+  description = "Security group for App Runner service"
+  vpc_id      = module.vpc.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = local.common_tags
+}
+
 module "rds" {
   source = "./modules/rds"
 
-  environment          = var.environment
-  project_name         = local.project_name
-  region              = var.aws_region
-  vpc_id              = module.vpc.vpc_id
-  subnet_ids          = module.vpc.private_subnet_ids
-  ecs_security_group_id = module.ecs.security_group_id
+  environment           = var.environment
+  project_name          = local.project_name
+  region                = var.aws_region
+  vpc_id                = module.vpc.vpc_id
+  subnet_ids            = module.vpc.private_subnet_ids
+  ecs_security_group_id = aws_security_group.app_runner.id
 
-  instance_class         = var.environment == "prod" ? "db.t4g.medium" : "db.t4g.micro"
-  allocated_storage      = var.environment == "prod" ? 100 : 20
-  max_allocated_storage  = var.environment == "prod" ? 1000 : 100
-  database_name          = "octonius_${var.environment}"
-  database_username      = var.database_username
-  multi_az              = false
+  instance_class          = var.environment == "prod" ? "db.t4g.medium" : "db.t4g.micro"
+  allocated_storage       = var.environment == "prod" ? 100 : 20
+  max_allocated_storage   = var.environment == "prod" ? 1000 : 100
+  database_name           = "octoniusdb"
+  database_username       = var.database_username
+  multi_az                = false
   backup_retention_period = var.environment == "prod" ? 30 : 7
 
   # Security settings
-  storage_encrypted     = true
-  enable_cloudwatch_logs_exports = ["postgresql", "upgrade"]
-  performance_insights_enabled = true
+  storage_encrypted                     = true
+  enable_cloudwatch_logs_exports        = ["postgresql", "upgrade"]
+  performance_insights_enabled          = true
   performance_insights_retention_period = var.environment == "prod" ? 30 : 7
-  deletion_protection   = var.environment == "prod"
+  deletion_protection                   = var.environment == "prod"
 
   tags = local.common_tags
 }
@@ -126,22 +151,22 @@ module "rds" {
 module "elasticache" {
   source = "./modules/elasticache"
 
-  environment          = var.environment
-  project_name         = local.project_name
-  region              = var.aws_region
-  vpc_id              = module.vpc.vpc_id
-  subnet_ids          = module.vpc.private_subnet_ids
-  ecs_security_group_id = module.ecs.security_group_id
+  environment           = var.environment
+  project_name          = local.project_name
+  region                = var.aws_region
+  vpc_id                = module.vpc.vpc_id
+  subnet_ids            = module.vpc.private_subnet_ids
+  ecs_security_group_id = aws_security_group.app_runner.id
 
-  node_type            = var.environment == "prod" ? "cache.t4g.medium" : "cache.t4g.micro"
-  multi_az             = false
+  node_type = var.environment == "prod" ? "cache.t4g.medium" : "cache.t4g.micro"
+  multi_az  = false
 
   # Security settings
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
-  auth_token_enabled        = true
-  snapshot_retention_limit  = var.environment == "prod" ? 30 : 7
-  apply_immediately        = var.environment != "prod"
+  auth_token_enabled         = true
+  snapshot_retention_limit   = var.environment == "prod" ? 30 : 7
+  apply_immediately          = var.environment != "prod"
 
   tags = local.common_tags
 } 
