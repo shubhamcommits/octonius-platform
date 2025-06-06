@@ -17,7 +17,7 @@ resource "aws_apprunner_service" "main" {
         )
         runtime_environment_secrets = {
           for env_var, secret_suffix in var.environment_secrets :
-          env_var => "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${var.project_name}-${secret_suffix}-${var.region}"
+          env_var => "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${var.project_name}-platform-service-env-${var.region}"
         }
       }
       image_identifier      = var.image_identifier
@@ -153,8 +153,7 @@ resource "aws_iam_role_policy" "app_runner_instance" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
-          for secret_suffix in values(var.environment_secrets) :
-          "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${var.project_name}-${secret_suffix}-${var.region}"
+          "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${var.project_name}-platform-service-env-${var.region}"
         ]
       },
       {
