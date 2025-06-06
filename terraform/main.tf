@@ -149,7 +149,7 @@ module "elasticache" {
   subnet_ids            = module.vpc.private_subnet_ids
   ecs_security_group_id = aws_security_group.app_runner.id
 
-  node_type = var.environment == "prod" ? "cache.t4g.medium" : "cache.t4g.micro"
+  node_type = var.environment == "prod" ? "cache.t4g.small" : "cache.t4g.micro"
   multi_az  = false
 
   # Security settings
