@@ -41,7 +41,7 @@ The Octonius Platform provides a robust foundation for web applications with:
 
 **📖 See [README-terraform.md](README-terraform.md) for complete infrastructure documentation**
 
-```bash
+   ```bash
 # 1. Bootstrap Terraform state management
 ./scripts/terraform-bootstrap.sh -e dev
 
@@ -54,9 +54,9 @@ terraform apply
 
 ### Application Setup
 
-```bash
+   ```bash
 # 1. Install dependencies
-npm install
+   npm install
 
 # 2. Build application
 npm run build
@@ -110,12 +110,12 @@ octonius-platform/
 
 ### Local Development
 
-```bash
+   ```bash
 # Start with Docker Compose (recommended)
 docker-compose up -d
 
 # Or run directly
-npm run dev
+   npm run dev
 ```
 
 ### Application Scripts
@@ -130,7 +130,7 @@ npm run lint        # TypeScript type checking
 
 ### Infrastructure Management
 
-```bash
+   ```bash
 # Environment setup
 ./scripts/terraform-bootstrap.sh -e dev
 
@@ -171,7 +171,7 @@ terraform destroy   # Destroy infrastructure
 
 ### Manual Deployment
 
-```bash
+   ```bash
 # Infrastructure
 cd terraform/environments/dev
 terraform apply
@@ -197,10 +197,10 @@ npm run start
 
 ## 🧪 Testing
 
-```bash
+   ```bash
 npm test              # Run all tests
 npm run test:watch    # Watch mode for development
-```
+   ```
 
 ## 🚧 Roadmap
 
