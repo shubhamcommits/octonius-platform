@@ -109,7 +109,7 @@ resource "aws_route_table_association" "public" {
 
 # Route Tables for Private Subnets
 resource "aws_route_table" "private" {
-  count = var.enable_nat_gateway ? (var.single_nat_gateway ? 1 : local.azs_count) : 1
+  count = var.enable_nat_gateway ? (var.single_nat_gateway ? 1 : local.azs_count) : local.azs_count
 
   vpc_id = aws_vpc.main.id
 
