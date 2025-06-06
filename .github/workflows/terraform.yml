@@ -438,7 +438,6 @@ jobs:
           fi
 
       - name: 💾 Upload Plan Artifact
-        if: env.has-changes == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: tfplan-${{ needs.setup.outputs.environment }}
