@@ -65,29 +65,29 @@ resource "random_password" "redis_auth" {
 
 # Redis Replication Group (Cluster)
 resource "aws_elasticache_replication_group" "main" {
-  replication_group_id          = "${var.environment}-${var.project_name}-redis-${var.region}"
-  description                   = "Redis cluster for ${var.environment}-${var.project_name}"
-  node_type                     = var.node_type
-  port                          = 6379
-  parameter_group_name          = aws_elasticache_parameter_group.main.name
-  subnet_group_name             = aws_elasticache_subnet_group.main.name
-  security_group_ids            = [aws_security_group.redis.id]
+  replication_group_id = "${var.environment}-${var.project_name}-redis-${var.region}"
+  description          = "Redis cluster for ${var.environment}-${var.project_name}"
+  node_type            = var.node_type
+  port                 = 6379
+  parameter_group_name = aws_elasticache_parameter_group.main.name
+  subnet_group_name    = aws_elasticache_subnet_group.main.name
+  security_group_ids   = [aws_security_group.redis.id]
 
   # High availability configuration
-  automatic_failover_enabled    = var.multi_az
-  multi_az_enabled             = var.multi_az
-  num_cache_clusters           = var.multi_az ? 2 : 1
+  automatic_failover_enabled = var.multi_az
+  multi_az_enabled           = var.multi_az
+  num_cache_clusters         = var.multi_az ? 2 : 1
 
   # Security configuration
-  at_rest_encryption_enabled    = var.at_rest_encryption_enabled
-  transit_encryption_enabled    = var.transit_encryption_enabled
-  auth_token                   = var.auth_token_enabled ? random_password.redis_auth.result : null
-  snapshot_retention_limit     = var.snapshot_retention_limit
-  apply_immediately           = var.apply_immediately
+  at_rest_encryption_enabled = var.at_rest_encryption_enabled
+  transit_encryption_enabled = var.transit_encryption_enabled
+  auth_token                 = var.auth_token_enabled ? random_password.redis_auth.result : null
+  snapshot_retention_limit   = var.snapshot_retention_limit
+  apply_immediately          = var.apply_immediately
 
   # Redis version
-  engine                      = "redis"
-  engine_version             = "7.0"
+  engine         = "redis"
+  engine_version = "7.0"
 
   tags = var.tags
 } 
