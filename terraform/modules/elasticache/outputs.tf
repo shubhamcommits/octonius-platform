@@ -9,6 +9,27 @@ output "port" {
 }
 
 output "security_group_id" {
-  description = "The security group ID of the ElastiCache cluster"
+  description = "The ID of the Redis security group"
   value       = aws_security_group.redis.id
+}
+
+output "endpoint" {
+  description = "The connection endpoint for the Redis cluster"
+  value       = aws_elasticache_replication_group.main.primary_endpoint_address
+}
+
+output "arn" {
+  description = "The ARN of the Redis cluster"
+  value       = aws_elasticache_replication_group.main.arn
+}
+
+output "id" {
+  description = "The ID of the Redis cluster"
+  value       = aws_elasticache_replication_group.main.id
+}
+
+output "auth_token" {
+  description = "The authentication token for Redis (if enabled)"
+  value       = var.auth_token_enabled ? random_password.redis_auth.result : null
+  sensitive   = true
 } 
