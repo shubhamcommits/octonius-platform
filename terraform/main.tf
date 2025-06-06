@@ -162,6 +162,15 @@ module "elasticache" {
   tags = local.common_tags
 }
 
+# ECR Repository
+module "ecr" {
+  source = "./modules/ecr"
+  
+  environment   = var.environment
+  project_name  = local.project_name
+  tags          = local.common_tags
+}
+
 # App Runner Service
 module "app_runner" {
   source = "./modules/app_runner"
@@ -176,7 +185,7 @@ module "app_runner" {
   # Container configuration
   container_port    = 3000
   health_check_path = "/health"
-  image_identifier  = "${local.account_id}.dkr.ecr.${local.aws_region}.amazonaws.com/${local.project_name}:${local.environment}"
+  image_identifier  = "${module.ecr.repository_url}:latest-${local.environment}"
 
   # Auto-scaling configuration
   cpu      = local.environment == "prod" ? 2048 : 1024
@@ -186,17 +195,30 @@ module "app_runner" {
 
   # Environment variables
   environment_variables = {
-    DATABASE_HOST = module.rds.endpoint
-    DATABASE_PORT = module.rds.port
-    DATABASE_NAME = "octoniusdb"
-    REDIS_HOST    = module.elasticache.endpoint
-    REDIS_PORT    = module.elasticache.port
+    HOST                = "0.0.0.0"
+    APP_NAME            = "octonius-platform-service"
+    PORT                = "3000"
+    NODE_ENV            = var.environment
+    CLUSTER             = "false"
+    DOMAIN              = "${var.environment}.api.octonius.com"
+    AWS_ACCOUNT_NUMBER  = local.account_id
+    AWS_DEFAULT_REGION  = local.aws_region
+    DB_WRITER_HOST      = module.rds.endpoint
+    DB_READER_HOST      = module.rds.endpoint
+    DB_PORT             = module.rds.port
+    DB_NAME             = module.rds.database_name
+    MAX_POOL            = var.environment == "prod" ? "5" : "1"
+    MIN_POOL            = var.environment == "prod" ? "5" : "1"
+    REDIS_HOST          = module.elasticache.endpoint
+    REDIS_PORT          = module.elasticache.port
   }
 
   # Secrets from Secrets Manager
   environment_secrets = {
-    DATABASE_URL = "${module.rds.secret_arn}:connection_string::"
-    REDIS_URL    = "${module.elasticache.auth_token}:auth_token::"
+    AWS_ACCESS_KEY_ID  = "${var.environment}-${local.project_name}-aws-access-key-${local.aws_region}"
+    AWS_SECRET_KEY     = "${var.environment}-${local.project_name}-aws-secret-key-${local.aws_region}"
+    DB_PASS            = "${var.environment}-${local.project_name}-db-password-${local.aws_region}"
+    JWT_ACCESS_KEY     = "${var.environment}-${local.project_name}-jwt-access-key-${local.aws_region}"
   }
 
   tags = local.common_tags
