@@ -99,5 +99,4 @@ variable "tags" {
 variable "secret_name_pattern" {
   description = "Pattern for the secret name in AWS Secrets Manager"
   type        = string
-  default     = "${environment}-${project_name}-platform-service-env-${region}"
 } 
