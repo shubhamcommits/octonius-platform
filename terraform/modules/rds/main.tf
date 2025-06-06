@@ -65,42 +65,42 @@ resource "aws_security_group" "rds" {
 
 # RDS PostgreSQL Instance
 resource "aws_db_instance" "main" {
-  identifier             = "${var.environment}-${var.project_name}-db-${var.region}"
-  engine                 = "postgres"
-  engine_version         = "15.4"
-  instance_class         = var.instance_class
-  allocated_storage      = var.allocated_storage
-  max_allocated_storage  = var.max_allocated_storage
-  storage_type           = "gp3"
-  storage_encrypted      = var.storage_encrypted
+  identifier            = "${var.environment}-${var.project_name}-db-${var.region}"
+  engine                = "postgres"
+  engine_version        = "15.4"
+  instance_class        = var.instance_class
+  allocated_storage     = var.allocated_storage
+  max_allocated_storage = var.max_allocated_storage
+  storage_type          = "gp3"
+  storage_encrypted     = var.storage_encrypted
 
   # Database configuration
-  db_name                = var.database_name
-  username               = var.database_username
-  password               = random_password.db.result
+  db_name  = var.database_name
+  username = var.database_username
+  password = random_password.db.result
 
   # Network configuration
   vpc_security_group_ids = [aws_security_group.rds.id]
   db_subnet_group_name   = aws_db_subnet_group.main.name
 
   # High availability configuration
-  multi_az               = var.multi_az
-  publicly_accessible    = false
-  skip_final_snapshot    = var.skip_final_snapshot
+  multi_az            = var.multi_az
+  publicly_accessible = false
+  skip_final_snapshot = var.skip_final_snapshot
 
   # Backup configuration
   backup_retention_period = var.backup_retention_period
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "Mon:04:00-Mon:05:00"
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "Mon:04:00-Mon:05:00"
 
   # Monitoring configuration
   performance_insights_enabled          = var.performance_insights_enabled
   performance_insights_retention_period = var.performance_insights_retention_period
   monitoring_interval                   = 60
-  monitoring_role_arn                  = aws_iam_role.rds_monitoring.arn
+  monitoring_role_arn                   = aws_iam_role.rds_monitoring.arn
 
   # Enhanced security
-  deletion_protection          = var.deletion_protection
+  deletion_protection             = var.deletion_protection
   enabled_cloudwatch_logs_exports = var.enable_cloudwatch_logs_exports
 
   tags = var.tags
