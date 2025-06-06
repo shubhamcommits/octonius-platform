@@ -72,7 +72,7 @@ output "rds_port" {
 
 output "rds_database_name" {
   description = "The name of the RDS database"
-  value       = "octonius_${var.environment}"
+  value       = "octoniusdb"
 }
 
 output "rds_instance_class" {
