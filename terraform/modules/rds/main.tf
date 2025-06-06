@@ -9,7 +9,7 @@
 
 # AWS Secrets Manager for database credentials
 resource "aws_secretsmanager_secret" "rds" {
-  name                    = "${var.environment}-${var.project_name}-db-${var.region}"
+  name                    = "${var.environment}-${var.project_name}-db-password-${var.region}-${formatdate("YYYYMMDD-HHmmss", timestamp())}"
   description             = "RDS database credentials for ${var.environment}-${var.project_name}"
   recovery_window_in_days = 0
   tags                    = var.tags
