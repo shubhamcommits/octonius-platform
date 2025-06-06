@@ -59,8 +59,8 @@ resource "aws_apprunner_service" "main" {
 # VPC Connector
 resource "aws_apprunner_vpc_connector" "main" {
   vpc_connector_name = "${var.environment}-${var.project_name}-vpc-connector"
-  subnets           = var.subnet_ids
-  security_groups   = [aws_security_group.app_runner.id]
+  subnets            = var.subnet_ids
+  security_groups    = [aws_security_group.app_runner.id]
 }
 
 # Auto Scaling Configuration
@@ -92,7 +92,7 @@ resource "aws_security_group" "app_runner" {
 
 # IAM Role for App Runner Service (ECR access)
 resource "aws_iam_role" "app_runner_service" {
-  name = "${var.environment}-${var.project_name}-app-runner-service-role" 
+  name = "${var.environment}-${var.project_name}-app-runner-service-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

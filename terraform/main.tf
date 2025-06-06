@@ -166,20 +166,21 @@ module "elasticache" {
 module "app_runner" {
   source = "./modules/app_runner"
 
-  environment   = var.environment
-  project_name  = local.project_name
-  region        = local.aws_region
-  vpc_id        = module.vpc.vpc_id
-  subnet_ids    = module.vpc.private_subnet_ids
+  environment         = var.environment
+  project_name        = local.project_name
+  region              = local.aws_region
+  vpc_id              = module.vpc.vpc_id
+  subnet_ids          = module.vpc.private_subnet_ids
+  secret_name_pattern = "${var.environment}-${local.project_name}-platform-service-env-${local.aws_region}"
 
   # Container configuration
-  container_port = 3000
+  container_port    = 3000
   health_check_path = "/health"
-  image_identifier = "${local.account_id}.dkr.ecr.${local.aws_region}.amazonaws.com/${local.project_name}:${local.environment}"
+  image_identifier  = "${local.account_id}.dkr.ecr.${local.aws_region}.amazonaws.com/${local.project_name}:${local.environment}"
 
   # Auto-scaling configuration
-  cpu    = local.environment == "prod" ? 2048 : 1024
-  memory = local.environment == "prod" ? 4096 : 2048
+  cpu      = local.environment == "prod" ? 2048 : 1024
+  memory   = local.environment == "prod" ? 4096 : 2048
   min_size = local.environment == "prod" ? 2 : 1
   max_size = local.environment == "prod" ? 10 : 5
 
@@ -188,8 +189,8 @@ module "app_runner" {
     DATABASE_HOST = module.rds.endpoint
     DATABASE_PORT = module.rds.port
     DATABASE_NAME = "octoniusdb"
-    REDIS_HOST   = module.elasticache.endpoint
-    REDIS_PORT   = module.elasticache.port
+    REDIS_HOST    = module.elasticache.endpoint
+    REDIS_PORT    = module.elasticache.port
   }
 
   # Secrets from Secrets Manager
