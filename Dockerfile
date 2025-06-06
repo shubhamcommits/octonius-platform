@@ -1,14 +1,10 @@
 # Build stage
-FROM node:16.20.2-alpine3.19 AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
 # Create a non-root user
-RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
-
-# Install build dependencies and security updates
-RUN apk add --no-cache python3 make g++ && \
-    apk upgrade --no-cache
+RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
 
 # Copy package files
 COPY package*.json ./
@@ -25,16 +21,12 @@ COPY server.ts ./
 RUN npm run build
 
 # Production stage
-FROM node:16.20.2-alpine3.19
+FROM node:22-slim
 
 WORKDIR /app
 
 # Create a non-root user
-RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
-
-# Install runtime dependencies and security updates
-RUN apk add --no-cache postgresql-client && \
-    apk upgrade --no-cache
+RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
 
 # Copy package files
 COPY package*.json ./
@@ -45,8 +37,9 @@ RUN npm install --only=production
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Copy other necessary files
-COPY .env ./
+# Copy and set up entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set proper permissions
 RUN chown -R nodejs:nodejs /app
@@ -55,9 +48,7 @@ RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose the port
-EXPOSE ${PORT}
+EXPOSE 3000
 
 # Start the application based on NODE_ENV
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 CMD ["docker-entrypoint.sh"] 

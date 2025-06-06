@@ -9,7 +9,7 @@ dist
 build
 *.tsbuildinfo
 
-# Environment and config
+# Environment and config files
 .env
 .env.*
 !.env.example
@@ -33,7 +33,7 @@ coverage
 logs
 *.log
 
-# Services directory (as per your requirement)
+# Services directory
 services/
 
 # Docker files
