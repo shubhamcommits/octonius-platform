@@ -11,13 +11,8 @@
 resource "aws_secretsmanager_secret" "rds" {
   name                    = "${var.environment}-${var.project_name}-db-password-${var.region}"
   description             = "RDS database credentials for ${var.environment}-${var.project_name}"
-  recovery_window_in_days = 0
+  recovery_window_in_days = var.force_destroy_secret ? 0 : 7
   tags                    = var.tags
-
-  # Prevent destruction of the secret unless force_destroy is true
-  lifecycle {
-    prevent_destroy = !var.force_destroy_secret
-  }
 }
 
 # Store generated credentials in Secrets Manager
@@ -27,13 +22,6 @@ resource "aws_secretsmanager_secret_version" "rds" {
     username = var.database_username
     password = random_password.db.result
   })
-
-  # Only create a new version when the password changes
-  lifecycle {
-    ignore_changes = [
-      secret_string
-    ]
-  }
 }
 
 # Generate secure random password
