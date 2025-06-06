@@ -67,5 +67,5 @@ variable "single_nat_gateway" {
 variable "database_username" {
   description = "Username for the RDS database (defaults to project_name)"
   type        = string
-  default     = "octonius"  # Same as project_name default
+  default     = "octonius"
 } 
