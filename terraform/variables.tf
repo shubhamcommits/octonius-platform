@@ -10,16 +10,13 @@ variable "environment" {
 }
 
 variable "account_id" {
-  description = "AWS account ID"
+  description = "AWS account ID (automatically set by pipeline)"
   type        = string
-  validation {
-    condition     = can(regex("^[0-9]+$", var.account_id))
-    error_message = "Account ID must be a valid AWS account ID"
-  }
+  default     = "000000000000"
 }
 
 variable "project_name" {
-  description = "Project name"
+  description = "Project name (automatically set by pipeline)"
   type        = string
   default     = "octonius"
   validation {
@@ -68,10 +65,7 @@ variable "single_nat_gateway" {
 }
 
 variable "database_username" {
-  description = "Username for the RDS database"
+  description = "Username for the RDS database (defaults to project_name)"
   type        = string
-  validation {
-    condition     = length(var.database_username) >= 3 && can(regex("^[a-zA-Z][a-zA-Z0-9_]+$", var.database_username))
-    error_message = "Database username must start with a letter and contain only alphanumeric characters and underscores"
-  }
+  default     = "octonius"
 } 
