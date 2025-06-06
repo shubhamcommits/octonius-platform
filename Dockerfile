@@ -1,46 +1,49 @@
 # Build stage
-FROM node:23.11.0-alpine AS builder
+FROM node:16.20.2-alpine3.19 AS builder
 
 WORKDIR /app
 
 # Create a non-root user
 RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
+# Install build dependencies and security updates
+RUN apk add --no-cache python3 make g++ && \
+    apk upgrade --no-cache
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
-COPY . .
+COPY tsconfig.json ./
+COPY src/ ./src/
+COPY server.ts ./
 
 # Build the application
 RUN npm run build
 
 # Production stage
-FROM node:23.11.0-alpine
+FROM node:16.20.2-alpine3.19
 
 WORKDIR /app
 
 # Create a non-root user
 RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
 
-# Install runtime dependencies
-RUN apk add --no-cache postgresql-client
+# Install runtime dependencies and security updates
+RUN apk add --no-cache postgresql-client && \
+    apk upgrade --no-cache
 
 # Copy package files
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src ./src
 
 # Copy other necessary files
 COPY .env ./
@@ -54,5 +57,7 @@ USER nodejs
 # Expose the port
 EXPOSE ${PORT}
 
-# Start the application
-CMD ["npm", "run", "start"] 
+# Start the application based on NODE_ENV
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+CMD ["docker-entrypoint.sh"] 

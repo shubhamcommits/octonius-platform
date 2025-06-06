@@ -184,7 +184,7 @@ module "app_runner" {
 
   # Container configuration
   container_port    = 3000
-  health_check_path = "/health"
+  health_check_path = "/api/health"
   image_identifier  = "${module.ecr.repository_url}:latest-${local.environment}"
 
   # Auto-scaling configuration
