@@ -1,15 +1,6 @@
 # Octonius Platform Infrastructure - Dynamic Branch-Based Deployment
 # This configuration automatically adapts to any branch/environment
 
-# Configure AWS Provider
-provider "aws" {
-  region = var.aws_region
-
-  default_tags {
-    tags = local.common_tags
-  }
-}
-
 # Data source for availability zones
 data "aws_availability_zones" "available" {
   state = "available"
