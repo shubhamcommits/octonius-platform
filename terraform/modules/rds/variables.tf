@@ -108,4 +108,10 @@ variable "tags" {
   description = "A map of tags to add to all resources"
   type        = map(string)
   default     = {}
+}
+
+variable "force_destroy_secret" {
+  description = "Whether to allow the secret to be deleted when destroying infrastructure"
+  type        = bool
+  default     = false
 } 
