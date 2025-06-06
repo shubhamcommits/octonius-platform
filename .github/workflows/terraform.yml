@@ -74,7 +74,7 @@ jobs:
             echo "Manual environment: ${{ github.event.inputs.environment }}"
           fi
 
-      - name: 🎯 Determine Environment & Bucket
+      - name: 🎯 Determine Environment
         id: env
         run: |
           # Get branch name
@@ -108,40 +108,8 @@ jobs:
             esac
           fi
           
-          # Determine S3 bucket based on environment
-          case "$ENV" in
-            prod)
-              BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
-              ;;
-            dev)
-              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
-              ;;
-            *)
-              # For feature branches, use dev bucket with different key path
-              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
-              ;;
-          esac
-          
-          # Validate that bucket name is not empty
-          if [[ -z "$BUCKET_NAME" ]]; then
-            echo "❌ ERROR: S3 bucket name is empty!"
-            echo "Environment: $ENV"
-            case "$ENV" in
-              prod)
-                echo "Missing secret: PROD_S3_BUCKET"
-                echo "Please set the PROD_S3_BUCKET secret in your repository"
-                ;;
-              *)
-                echo "Missing secret: DEV_S3_BUCKET"
-                echo "Please set the DEV_S3_BUCKET secret in your repository"
-                ;;
-            esac
-            exit 1
-          fi
-          
           echo "Branch: $BRANCH"
           echo "Environment: $ENV"
-          echo "S3 Bucket: ***"
           echo "environment=$ENV" >> $GITHUB_OUTPUT
 
       - name: 🎯 Determine Action
@@ -231,11 +199,22 @@ jobs:
             echo "✅ DynamoDB table already exists: $TABLE_NAME"
           fi
           
-          echo "📦 Using S3 bucket (name masked for security)"
+          echo "📦 Using existing S3 bucket: ${{ needs.setup.outputs.state_bucket }}"
 
       - name: 📝 Generate Backend Configuration
         run: |
           mkdir -p terraform/config
+          
+          # Get environment and determine bucket
+          ENV="${{ steps.env.outputs.environment }}"
+          case "$ENV" in
+            prod)
+              BUCKET_NAME="${{ secrets.PROD_S3_BUCKET }}"
+              ;;
+            *)
+              BUCKET_NAME="${{ secrets.DEV_S3_BUCKET }}"
+              ;;
+          esac
           
           # Validate bucket name is not empty
           if [[ -z "$BUCKET_NAME" ]]; then
@@ -251,7 +230,7 @@ jobs:
             exit 1
           fi
           
-          echo "🗂️ Using S3 bucket: $BUCKET_NAME for environment: $ENV"
+          echo "📝 Generating backend configuration for environment: $ENV"
           
           # Generate backend configuration as a separate .tf file
           cat > terraform/backend.tf << EOF
