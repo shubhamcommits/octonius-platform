@@ -31,10 +31,10 @@ export async function initiliazeDatabase(): Promise<{ message: string }> {
         if(NODE_ENV == 'prod' || NODE_ENV == 'staging')
             alter_tables_auto = false
 
-        if(!DB_WRITER_HOST?.startsWith(NODE_ENV || '')){
-            logger.error(`Database \t: The NODE_ENV is not compatible with the database endpoint`)
-            throw new Error(`The NODE_ENV is not compatible with the database endpoint`)
-        }
+        // if(!DB_WRITER_HOST?.startsWith(NODE_ENV || '')){
+        //     logger.error(`Database \t: The NODE_ENV is not compatible with the database endpoint`)
+        //     throw new Error(`The NODE_ENV is not compatible with the database endpoint`)
+        // }
 
         // Log database connection details
         logger.info(`Database \t: Attempting to connect to PostgreSQL with replication`)

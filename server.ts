@@ -1,17 +1,56 @@
-// Import File Stream Module
-import { Readable } from 'stream'
-
 // Import Cluster Module
 import cluster from 'cluster'
 
 // DotEnv Module
 import dotenv from 'dotenv'
 
+// Load the config from the .env file
+dotenv.config()
+
 // Fetch Number of CPU Cores 
 import { cpus } from 'os'
 
+// Import logger
+import logger from './src/logger'
+
+// Import AWS Service
+import { awsService } from './src/aws'
+
 // Load the config from the .env file
-dotenv.config()
+if (process.env.NODE_ENV === 'local') {
+
+    // Log the environment
+    logger.info(`Environment \t: Local environment configured`)
+
+} else {
+
+    // Verify AWS credentials are available
+    if (!process.env.AWS_ACCESS_KEY_ID && !process.env.AWS_SECRET_ACCESS_KEY) {
+        logger.warn('AWS \t: No explicit AWS credentials found. Ensure IAM Role or AWS credentials file is configured.')
+    }
+
+    // Get application secrets from AWS Secrets Manager
+    awsService.getSecrets(`${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`)
+        .then((secrets) => {
+
+            // Log the secrets
+            logger.info(`AWS \t: Secrets loaded successfully`)
+
+            // Merge secrets with process.env, but don't override AWS credentials
+            const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ...otherSecrets } = secrets
+
+            // Merge secrets with process.env
+            Object.assign(process.env, otherSecrets)
+        })
+        .catch((error) => {
+
+            // Log the error
+            logger.error(`AWS \t: Error getting secrets - ${error}`)
+
+            // Exit the application
+            process.exit(1)
+        })
+}
 
 // Express App
 import app from './src/app'
@@ -24,9 +63,6 @@ import { connectRedis, deleteRedisKeysByPrefix, disconnectRedis } from './src/re
 
 // Import node-fetch module
 import { Headers } from 'node-fetch'
-
-// Import logger
-import logger from './src/logger'
 
 // Assign fetch and Headers to the global scope
 (global as any).Headers = Headers

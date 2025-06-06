@@ -1,4 +1,4 @@
-import winston from 'winston';
+import winston from 'winston'
 
 // Define log levels and colors
 const levels = {
@@ -9,16 +9,17 @@ const levels = {
     debug: 4,
 }
 
+// Define colors for each log level
 const colors = {
     error: 'red',
     warn: 'yellow',
     info: 'green',
     http: 'magenta',
-    debug: 'white',
+    debug: 'cyan',
 }
 
 // Add colors to winston
-winston.addColors(colors);
+winston.addColors(colors)
 
 // Custom format for structured logging
 const structuredFormat = winston.format.printf(({ level, message, timestamp, ...metadata }) => {
@@ -72,28 +73,28 @@ const logger = winston.createLogger({
         }),
         new winston.transports.File({ filename: 'logs/all.log' }),
     ],
-});
+})
 
 // Create a stream object with a 'write' function that will be used by `morgan`
 export const stream = {
     write: (message: string) => {
-        logger.http(message.trim());
+        logger.http(message.trim())
     },
-};
+}
 
 // Helper function for database logs
 export const dbLogger = (message: string, metadata?: any) => {
-    logger.info(message, { ...metadata, service: 'database' });
+    logger.info(message, { ...metadata, service: 'database' })
 }
 
 // Helper function for redis logs
 export const redisLogger = (message: string, metadata?: any) => {
-    logger.info(message, { ...metadata, service: 'redis' });
+    logger.info(message, { ...metadata, service: 'redis' })
 }
 
 // Helper function for application logs
 export const appLogger = (message: string, metadata?: any) => {
-    logger.info(message, { ...metadata, service: 'application' });
+    logger.info(message, { ...metadata, service: 'application' })
 }
 
-export default logger;
+export default logger
