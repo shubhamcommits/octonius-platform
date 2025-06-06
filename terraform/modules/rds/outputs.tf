@@ -16,4 +16,14 @@ output "security_group_id" {
 output "secret_arn" {
   description = "The ARN of the secret containing database credentials"
   value       = aws_secretsmanager_secret.rds.arn
+}
+
+output "arn" {
+  description = "The ARN of the RDS instance"
+  value       = aws_db_instance.main.arn
+}
+
+output "id" {
+  description = "The ID of the RDS instance"
+  value       = aws_db_instance.main.id
 } 

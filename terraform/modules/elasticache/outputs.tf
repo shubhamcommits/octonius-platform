@@ -11,4 +11,19 @@ output "port" {
 output "security_group_id" {
   description = "The security group ID of the ElastiCache cluster"
   value       = aws_security_group.redis.id
+}
+
+output "endpoint" {
+  description = "The connection endpoint for the Redis cluster"
+  value       = aws_elasticache_cluster.main.cache_nodes[0].address
+}
+
+output "arn" {
+  description = "The ARN of the Redis cluster"
+  value       = aws_elasticache_cluster.main.arn
+}
+
+output "id" {
+  description = "The ID of the Redis cluster"
+  value       = aws_elasticache_cluster.main.id
 } 
