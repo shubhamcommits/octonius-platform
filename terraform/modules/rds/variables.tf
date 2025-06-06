@@ -24,7 +24,7 @@ variable "subnet_ids" {
 }
 
 variable "ecs_security_group_id" {
-  description = "Security group ID of the ECS tasks that will access RDS"
+  description = "Security group ID of the App Runner service that will access RDS"
   type        = string
 }
 
