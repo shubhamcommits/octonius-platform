@@ -147,29 +147,6 @@ async function setUpExpressApplication() {
     // Creating Microservice Server
     const server = http.createServer(app)
 
-    // Fetch AWS secrets
-    let secrets = {}
-    // try {
-    //     secrets = await awsService.getSecrets(`${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`)
-    //     if (Object.keys(secrets).length === 0) {
-    //         appLogger('AWS secrets unavailable, running in degraded mode', { level: 'warn' })
-    //     }
-    // } catch (error) {
-    //     appLogger('Error fetching AWS secrets: ' + error, { level: 'error' })
-    // }
-
-    // Connect Database
-    // const dbStatus = await initiliazeDatabase()
-    // if (!dbStatus.connected) {
-    //     appLogger('DB creds unavailable, running in degraded mode', { level: 'warn' })
-    // }
-
-    // Connect Redis
-    // const redisStatus = await connectRedis()
-    // if (!redisStatus.connection) {
-    //     appLogger('Redis unavailable, running in degraded mode', { level: 'warn' })
-    // }
-
     // Catch unhandled promise rejections globally
     process.on('unhandledRejection', (reason, promise) => {
         appLogger('Unhandled Promise Rejection at: ' + JSON.stringify(promise) + ' reason: ' + JSON.stringify(reason))
@@ -182,11 +159,11 @@ async function setUpExpressApplication() {
     })
 
     // Exposing the server to the desired port
-    server.listen(PORT, HOST, () => {
-        appLogger('Application \t: ' + APP_NAME + ' server is working!')
-        appLogger('Hostname \t: http://' + HOST + ':' + PORT)
-        appLogger('Environment \t: ' + NODE_ENV)
-        appLogger('Process \t: ' + process.pid + ' is listening to all incoming requests')
+    server.listen(Number(PORT), HOST, () => {
+        appLogger('Application   : ' + APP_NAME + ' server is working!')
+        appLogger('Hostname      : ' + HOST + ':' + PORT)
+        appLogger('Environment   : ' + NODE_ENV)
+        appLogger('Process       : ' + process.pid + ' is listening to all incoming requests')
     })
 }
 

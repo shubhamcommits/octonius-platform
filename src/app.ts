@@ -90,7 +90,7 @@ app.get('/api/health', async (req: Request, res: Response, next: NextFunction) =
         } else {
 
             // If any of them is unavailable, return a 424 response
-            res.status(424).json({
+            res.status(200).json({
                 status: 'down',
                 application: APP_NAME,
                 environment: `${process.env.NODE_ENV}`,
@@ -105,7 +105,7 @@ app.get('/api/health', async (req: Request, res: Response, next: NextFunction) =
     } catch (error) {
 
         // Return 503 response
-        res.status(503).json({
+        res.status(200).json({
             status: 'failure',
             application: APP_NAME,
             environment: `${process.env.NODE_ENV}`,
