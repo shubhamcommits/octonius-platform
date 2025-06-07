@@ -4,9 +4,6 @@ import cluster from 'cluster'
 // DotEnv Module
 import dotenv from 'dotenv'
 
-// Load the config from the .env file
-dotenv.config()
-
 // Fetch Number of CPU Cores 
 import { cpus } from 'os'
 
@@ -14,10 +11,13 @@ import { cpus } from 'os'
 import { appLogger } from './src/logger'
 
 // Import AWS Service
-// import { awsService } from './src/aws'
+import { awsService } from './src/aws'
 
 // Load the config from the .env file
 if (process.env.NODE_ENV === 'local') {
+
+    // Load the config from the .env file
+    dotenv.config()
 
     // Log the environment
     appLogger('Environment \t: Local environment configured')
@@ -34,47 +34,44 @@ if (process.env.NODE_ENV === 'local') {
     // }
 
     // Get application secrets from AWS Secrets Manager
-    // appLogger('Attempting to fetch application secrets from AWS Secrets Manager', {
-    //     service: 'aws',
-    //     component: 'secrets-manager',
-    //     secretId: `${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`
-    // })
+    appLogger('Attempting to fetch application secrets from AWS Secrets Manager', {
+        service: 'aws',
+        component: 'secrets-manager',
+        secretId: `${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`
+    })
 
-    // awsService.getSecrets(`${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`)
-    //     .then((secrets) => {
+    awsService.getSecrets(`${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`)
+        .then((secrets) => {
 
-    //         // Log the secrets
-    //         appLogger('Secrets loaded successfully', {
-    //             service: 'aws',
-    //             component: 'secrets-manager',
-    //             secretCount: Object.keys(secrets).length
-    //         })
+            // Log the secrets
+            appLogger('Secrets loaded successfully', {
+                service: 'aws',
+                component: 'secrets-manager',
+                secretCount: Object.keys(secrets).length
+            })
 
-    //         // Merge secrets with process.env, but don't override AWS credentials
-    //         const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ...otherSecrets } = secrets
+            // Merge secrets with process.env, but don't override AWS credentials
+            const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ...otherSecrets } = secrets
 
-    //         // Merge secrets with process.env
-    //         Object.assign(process.env, otherSecrets)
+            // Merge secrets with process.env
+            Object.assign(process.env, otherSecrets)
 
-    //         appLogger('Environment variables updated with secrets', {
-    //             service: 'aws',
-    //             component: 'secrets-manager',
-    //             updatedVariablesCount: Object.keys(otherSecrets).length
-    //         })
-    //     })
-    //     .catch((error) => {
+            appLogger('Environment variables updated with secrets', {
+                service: 'aws',
+                component: 'secrets-manager',
+                updatedVariablesCount: Object.keys(otherSecrets).length
+            })
+        })
+        .catch((error) => {
 
-    //         // Log the error
-    //         appLogger('Error getting secrets', {
-    //             service: 'aws',
-    //             component: 'secrets-manager',
-    //             error: error.message,
-    //             level: 'error'
-    //         })
-
-    //         // Exit the application
-    //         process.exit(1)
-    //     })
+            // Log the error
+            appLogger('Error getting secrets', {
+                service: 'aws',
+                component: 'secrets-manager',
+                error: error.message,
+                level: 'error'
+            })
+        })
 }
 
 // Express App
@@ -147,6 +144,18 @@ async function setUpExpressApplication() {
     // Creating Microservice Server
     const server = http.createServer(app)
 
+    // Connect Database
+    // const dbStatus = await initiliazeDatabase()
+    // if (!dbStatus.connected) {
+    //     appLogger('DB creds unavailable, running in degraded mode', { level: 'warn' })
+    // }
+
+    // Connect Redis
+    // const redisStatus = await connectRedis()
+    // if (!redisStatus.connection) {
+    //     appLogger('Redis unavailable, running in degraded mode', { level: 'warn' })
+    // }
+
     // Catch unhandled promise rejections globally
     process.on('unhandledRejection', (reason, promise) => {
         appLogger('Unhandled Promise Rejection at: ' + JSON.stringify(promise) + ' reason: ' + JSON.stringify(reason))
@@ -157,8 +166,6 @@ async function setUpExpressApplication() {
         appLogger('Uncaught Exception thrown:', error)
         process.exit(1)
     })
-
-    console.log('process.env.DB_PASS', process.env.DB_PASS)
 
     // Exposing the server to the desired port
     server.listen(Number(PORT), HOST, () => {
