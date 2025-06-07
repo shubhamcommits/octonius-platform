@@ -199,24 +199,7 @@ module "app_runner" {
   max_size = local.environment == "prod" ? 10 : 5
 
   # Environment variables
-  environment_variables = {
-    HOST               = "0.0.0.0"
-    APP_NAME           = "octonius-platform-service"
-    PORT               = "3000"
-    NODE_ENV           = var.environment
-    CLUSTER            = "false"
-    DOMAIN             = "${var.environment}.api.octonius.com"
-    AWS_ACCOUNT_NUMBER = local.account_id
-    AWS_DEFAULT_REGION = local.aws_region
-    DB_WRITER_HOST     = module.rds.endpoint
-    DB_READER_HOST     = module.rds.endpoint
-    DB_PORT            = module.rds.port
-    DB_NAME            = module.rds.database_name
-    MAX_POOL           = var.environment == "prod" ? "5" : "1"
-    MIN_POOL           = var.environment == "prod" ? "5" : "1"
-    REDIS_HOST         = module.elasticache.endpoint
-    REDIS_PORT         = module.elasticache.port
-  }
+  environment_variables = {}
 
   # Secrets from Secrets Manager
   environment_secrets = {
