@@ -54,6 +54,10 @@ resource "aws_apprunner_service" "main" {
   # Add lifecycle rules to handle operation in progress
   lifecycle {
     create_before_destroy = true
+    # Ignore changes to authentication configuration to avoid ECR access issues
+    ignore_changes = [
+      source_configuration[0].authentication_configuration
+    ]
   }
 }
 
