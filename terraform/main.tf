@@ -9,6 +9,11 @@ data "aws_availability_zones" "available" {
 # Data source for current AWS caller identity
 data "aws_caller_identity" "current" {}
 
+# Data source for platform service environment secret
+data "aws_secretsmanager_secret_version" "platform_env" {
+  secret_id = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${local.project_name}-platform-service-env-${var.aws_region}"
+}
+
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "rds_audit" {
   name              = "/aws/rds/audit/${local.name_prefix}"
@@ -214,7 +219,10 @@ module "app_runner" {
   }
 
   # Secrets from Secrets Manager
-  environment_secrets = {}
+  environment_secrets = {
+    for key in keys(jsondecode(data.aws_secretsmanager_secret_version.platform_env.secret_string)) :
+    key => "${var.environment}-${local.project_name}-platform-service-env-${var.aws_region}"
+  }
 
   tags = local.common_tags
 } 
