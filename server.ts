@@ -14,7 +14,7 @@ import { cpus } from 'os'
 import { appLogger } from './src/logger'
 
 // Import AWS Service
-import { awsService } from './src/aws'
+// import { awsService } from './src/aws'
 
 // Load the config from the .env file
 if (process.env.NODE_ENV === 'local') {
@@ -25,56 +25,56 @@ if (process.env.NODE_ENV === 'local') {
 } else {
 
     // Verify AWS credentials are available
-    if (!process.env.AWS_ACCESS_KEY_ID && !process.env.AWS_SECRET_ACCESS_KEY) {
-        appLogger('No explicit AWS credentials found. Ensure IAM Role or AWS credentials file is configured.', { 
-            level: 'warn',
-            service: 'aws',
-            component: 'credentials'
-        })
-    }
+    // if (!process.env.AWS_ACCESS_KEY_ID && !process.env.AWS_SECRET_ACCESS_KEY) {
+    //     appLogger('No explicit AWS credentials found. Ensure IAM Role or AWS credentials file is configured.', { 
+    //         level: 'warn',
+    //         service: 'aws',
+    //         component: 'credentials'
+    //     })
+    // }
 
     // Get application secrets from AWS Secrets Manager
-    appLogger('Attempting to fetch application secrets from AWS Secrets Manager', {
-        service: 'aws',
-        component: 'secrets-manager',
-        secretId: `${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`
-    })
+    // appLogger('Attempting to fetch application secrets from AWS Secrets Manager', {
+    //     service: 'aws',
+    //     component: 'secrets-manager',
+    //     secretId: `${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`
+    // })
 
-    awsService.getSecrets(`${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`)
-        .then((secrets) => {
+    // awsService.getSecrets(`${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`)
+    //     .then((secrets) => {
 
-            // Log the secrets
-            appLogger('Secrets loaded successfully', {
-                service: 'aws',
-                component: 'secrets-manager',
-                secretCount: Object.keys(secrets).length
-            })
+    //         // Log the secrets
+    //         appLogger('Secrets loaded successfully', {
+    //             service: 'aws',
+    //             component: 'secrets-manager',
+    //             secretCount: Object.keys(secrets).length
+    //         })
 
-            // Merge secrets with process.env, but don't override AWS credentials
-            const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ...otherSecrets } = secrets
+    //         // Merge secrets with process.env, but don't override AWS credentials
+    //         const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ...otherSecrets } = secrets
 
-            // Merge secrets with process.env
-            Object.assign(process.env, otherSecrets)
+    //         // Merge secrets with process.env
+    //         Object.assign(process.env, otherSecrets)
 
-            appLogger('Environment variables updated with secrets', {
-                service: 'aws',
-                component: 'secrets-manager',
-                updatedVariablesCount: Object.keys(otherSecrets).length
-            })
-        })
-        .catch((error) => {
+    //         appLogger('Environment variables updated with secrets', {
+    //             service: 'aws',
+    //             component: 'secrets-manager',
+    //             updatedVariablesCount: Object.keys(otherSecrets).length
+    //         })
+    //     })
+    //     .catch((error) => {
 
-            // Log the error
-            appLogger('Error getting secrets', {
-                service: 'aws',
-                component: 'secrets-manager',
-                error: error.message,
-                level: 'error'
-            })
+    //         // Log the error
+    //         appLogger('Error getting secrets', {
+    //             service: 'aws',
+    //             component: 'secrets-manager',
+    //             error: error.message,
+    //             level: 'error'
+    //         })
 
-            // Exit the application
-            process.exit(1)
-        })
+    //         // Exit the application
+    //         process.exit(1)
+    //     })
 }
 
 // Express App
@@ -149,26 +149,26 @@ async function setUpExpressApplication() {
 
     // Fetch AWS secrets
     let secrets = {}
-    try {
-        secrets = await awsService.getSecrets(`${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`)
-        if (Object.keys(secrets).length === 0) {
-            appLogger('AWS secrets unavailable, running in degraded mode', { level: 'warn' })
-        }
-    } catch (error) {
-        appLogger('Error fetching AWS secrets: ' + error, { level: 'error' })
-    }
+    // try {
+    //     secrets = await awsService.getSecrets(`${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`)
+    //     if (Object.keys(secrets).length === 0) {
+    //         appLogger('AWS secrets unavailable, running in degraded mode', { level: 'warn' })
+    //     }
+    // } catch (error) {
+    //     appLogger('Error fetching AWS secrets: ' + error, { level: 'error' })
+    // }
 
     // Connect Database
-    const dbStatus = await initiliazeDatabase()
-    if (!dbStatus.connected) {
-        appLogger('DB creds unavailable, running in degraded mode', { level: 'warn' })
-    }
+    // const dbStatus = await initiliazeDatabase()
+    // if (!dbStatus.connected) {
+    //     appLogger('DB creds unavailable, running in degraded mode', { level: 'warn' })
+    // }
 
     // Connect Redis
-    const redisStatus = await connectRedis()
-    if (!redisStatus.connection) {
-        appLogger('Redis unavailable, running in degraded mode', { level: 'warn' })
-    }
+    // const redisStatus = await connectRedis()
+    // if (!redisStatus.connection) {
+    //     appLogger('Redis unavailable, running in degraded mode', { level: 'warn' })
+    // }
 
     // Catch unhandled promise rejections globally
     process.on('unhandledRejection', (reason, promise) => {
