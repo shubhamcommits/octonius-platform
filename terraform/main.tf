@@ -9,9 +9,14 @@ data "aws_availability_zones" "available" {
 # Data source for current AWS caller identity
 data "aws_caller_identity" "current" {}
 
-# Data source for platform service environment secret
-data "aws_secretsmanager_secret_version" "platform_env" {
-  secret_id = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${local.project_name}-platform-service-env-${var.aws_region}"
+# Data source to get the actual secret ARN with suffix
+data "aws_secretsmanager_secret" "platform_env" {
+  name = "${var.environment}-${local.project_name}-platform-service-env-${var.aws_region}"
+}
+
+# Data source to get the actual secret ARN with suffix
+data "aws_secretsmanager_secret" "database_password" {
+  name = "${var.environment}-${local.project_name}-db-password-${var.aws_region}"
 }
 
 # CloudWatch Log Groups
@@ -199,24 +204,39 @@ module "app_runner" {
   max_size = local.environment == "prod" ? 10 : 5
 
   # Environment variables
-  environment_variables = {}
+  environment_variables = {
+    HOST               = "0.0.0.0"
+    APP_NAME           = "octonius-platform-service"
+    PORT               = "3000"
+    NODE_ENV           = var.environment
+    CLUSTER            = "false"
+    DOMAIN             = "${var.environment}.api.octonius.com"
+    AWS_ACCOUNT_NUMBER = local.account_id
+    AWS_DEFAULT_REGION = local.aws_region
+    DB_WRITER_HOST     = module.rds.endpoint
+    DB_READER_HOST     = module.rds.endpoint
+    DB_PORT            = module.rds.port
+    DB_NAME            = module.rds.database_name
+    DB_USER            = var.database_username
+    MAX_POOL           = var.environment == "prod" ? "5" : "1"
+    MIN_POOL           = var.environment == "prod" ? "5" : "1"
+    REDIS_HOST         = module.elasticache.endpoint
+    REDIS_PORT         = module.elasticache.port
+  }
 
   # Secrets from Secrets Manager
-  # App Runner will automatically parse the JSON and create environment variables for each key
   environment_secrets = {
-    for key in keys(jsondecode(data.aws_secretsmanager_secret_version.platform_env.secret_string)) :
-    key => "${data.aws_secretsmanager_secret_version.platform_env.arn}:${key}::"
+    AWS_ACCESS_KEY_ID     = "${data.aws_secretsmanager_secret.platform_env.arn}:AWS_ACCESS_KEY_ID::"
+    AWS_SECRET_ACCESS_KEY = "${data.aws_secretsmanager_secret.platform_env.arn}:AWS_SECRET_ACCESS_KEY::"
+    JWT_ACCESS_KEY        = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_KEY::"
+    JWT_ACCESS_TIME       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_TIME::"
+    DB_PASS               = "${data.aws_secretsmanager_secret.database_password.arn}:password::"
   }
 
   # Force new deployment when secrets change
-  # Set to true temporarily when you need to force a redeployment
-  # The SecretVersionId tag will also trigger automatic redeployment when secret values change
-  force_new_deployment = true
+  # Set to true when you need to force App Runner to redeploy (e.g., after updating secret values)
+  # Set back to false after deployment to avoid unnecessary redeployments
+  force_new_deployment = false
 
-  tags = merge(
-    local.common_tags,
-    {
-      "SecretVersionId" = data.aws_secretsmanager_secret_version.platform_env.version_id
-    }
-  )
+  tags = local.common_tags
 } 
