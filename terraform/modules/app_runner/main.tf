@@ -15,7 +15,7 @@ resource "aws_apprunner_service" "main" {
           var.environment_variables
         )
         runtime_environment_secrets = {
-          for k, v in var.environment_secrets : k => "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${v}"
+          for k, v in var.environment_secrets : k => "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${var.project_name}-env-${var.region}"
         }
       }
       image_identifier      = var.image_identifier
