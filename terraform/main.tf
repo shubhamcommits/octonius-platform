@@ -193,8 +193,8 @@ module "app_runner" {
   image_identifier  = "${module.ecr.repository_url}:latest-${local.environment}"
 
   # Auto-scaling configuration
-  cpu      = local.environment == "prod" ? 2048 : 1024
-  memory   = local.environment == "prod" ? 4096 : 2048
+  cpu      = local.environment == "prod" ? 1024 : 512
+  memory   = local.environment == "prod" ? 2048 : 1024
   min_size = local.environment == "prod" ? 1 : 1
   max_size = local.environment == "prod" ? 10 : 5
 
