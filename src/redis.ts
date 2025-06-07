@@ -5,27 +5,35 @@ import { createClient } from 'redis'
 import { global_connection_map } from '../server'
 
 // Import logger
-import logger from './logger'
+import { redisLogger } from './logger'
 
-// Create client
-const client = createClient({
-    url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
-})
+let client: ReturnType<typeof createClient> | null = null
 
 /**
  * This function is responsible for creating a connection with redis
- * @returns Promise<{ connection: any }>
+ * @returns Promise<{ connection: any | null }>
  */
-export async function connectRedis(): Promise<{ connection: any }> {
+export async function connectRedis(): Promise<{ connection: any | null }> {
+    const redis_host = process.env.REDIS_HOST
+    const redis_port = process.env.REDIS_PORT
+
+    if (!redis_host || !redis_port) {
+        redisLogger('REDIS_HOST or REDIS_PORT is not set. Skipping Redis connection and running in degraded mode.', { level: 'warn' })
+        return { connection: null }
+    }
+
+    const url = `redis://${redis_host}:${redis_port}`
+
     try {
-        // Log Redis connection details
-        logger.info(`Redis \t: Attempting to connect to Redis`)
-        logger.info(`Redis \t: Host: ${process.env.REDIS_HOST}`)
-        logger.info(`Redis \t: Port: ${process.env.REDIS_PORT}`)
-        logger.info(`Redis \t: Environment: ${process.env.NODE_ENV}`)
+        redisLogger(`Attempting to connect to Redis`, { host: redis_host, port: redis_port, environment: process.env.NODE_ENV })
+        client = createClient({ url })
+
+        client.on('error', (err) => {
+            redisLogger(`Redis client error: ${err.message}`, { level: 'error' })
+        })
 
         await client.connect()
-        logger.info(`Redis \t: Connected to Redis successfully`)
+        redisLogger(`Connected to Redis successfully`)
 
         // Get Redis server information
         try {
@@ -38,18 +46,18 @@ export async function connectRedis(): Promise<{ connection: any }> {
             const usedMemory = lines.find(line => line.startsWith('used_memory_human:'))?.split(':')[1]
             const totalKeys = lines.find(line => line.startsWith('db0:keys='))?.split('=')[1]
 
-            if (redisVersion) logger.info(`Redis \t: Version: ${redisVersion}`)
-            if (connectedClients) logger.info(`Redis \t: Connected Clients: ${connectedClients}`)
-            if (usedMemory) logger.info(`Redis \t: Used Memory: ${usedMemory}`)
-            if (totalKeys) logger.info(`Redis \t: Total Keys: ${totalKeys}`)
+            if (redisVersion) redisLogger(`Redis \t: Version: ${redisVersion}`)
+            if (connectedClients) redisLogger(`Redis \t: Connected Clients: ${connectedClients}`)
+            if (usedMemory) redisLogger(`Redis \t: Used Memory: ${usedMemory}`)
+            if (totalKeys) redisLogger(`Redis \t: Total Keys: ${totalKeys}`)
         } catch (infoError) {
-            logger.error(`Redis \t: Error fetching Redis information - ${infoError}`)
+            redisLogger(`Redis \t: Error fetching Redis information - ${infoError}`, { level: 'error' })
         }
 
         return { connection: client }
-    } catch (error) {
-        logger.error(`Redis \t: Client error from Redis - ${error}`)
-        throw new Error(`Redis connection error: ${error}`)
+    } catch (error: any) {
+        redisLogger(`Unable to connect to Redis: ${error.message}`, { level: 'error' })
+        return { connection: null }
     }
 }
 
@@ -59,10 +67,10 @@ export async function connectRedis(): Promise<{ connection: any }> {
  */
 export async function disconnectRedis(): Promise<void> {
     try {
-        await client.disconnect()
-        logger.info(`Redis \t: Disconnected from Redis`)
+        await client?.disconnect()
+        redisLogger(`Redis \t: Disconnected from Redis`)
     } catch (error) {
-        logger.error(`Redis \t: Unable to disconnect from Redis - ${error}`)
+        redisLogger(`Redis \t: Unable to disconnect from Redis - ${error}`, { level: 'error' })
         throw new Error(`Redis disconnection error: ${error}`)
     }
 }
@@ -93,13 +101,13 @@ export async function deleteRedisKeysByPrefix(prefix: string): Promise<{ message
             }
         } while (cursor != '0')
 
-        logger.info(`Redis \t: Removed ${removed_keys.length} keys with prefix ${prefix}*`)
+        redisLogger(`Redis \t: Removed ${removed_keys.length} keys with prefix ${prefix}*`)
         return {
             message: `Keys with prefix ${prefix}* were removed`,
             keys: removed_keys
         }
     } catch (error) {
-        logger.error(`Redis \t: Error removing keys with prefix ${prefix}* - ${error}`)
+        redisLogger(`Redis \t: Error removing keys with prefix ${prefix}* - ${error}`, { level: 'error' })
         throw new Error(`Error removing Redis keys with prefix ${prefix}: ${error}`)
     }
 }
@@ -129,13 +137,13 @@ export async function fetchRedisKeysByPrefix(prefix: string): Promise<{ message:
             }
         } while (cursor != '0')
 
-        logger.info(`Redis \t: Fetched ${g_keys.length} keys with prefix ${prefix}*`)
+        redisLogger(`Redis \t: Fetched ${g_keys.length} keys with prefix ${prefix}*`)
         return {
             message: `Keys with prefix ${prefix}* were fetched`,
             keys: g_keys
         }
     } catch (error) {
-        logger.error(`Redis \t: Error fetching keys with prefix ${prefix}* - ${error}`)
+        redisLogger(`Redis \t: Error fetching keys with prefix ${prefix}* - ${error}`, { level: 'error' })
         throw new Error(`Error fetching Redis keys with prefix ${prefix}: ${error}`)
     }
 }
