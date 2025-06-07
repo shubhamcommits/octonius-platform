@@ -214,12 +214,7 @@ module "app_runner" {
   }
 
   # Secrets from Secrets Manager
-  environment_secrets = {
-    AWS_ACCESS_KEY_ID = "${var.environment}-${local.project_name}-aws-access-key-${local.aws_region}"
-    AWS_SECRET_KEY    = "${var.environment}-${local.project_name}-aws-secret-key-${local.aws_region}"
-    DB_PASS           = "${var.environment}-${local.project_name}-db-password-${local.aws_region}"
-    JWT_ACCESS_KEY    = "${var.environment}-${local.project_name}-jwt-access-key-${local.aws_region}"
-  }
+  environment_secrets = {}
 
   tags = local.common_tags
 } 
