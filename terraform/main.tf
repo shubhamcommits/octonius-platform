@@ -202,9 +202,10 @@ module "app_runner" {
   environment_variables = {}
 
   # Secrets from Secrets Manager
+  # App Runner will automatically parse the JSON and create environment variables for each key
   environment_secrets = {
     for key in keys(jsondecode(data.aws_secretsmanager_secret_version.platform_env.secret_string)) :
-    key => "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${local.project_name}-platform-service-env-${var.aws_region}:${key}::"
+    key => "${data.aws_secretsmanager_secret_version.platform_env.arn}:${key}::"
   }
 
   # Force new deployment when secrets change
