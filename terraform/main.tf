@@ -209,6 +209,8 @@ module "app_runner" {
   }
 
   # Force new deployment when secrets change
+  # Set to true temporarily when you need to force a redeployment
+  # The SecretVersionId tag will also trigger automatic redeployment when secret values change
   force_new_deployment = true
 
   tags = merge(
