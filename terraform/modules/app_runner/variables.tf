@@ -99,4 +99,10 @@ variable "tags" {
 variable "secret_name_pattern" {
   description = "Pattern for the secret name in AWS Secrets Manager"
   type        = string
+}
+
+variable "force_new_deployment" {
+  description = "Force a new deployment of the App Runner service (useful when secrets change)"
+  type        = bool
+  default     = false
 } 

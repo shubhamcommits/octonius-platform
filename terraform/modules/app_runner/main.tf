@@ -42,7 +42,13 @@ resource "aws_apprunner_service" "main" {
 
   auto_scaling_configuration_arn = aws_apprunner_auto_scaling_configuration_version.main.arn
 
-  tags = var.tags
+  # This tag forces redeployment when secrets change
+  tags = merge(
+    var.tags,
+    {
+      "SecretVersion" = var.force_new_deployment ? timestamp() : "static"
+    }
+  )
 
   # Add lifecycle rules to handle operation in progress
   lifecycle {

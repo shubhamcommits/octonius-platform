@@ -207,5 +207,13 @@ module "app_runner" {
     key => "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${local.project_name}-platform-service-env-${var.aws_region}:${key}::"
   }
 
-  tags = local.common_tags
+  # Force new deployment when secrets change
+  force_new_deployment = true
+
+  tags = merge(
+    local.common_tags,
+    {
+      "SecretVersionId" = data.aws_secretsmanager_secret_version.platform_env.version_id
+    }
+  )
 } 
