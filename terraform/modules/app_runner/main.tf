@@ -6,19 +6,6 @@ resource "aws_apprunner_service" "main" {
     image_repository {
       image_configuration {
         port = var.container_port
-        runtime_environment_variables = merge(
-          {
-            NODE_ENV     = var.environment
-            APP_ENV      = var.environment
-            AWS_REGION   = var.region
-            PROJECT_NAME = var.project_name
-          },
-          var.environment_variables
-        )
-        runtime_environment_secrets = {
-          for env_var, secret_suffix in var.environment_secrets :
-          env_var => "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${var.project_name}-platform-service-env-${var.region}-*"
-        }
       }
       image_identifier      = var.image_identifier
       image_repository_type = "ECR"
