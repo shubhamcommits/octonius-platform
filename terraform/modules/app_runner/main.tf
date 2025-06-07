@@ -153,7 +153,8 @@ resource "aws_iam_role_policy" "app_runner_instance" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
-          "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${var.project_name}-platform-service-env-${var.region}"
+          "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${var.project_name}-platform-service-env-${var.region}",
+          "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${var.project_name}-aws-access-key-${var.region}-${var.region}"
         ]
       },
       {
