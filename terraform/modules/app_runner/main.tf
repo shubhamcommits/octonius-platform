@@ -6,14 +6,7 @@ resource "aws_apprunner_service" "main" {
     image_repository {
       image_configuration {
         port = var.container_port
-        runtime_environment_variables = merge(
-          {
-            NODE_ENV           = var.environment
-            AWS_DEFAULT_REGION = var.region
-            APP_NAME           = var.project_name
-          },
-          var.environment_variables
-        )
+        runtime_environment_variables = var.environment_variables
         runtime_environment_secrets = var.environment_secrets
       }
       image_identifier      = var.image_identifier
