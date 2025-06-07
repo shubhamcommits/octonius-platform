@@ -166,9 +166,7 @@ resource "aws_iam_role_policy" "app_runner_instance" {
           "cloudwatch:PutMetricData",
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
-          "logs:PutLogEvents",
-          "ssm:GetParameters",
-          "ssm:GetParameter"
+          "logs:PutLogEvents"
         ]
         Resource = "*"
       }
