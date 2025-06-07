@@ -9,7 +9,7 @@ resource "aws_apprunner_service" "main" {
         runtime_environment_variables = merge(
           {
             NODE_ENV   = var.environment
-            AWS_REGION = var.region
+            AWS_DEFAULT_REGION = var.region
             APP_NAME   = var.project_name
           },
           var.environment_variables
