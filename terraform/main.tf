@@ -221,7 +221,7 @@ module "app_runner" {
   # Secrets from Secrets Manager
   environment_secrets = {
     for key in keys(jsondecode(data.aws_secretsmanager_secret_version.platform_env.secret_string)) :
-    key => "${var.environment}-${local.project_name}-platform-service-env-${var.aws_region}"
+    key => "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.environment}-${local.project_name}-platform-service-env-${var.aws_region}:${key}::"
   }
 
   tags = local.common_tags
