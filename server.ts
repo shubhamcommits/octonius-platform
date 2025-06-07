@@ -158,6 +158,8 @@ async function setUpExpressApplication() {
         process.exit(1)
     })
 
+    console.log('process.env.DB_PASS', process.env.DB_PASS)
+
     // Exposing the server to the desired port
     server.listen(Number(PORT), HOST, () => {
         appLogger('Application   : ' + APP_NAME + ' server is working!')
