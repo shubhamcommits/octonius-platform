@@ -54,12 +54,6 @@ resource "aws_apprunner_service" "main" {
   # Add lifecycle rules to handle operation in progress
   lifecycle {
     create_before_destroy = true
-    # Ignore changes that often trigger updates while operations are in progress
-    ignore_changes = [
-      source_configuration[0].image_repository[0].image_configuration[0].runtime_environment_secrets,
-      source_configuration[0].image_repository[0].image_configuration[0].runtime_environment_variables,
-      tags
-    ]
   }
 }
 
