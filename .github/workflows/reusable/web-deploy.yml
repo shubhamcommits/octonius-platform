@@ -1,0 +1,74 @@
+name: 🚀 Deploy Web Assets
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+        description: 'Environment to deploy to'
+      s3_bucket:
+        required: true
+        type: string
+        description: 'S3 bucket to deploy to'
+      cloudfront_id:
+        required: true
+        type: string
+        description: 'CloudFront distribution ID'
+      aws_region:
+        required: true
+        type: string
+        description: 'AWS region'
+    secrets:
+      aws_access_key:
+        required: true
+      aws_secret_key:
+        required: true
+
+jobs:
+  deploy-web:
+    name: 🚀 Deploy Web Assets
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.aws_access_key }}
+          aws-secret-access-key: ${{ secrets.aws_secret_key }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: 📦 Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: angular-build-${{ inputs.environment }}
+          path: dist
+
+      - name: 🚀 Deploy to S3
+        run: |
+          # Upload files with appropriate caching headers
+          aws s3 sync dist/ s3://${{ inputs.s3_bucket }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html" \
+            --exclude "assets/*"
+          
+          # Upload HTML files with no caching
+          aws s3 sync dist/ s3://${{ inputs.s3_bucket }}/ \
+            --delete \
+            --cache-control "no-cache" \
+            --include "*.html"
+          
+          # Upload assets with shorter cache time
+          aws s3 sync dist/assets/ s3://${{ inputs.s3_bucket }}/assets/ \
+            --delete \
+            --cache-control "public, max-age=3600"
+
+      - name: 🔄 Invalidate CloudFront Cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ inputs.cloudfront_id }} \
+            --paths "/*" 
