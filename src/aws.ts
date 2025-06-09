@@ -6,6 +6,9 @@ import { EC2Client, DescribeInstancesCommand } from '@aws-sdk/client-ec2'
 // Import Logger
 import { appLogger } from './logger'
 
+// Import environment configuration
+import { getAWSConfig } from './env-validator'
+
 /**
  * Base configuration interface for AWS services
  */
@@ -27,12 +30,10 @@ class AWSService {
     private ec2: EC2Client
 
     constructor() {
+        const awsConfig = getAWSConfig()
         this.config = {
-            region: process.env.AWS_DEFAULT_REGION || 'eu-central-1',
-            credentials: {
-                accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-            }
+            region: awsConfig.region,
+            credentials: awsConfig.credentials
         }
 
         this.initializeServices()
