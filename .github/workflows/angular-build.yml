@@ -1,4 +1,4 @@
-name: 🏗️ Angular Build
+name: 🏗️ Build Angular Application
 
 on:
   workflow_call:
@@ -11,23 +11,27 @@ on:
         required: false
         type: string
         default: 'services/octonius-web'
-        description: 'Directory containing the Angular app'
+        description: 'Working directory for the build'
       node_version:
         required: false
         type: string
         default: '20.x'
         description: 'Node.js version to use'
-    outputs:
-      dist_path:
-        description: "Path to the built Angular app"
-        value: ${{ jobs.build.outputs.dist_path }}
 
 jobs:
+  validate-env:
+    name: 🔍 Validate Environment Variables
+    uses: ./.github/workflows/validate-env.yml
+    with:
+      required_vars: NODE_VERSION
+      job_name: angular-build
+
   build:
-    name: 🏗️ Build Angular App
+    name: 🏗️ Build Angular Application
+    needs: validate-env
     runs-on: ubuntu-latest
     outputs:
-      dist_path: ${{ steps.build.outputs.dist_path }}
+      build_path: ${{ steps.outputs.build_path }}
     
     steps:
       - name: 📥 Checkout Code
@@ -44,27 +48,28 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
         run: npm ci
 
-      - name: 🏗️ Build Angular App
-        id: build
+      - name: 🏗️ Build Application
         working-directory: ${{ inputs.working-directory }}
         run: |
           # Set environment-specific configuration
-          if [[ "${{ inputs.environment }}" == "prod" ]]; then
-            echo "Using production configuration"
-            export NODE_ENV=production
-            npm run build -- --configuration production
-          else
-            echo "Using development configuration"
-            export NODE_ENV=development
-            npm run build -- --configuration development
-          fi
+          case "${{ inputs.environment }}" in
+            prod)
+              CONFIG="production"
+              ;;
+            *)
+              CONFIG="development"
+              ;;
+          esac
           
-          # Set output for build path
-          echo "dist_path=${{ inputs.working-directory }}/dist/octonius-web" >> $GITHUB_OUTPUT
+          # Build the application
+          npm run build -- --configuration=$CONFIG
+          
+          # Set output
+          echo "build_path=${{ inputs.working-directory }}/dist" >> $GITHUB_OUTPUT
 
-      - name: 📦 Upload Build Artifact
+      - name: 📦 Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: angular-build-${{ inputs.environment }}
-          path: ${{ steps.build.outputs.dist_path }}
+          path: ${{ inputs.working-directory }}/dist
           retention-days: 1 

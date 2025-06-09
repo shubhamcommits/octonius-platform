@@ -74,13 +74,21 @@ permissions:
   pull-requests: write
 
 jobs:
+  validate-env:
+    name: 🔍 Validate Environment Variables
+    uses: ./.github/workflows/validate-env.yml
+    with:
+      required_vars: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,DOCKER_REGISTRY,WEB_IMAGE_NAME
+      job_name: platform-deploy
+
   setup:
     name: 🔧 Setup Environment
+    needs: validate-env
     uses: ./.github/workflows/setup-environment.yml
 
   determine-action:
     name: 🤔 Determine Action
-    needs: setup
+    needs: [validate-env, setup]
     uses: ./.github/workflows/determine-action.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
@@ -88,29 +96,29 @@ jobs:
 
   infrastructure:
     name: 🏗️ Infrastructure Management
-    needs: [setup, determine-action]
+    needs: [validate-env, setup, determine-action]
     uses: ./.github/workflows/infrastructure.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
-      action: ${{ needs.determine-action.outputs.should-apply == 'true' && 'apply' || 'plan' }}
+      action: ${{ github.event.inputs.action || 'plan' }}
 
   build-web:
     name: 🏗️ Build Web Application
-    needs: setup
+    needs: [validate-env, setup]
     uses: ./.github/workflows/angular-build.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
 
   docker-images:
     name: 🐳 Docker Image Management
-    needs: [setup, build-web]
+    needs: [validate-env, setup, build-web]
     uses: ./.github/workflows/docker-images.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
 
   deploy-web:
     name: 🚀 Deploy Web Assets
-    needs: [setup, infrastructure, build-web]
+    needs: [validate-env, setup, infrastructure, build-web]
     uses: ./.github/workflows/web-deploy.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
@@ -119,10 +127,10 @@ jobs:
 
   deployment-summary:
     name: 📊 Deployment Summary
-    needs: [setup, infrastructure, build-web, docker-images, deploy-web]
+    needs: [validate-env, setup, infrastructure, build-web, docker-images, deploy-web]
     uses: ./.github/workflows/deployment-summary.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
-      action: ${{ needs.determine-action.outputs.should-apply == 'true' && 'apply' || 'plan' }}
+      action: ${{ github.event.inputs.action || 'plan' }}
     secrets:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
