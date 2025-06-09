@@ -4,37 +4,40 @@ import { Sequelize } from 'sequelize'
 // Import Logger
 import logger from './logger'
 
-// Fetch Environment Variables
-const { DB_WRITER_HOST, DB_READER_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME, NODE_ENV, MAX_POOL, MIN_POOL } = process.env
+// Import environment configuration
+import { getDatabaseConfig, isDevelopment } from './env-validator'
+
+// Get database configuration
+const dbConfig = getDatabaseConfig()
 
 // Create a new Sequelize instance with replication
-const db = new Sequelize(DB_NAME || '', DB_USER || '', DB_PASS || '', {
+const db = new Sequelize(dbConfig.writer.database, dbConfig.writer.username, dbConfig.writer.password, {
     dialect: 'postgres',
-    port: parseInt(DB_PORT || '5432'),
+    port: dbConfig.writer.port,
     replication: {
         read: [
             {
-                host: DB_READER_HOST,
-                username: DB_USER,
-                password: DB_PASS,
-                port: parseInt(DB_PORT || '5432')
+                host: dbConfig.reader.host,
+                username: dbConfig.reader.username,
+                password: dbConfig.reader.password,
+                port: dbConfig.reader.port
             }
         ],
         write: {
-            host: DB_WRITER_HOST,
-            username: DB_USER,
-            password: DB_PASS,
-            port: parseInt(DB_PORT || '5432')
+            host: dbConfig.writer.host,
+            username: dbConfig.writer.username,
+            password: dbConfig.writer.password,
+            port: dbConfig.writer.port
         }
     },
     pool: {
-        max: Number(MAX_POOL) || 5,
-        min: Number(MIN_POOL) || 0,
+        max: dbConfig.pool.max,
+        min: dbConfig.pool.min,
         acquire: 60000,
         idle: 5000
     },
     logging: (msg) => {
-        if (NODE_ENV === 'development') {
+        if (isDevelopment()) {
             logger.info(`Database \t: ${msg}`)
         }
     },
