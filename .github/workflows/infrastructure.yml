@@ -11,23 +11,6 @@ on:
         required: true
         type: string
         description: 'Action to perform (plan/apply/destroy)'
-      aws_region:
-        required: true
-        type: string
-        description: 'AWS region to deploy to'
-      project_name:
-        required: true
-        type: string
-        description: 'Project name'
-    secrets:
-      aws_access_key:
-        required: true
-      aws_secret_key:
-        required: true
-      prod_s3_bucket:
-        required: true
-      dev_s3_bucket:
-        required: true
 
 jobs:
   infrastructure:
@@ -44,20 +27,20 @@ jobs:
       - name: ⚙️ Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: '1.6.0'
+          terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
       - name: 🔐 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.aws_access_key }}
-          aws-secret-access-key: ${{ secrets.aws_secret_key }}
-          aws-region: ${{ inputs.aws_region }}
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: 🗃️ Create DynamoDB Table (State Locking)
         run: |
           ENV="${{ inputs.environment }}"
-          TABLE_NAME="${ENV}-${{ inputs.project_name }}-terraform-locks-${{ inputs.aws_region }}"
+          TABLE_NAME="${ENV}-${{ env.PROJECT_NAME }}-terraform-locks-${{ env.AWS_REGION }}"
           
           echo "🗃️ Setting up DynamoDB table for state locking: $TABLE_NAME"
           
@@ -72,7 +55,7 @@ jobs:
               --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 \
               --tags \
                 Key=Environment,Value="$ENV" \
-                Key=Project,Value="${{ inputs.project_name }}" \
+                Key=Project,Value="${{ env.PROJECT_NAME }}" \
                 Key=Purpose,Value=terraform-locks \
                 Key=Repository,Value="${{ github.repository }}"
             
@@ -90,10 +73,10 @@ jobs:
           # Determine S3 bucket based on environment
           case "${{ inputs.environment }}" in
             prod)
-              BUCKET_NAME="${{ secrets.prod_s3_bucket }}"
+              BUCKET_NAME="${{ env.PROD_S3_BUCKET }}"
               ;;
             *)
-              BUCKET_NAME="${{ secrets.dev_s3_bucket }}"
+              BUCKET_NAME="${{ env.DEV_S3_BUCKET }}"
               ;;
           esac
           
@@ -106,9 +89,9 @@ jobs:
             backend "s3" {
               bucket         = "$BUCKET_NAME"
               key            = "terraform/${{ inputs.environment }}/terraform.tfstate"
-              region         = "${{ inputs.aws_region }}"
+              region         = "${{ env.AWS_REGION }}"
               encrypt        = true
-              dynamodb_table = "${{ inputs.environment }}-${{ inputs.project_name }}-terraform-locks-${{ inputs.aws_region }}"
+              dynamodb_table = "${{ inputs.environment }}-${{ env.PROJECT_NAME }}-terraform-locks-${{ env.AWS_REGION }}"
             }
           }
           EOF
@@ -116,8 +99,8 @@ jobs:
           # Generate variables configuration
           cat > terraform/config/terraform.tfvars << EOF
           environment  = "${{ inputs.environment }}"
-          project_name = "${{ inputs.project_name }}"
-          aws_region   = "${{ inputs.aws_region }}"
+          project_name = "${{ env.PROJECT_NAME }}"
+          aws_region   = "${{ env.AWS_REGION }}"
           EOF
 
       - name: 🏗️ Initialize Terraform
