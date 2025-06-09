@@ -17,8 +17,16 @@ on:
         description: 'CloudFront distribution ID'
 
 jobs:
+  validate-env:
+    name: 🔍 Validate Environment Variables
+    uses: ./.github/workflows/validate-env.yml
+    with:
+      required_vars: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
+      job_name: web-deploy
+
   deploy-web:
     name: 🚀 Deploy Web Assets
+    needs: validate-env
     runs-on: ubuntu-latest
     
     steps:
