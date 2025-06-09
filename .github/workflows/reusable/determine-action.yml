@@ -1,0 +1,39 @@
+name: 🎯 Determine Action
+
+on:
+  workflow_call:
+
+jobs:
+  determine:
+    name: 🎯 Determine Action
+    runs-on: ubuntu-latest
+    outputs:
+      should-apply: ${{ steps.action.outputs.should-apply }}
+    
+    steps:
+      - name: 🎯 Determine Action
+        id: action
+        run: |
+          echo "🎯 Determining whether to apply infrastructure..."
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "📝 Manual workflow dispatch detected"
+            echo "Action input: ${{ github.event.inputs.action }}"
+            if [[ "${{ github.event.inputs.action }}" == "apply" || "${{ github.event.inputs.action }}" == "destroy" ]]; then
+              echo "✅ Should apply: true (manual apply/destroy)"
+              echo "should-apply=true" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Should apply: false (manual plan only)"
+              echo "should-apply=false" >> $GITHUB_OUTPUT
+            fi
+          elif [[ "${{ github.ref_name }}" == "master" || "${{ github.ref_name }}" == "development" ]]; then
+            echo "✅ Should apply: true (push to master or development branch)"
+            echo "Branch: ${{ github.ref_name }}"
+            echo "should-apply=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Should apply: false (not master/development branch or manual apply)"
+            echo "Current branch: ${{ github.ref_name }}"
+            echo "should-apply=false" >> $GITHUB_OUTPUT
+          fi 
