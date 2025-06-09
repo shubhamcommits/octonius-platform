@@ -239,4 +239,13 @@ module "app_runner" {
   force_new_deployment = false
 
   tags = local.common_tags
+}
+
+module "web" {
+  source = "./modules/web"
+
+  environment  = local.environment
+  project_name = local.project_name
+  common_tags  = local.common_tags
+  aws_region   = local.aws_region
 } 
