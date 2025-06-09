@@ -7,14 +7,6 @@ on:
         required: true
         type: string
         description: 'Environment to deploy to'
-      web_dist_path:
-        required: true
-        type: string
-        description: 'Path to the built web application'
-      docker_registry:
-        required: true
-        type: string
-        description: 'Docker registry URL'
       web_image_name:
         required: true
         type: string
