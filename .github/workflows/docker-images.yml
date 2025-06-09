@@ -19,13 +19,6 @@ on:
         required: true
         type: string
         description: 'Name of the web application Docker image'
-    secrets:
-      aws_access_key:
-        required: true
-      aws_secret_key:
-        required: true
-      aws_region:
-        required: true
 
 jobs:
   docker-images:
@@ -41,15 +34,15 @@ jobs:
       - name: 🔐 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.aws_access_key }}
-          aws-secret-access-key: ${{ secrets.aws_secret_key }}
-          aws-region: ${{ secrets.aws_region }}
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: 📦 Download Web Build
         uses: actions/download-artifact@v4
         with:
           name: angular-build-${{ inputs.environment }}
-          path: ${{ inputs.web_dist_path }}
+          path: dist
 
       - name: 🔑 Login to Amazon ECR
         id: login-ecr
@@ -63,19 +56,19 @@ jobs:
           
           # Build the image
           docker build \
-            -t ${{ inputs.web_image_name }}:$IMAGE_TAG \
-            -t ${{ inputs.web_image_name }}:latest \
+            -t ${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG \
+            -t ${{ env.WEB_IMAGE_NAME }}:latest \
             -f services/octonius-web/Dockerfile \
             --build-arg NODE_ENV=${{ inputs.environment }} \
             .
           
           # Tag for ECR
-          docker tag ${{ inputs.web_image_name }}:$IMAGE_TAG ${{ inputs.docker_registry }}/${{ inputs.web_image_name }}:$IMAGE_TAG
-          docker tag ${{ inputs.web_image_name }}:latest ${{ inputs.docker_registry }}/${{ inputs.web_image_name }}:latest
+          docker tag ${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG ${{ env.DOCKER_REGISTRY }}/${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG
+          docker tag ${{ env.WEB_IMAGE_NAME }}:latest ${{ env.DOCKER_REGISTRY }}/${{ env.WEB_IMAGE_NAME }}:latest
           
           # Push to ECR
-          docker push ${{ inputs.docker_registry }}/${{ inputs.web_image_name }}:$IMAGE_TAG
-          docker push ${{ inputs.docker_registry }}/${{ inputs.web_image_name }}:latest
+          docker push ${{ env.DOCKER_REGISTRY }}/${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG
+          docker push ${{ env.DOCKER_REGISTRY }}/${{ env.WEB_IMAGE_NAME }}:latest
           
           # Set output
-          echo "web_image_uri=${{ inputs.docker_registry }}/${{ inputs.web_image_name }}:$IMAGE_TAG" >> $GITHUB_OUTPUT 
+          echo "web_image_uri=${{ env.DOCKER_REGISTRY }}/${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG" >> $GITHUB_OUTPUT 
