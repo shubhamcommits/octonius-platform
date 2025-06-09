@@ -142,4 +142,20 @@ output "app_runner_service_status" {
 output "app_runner_service_arn" {
   description = "The ARN of the App Runner service"
   value       = module.app_runner.service_arn
+}
+
+# Web Infrastructure Outputs
+output "web_s3_bucket_name" {
+  description = "Name of the web S3 bucket"
+  value       = module.web.s3_bucket_name
+}
+
+output "web_cloudfront_distribution_id" {
+  description = "ID of the web CloudFront distribution"
+  value       = module.web.cloudfront_distribution_id
+}
+
+output "web_cloudfront_domain_name" {
+  description = "Domain name of the web CloudFront distribution"
+  value       = module.web.cloudfront_domain_name
 } 

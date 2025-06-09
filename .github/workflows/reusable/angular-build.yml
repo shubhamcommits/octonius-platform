@@ -1,0 +1,70 @@
+name: 🏗️ Angular Build
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+        description: 'Environment to build for'
+      working-directory:
+        required: false
+        type: string
+        default: 'services/octonius-web'
+        description: 'Directory containing the Angular app'
+      node_version:
+        required: false
+        type: string
+        default: '20.x'
+        description: 'Node.js version to use'
+    outputs:
+      dist_path:
+        description: "Path to the built Angular app"
+        value: ${{ jobs.build.outputs.dist_path }}
+
+jobs:
+  build:
+    name: 🏗️ Build Angular App
+    runs-on: ubuntu-latest
+    outputs:
+      dist_path: ${{ steps.build.outputs.dist_path }}
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+      - name: 📦 Install Dependencies
+        working-directory: ${{ inputs.working-directory }}
+        run: npm ci
+
+      - name: 🏗️ Build Angular App
+        id: build
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          # Set environment-specific configuration
+          if [[ "${{ inputs.environment }}" == "prod" ]]; then
+            echo "Using production configuration"
+            export NODE_ENV=production
+            npm run build -- --configuration production
+          else
+            echo "Using development configuration"
+            export NODE_ENV=development
+            npm run build -- --configuration development
+          fi
+          
+          # Set output for build path
+          echo "dist_path=${{ inputs.working-directory }}/dist/octonius-web" >> $GITHUB_OUTPUT
+
+      - name: 📦 Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-build-${{ inputs.environment }}
+          path: ${{ steps.build.outputs.dist_path }}
+          retention-days: 1 

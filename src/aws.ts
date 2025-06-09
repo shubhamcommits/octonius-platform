@@ -6,10 +6,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } fro
 import { appLogger } from './logger'
 
 // Import environment configuration
-import { getAWSConfig, getEnv } from './config'
-
-// Get environment variables
-const { NODE_ENV } = getEnv()
+import { getAWSConfig } from './config'
 
 /**
  * Base configuration interface for AWS services
