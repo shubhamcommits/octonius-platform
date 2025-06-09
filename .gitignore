@@ -241,7 +241,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
 venv/
 .venv/
 pip-log.txt
