@@ -13,6 +13,9 @@ import { appLogger } from './src/logger'
 // Import AWS Service
 import { awsService } from './src/aws'
 
+// Import environment validator
+import { validateEnvironmentVariables } from './src/env-validator'
+
 // Load the config from the .env file
 if (process.env.NODE_ENV === 'local') {
 
@@ -22,56 +25,19 @@ if (process.env.NODE_ENV === 'local') {
     // Log the environment
     appLogger('Environment \t: Local environment configured')
 
+    // Validate environment variables
+    validateEnvironmentVariables()
+
 } else {
 
-    // Verify AWS credentials are available
-    // if (!process.env.AWS_ACCESS_KEY_ID && !process.env.AWS_SECRET_ACCESS_KEY) {
-    //     appLogger('No explicit AWS credentials found. Ensure IAM Role or AWS credentials file is configured.', { 
-    //         level: 'warn',
-    //         service: 'aws',
-    //         component: 'credentials'
-    //     })
-    // }
-
-    // Get application secrets from AWS Secrets Manager
-    appLogger('Attempting to fetch application secrets from AWS Secrets Manager', {
-        service: 'aws',
-        component: 'secrets-manager',
-        secretId: `${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`
+    // Log that we're using App Runner managed environment
+    appLogger('Environment \t: App Runner managed environment', {
+        environment: process.env.NODE_ENV,
+        region: process.env.AWS_DEFAULT_REGION
     })
 
-    awsService.getSecrets(`${process.env.NODE_ENV}-${process.env.APP_NAME}-env-${process.env.AWS_DEFAULT_REGION}`)
-        .then((secrets) => {
-
-            // Log the secrets
-            appLogger('Secrets loaded successfully', {
-                service: 'aws',
-                component: 'secrets-manager',
-                secretCount: Object.keys(secrets).length
-            })
-
-            // Merge secrets with process.env, but don't override AWS credentials
-            const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ...otherSecrets } = secrets
-
-            // Merge secrets with process.env
-            Object.assign(process.env, otherSecrets)
-
-            appLogger('Environment variables updated with secrets', {
-                service: 'aws',
-                component: 'secrets-manager',
-                updatedVariablesCount: Object.keys(otherSecrets).length
-            })
-        })
-        .catch((error) => {
-
-            // Log the error
-            appLogger('Error getting secrets', {
-                service: 'aws',
-                component: 'secrets-manager',
-                error: error.message,
-                level: 'error'
-            })
-        })
+    // Validate environment variables (App Runner has already loaded them)
+    validateEnvironmentVariables()
 }
 
 // Express App
