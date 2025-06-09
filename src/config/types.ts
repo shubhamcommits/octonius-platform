@@ -6,7 +6,7 @@ export const envSchema = z.object({
   HOST: z.string(),
   APP_NAME: z.string(),
   PORT: z.string().transform(Number),
-  NODE_ENV: z.enum(['development', 'production', 'test', 'local']),
+  NODE_ENV: z.enum(['dev', 'prod', 'test', 'local']),
   CLUSTER: z.string(),
   DOMAIN: z.string(),
 
