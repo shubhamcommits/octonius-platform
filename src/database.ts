@@ -2,6 +2,7 @@
 import { db } from './sequelize'
 import { dbLogger } from './logger'
 import { QueryTypes } from 'sequelize'
+import { getDatabaseConfig, isProduction } from './env-validator'
 
 interface VersionResult {
     version: string;
@@ -21,32 +22,24 @@ interface UserResult {
  */
 export async function initiliazeDatabase(): Promise<{ message: string, connected: boolean }> {
     try {
-        // Fetch Environment Variables
-        const { DB_WRITER_HOST, DB_READER_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME, NODE_ENV } = process.env
+        // Get database configuration
+        const dbConfig = getDatabaseConfig()
+        const { NODE_ENV } = process.env
 
         // Fetch the alter flag
-        let alter_tables_auto = true
-
-        // Set the alter flag to prod if environment is PROD
-        if(NODE_ENV == 'prod' || NODE_ENV == 'staging')
-            alter_tables_auto = false
-
-        // if(!DB_WRITER_HOST?.startsWith(NODE_ENV || '')){
-        //     logger.error(`Database \t: The NODE_ENV is not compatible with the database endpoint`)
-        //     throw new Error(`The NODE_ENV is not compatible with the database endpoint`)
-        // }
+        let alter_tables_auto = !isProduction()
 
         // Log database connection details
         dbLogger(`Attempting to connect to PostgreSQL with replication`)
-        dbLogger(`Writer Host: ${DB_WRITER_HOST}`)
-        dbLogger(`Reader Host: ${DB_READER_HOST}`)
-        dbLogger(`Port: ${DB_PORT}`)
-        dbLogger(`Database: ${DB_NAME}`)
+        dbLogger(`Writer Host: ${dbConfig.writer.host}`)
+        dbLogger(`Reader Host: ${dbConfig.reader.host}`)
+        dbLogger(`Port: ${dbConfig.writer.port}`)
+        dbLogger(`Database: ${dbConfig.writer.database}`)
         dbLogger(`Environment: ${NODE_ENV}`)
         dbLogger(`Auto Alter Tables: ${alter_tables_auto}`)
         dbLogger(`Replication Mode: Active`)
-        dbLogger(`Write operations will be directed to: ${DB_WRITER_HOST}`)
-        dbLogger(`Read operations will be directed to: ${DB_READER_HOST}`)
+        dbLogger(`Write operations will be directed to: ${dbConfig.writer.host}`)
+        dbLogger(`Read operations will be directed to: ${dbConfig.reader.host}`)
 
         // Authenticate the Sequelize and Initialize the ORM inside the application
         await db.authenticate()
