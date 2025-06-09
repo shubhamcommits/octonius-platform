@@ -1,5 +1,11 @@
-// Fetch Environment Variables
-const { APP_NAME, NODE_ENV } = process.env
+// Import environment configuration
+import { getEnv } from './config'
+
+// Import logger
+import { appLogger } from './logger'
+
+// Get environment variables
+const { APP_NAME, NODE_ENV } = getEnv()
 
 // Express Module
 import express, { NextFunction, Request, Response } from 'express'
@@ -131,17 +137,36 @@ app.all('*', (req: Request, res: Response, next: NextFunction) => {
 })
 
 // Error handling middleware
-app.use((error: any, req: Request, res: Response, next: NextFunction) => {
-    res.status(error.status || 500)
-    res.json({
-        error: {
-            message: JSON.stringify(error)
-        }
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    appLogger('Error', {
+        level: 'error',
+        error: err.message,
+        stack: err.stack,
+        environment: NODE_ENV,
     })
+    res.status(500).json({ error: 'Internal Server Error' })
 })
 
 // Compressing the application
 app.use(compression())
+
+// Health check endpoint
+app.get('/health', (req: Request, res: Response) => {
+    res.json({
+        status: 'ok',
+        environment: NODE_ENV,
+        timestamp: new Date().toISOString()
+    })
+})
+
+// Version endpoint
+app.get('/version', (req: Request, res: Response) => {
+    res.json({
+        version: '1.0.0',
+        environment: NODE_ENV,
+        timestamp: new Date().toISOString()
+    })
+})
 
 // Export the application
 export default app 

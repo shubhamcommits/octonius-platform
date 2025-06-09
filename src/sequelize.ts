@@ -5,7 +5,7 @@ import { Sequelize } from 'sequelize'
 import logger from './logger'
 
 // Import environment configuration
-import { getDatabaseConfig, isDevelopment } from './env-validator'
+import { getDatabaseConfig, isDevelopment } from './config'
 
 // Get database configuration
 const dbConfig = getDatabaseConfig()

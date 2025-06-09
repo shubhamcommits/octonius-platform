@@ -2,7 +2,10 @@
 import { db } from './sequelize'
 import { dbLogger } from './logger'
 import { QueryTypes } from 'sequelize'
-import { getDatabaseConfig, isProduction } from './env-validator'
+import { getDatabaseConfig, isProduction, getEnv } from './config'
+
+// Get environment variables
+const { NODE_ENV } = getEnv()
 
 interface VersionResult {
     version: string;
@@ -24,7 +27,6 @@ export async function initiliazeDatabase(): Promise<{ message: string, connected
     try {
         // Get database configuration
         const dbConfig = getDatabaseConfig()
-        const { NODE_ENV } = process.env
 
         // Fetch the alter flag
         let alter_tables_auto = !isProduction()

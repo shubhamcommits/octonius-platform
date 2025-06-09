@@ -1,13 +1,15 @@
 // Import AWS SDK v3
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-import { EC2Client, DescribeInstancesCommand } from '@aws-sdk/client-ec2'
 
 // Import Logger
 import { appLogger } from './logger'
 
 // Import environment configuration
-import { getAWSConfig } from './env-validator'
+import { getAWSConfig, getEnv } from './config'
+
+// Get environment variables
+const { NODE_ENV } = getEnv()
 
 /**
  * Base configuration interface for AWS services
@@ -27,7 +29,6 @@ class AWSService {
     private config: AWSConfig
     private secretsManager: SecretsManagerClient
     private s3: S3Client
-    private ec2: EC2Client
 
     constructor() {
         const awsConfig = getAWSConfig()
@@ -57,14 +58,6 @@ class AWSService {
             appLogger('S3 service initialized', {
                 service: 'aws',
                 component: 's3',
-                region: this.config.region
-            })
-
-            // Initialize EC2
-            this.ec2 = new EC2Client(this.config)
-            appLogger('EC2 service initialized', {
-                service: 'aws',
-                component: 'ec2',
                 region: this.config.region
             })
 
@@ -277,37 +270,27 @@ class AWSService {
             return false
         }
     }
-
-    /**
-     * Gets EC2 instance information
-     * @param instanceId - The EC2 instance ID
-     * @returns Promise<any> - The instance information
-     */
-    public async getEC2InstanceInfo(instanceId: string): Promise<any> {
-        try {
-            const command = new DescribeInstancesCommand({
-                InstanceIds: [instanceId]
-            })
-
-            const response = await this.ec2.send(command)
-            appLogger('EC2 instance information retrieved successfully', {
-                service: 'aws',
-                component: 'ec2',
-                instanceId
-            })
-            return response
-        } catch (error: any) {
-            appLogger('Error getting EC2 instance information', {
-                service: 'aws',
-                component: 'ec2',
-                error: error.message,
-                level: 'error',
-                instanceId
-            })
-            return null
-        }
-    }
 }
 
 // Export a singleton instance
-export const awsService = new AWSService() 
+export const awsService = new AWSService()
+
+// Update the setEnvironmentVariables function to use awsService
+export async function setEnvironmentVariables(secretName: string): Promise<void> {
+    try {
+        const secrets = await awsService.getSecrets(secretName)
+        if (secrets) {
+            Object.entries(secrets).forEach(([key, value]) => {
+                // Note: This is the only place where we should set process.env directly
+                // as it's part of the environment initialization process
+                process.env[key] = value as string
+            })
+        }
+    } catch (error) {
+        appLogger('Error setting environment variables', {
+            level: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        })
+        throw error
+    }
+} 
