@@ -13,8 +13,16 @@ on:
         description: 'Action to perform (plan/apply/destroy)'
 
 jobs:
+  validate-env:
+    name: 🔍 Validate Environment Variables
+    uses: ./.github/workflows/validate-env.yml
+    with:
+      required_vars: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,TF_VERSION,PROJECT_NAME
+      job_name: infrastructure
+
   infrastructure:
     name: 🏗️ Infrastructure Management
+    needs: validate-env
     runs-on: ubuntu-latest
     outputs:
       web_s3_bucket_name: ${{ steps.outputs.web_s3_bucket_name }}
