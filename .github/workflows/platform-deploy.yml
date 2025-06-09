@@ -115,7 +115,7 @@ jobs:
     uses: ./.github/workflows/docker-images.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
-      web_image_name: 'octonius-web'
+      web_image_name: octonius-web
 
   deploy-web:
     name: 🚀 Deploy Web Assets
