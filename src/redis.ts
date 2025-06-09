@@ -7,6 +7,9 @@ import { global_connection_map } from '../server'
 // Import logger
 import { redisLogger } from './logger'
 
+// Import environment configuration
+import { getRedisConfig } from './env-validator'
+
 let client: ReturnType<typeof createClient> | null = null
 
 /**
@@ -14,18 +17,21 @@ let client: ReturnType<typeof createClient> | null = null
  * @returns Promise<{ connection: any | null }>
  */
 export async function connectRedis(): Promise<{ connection: any | null }> {
-    const redis_host = process.env.REDIS_HOST
-    const redis_port = process.env.REDIS_PORT
+    const redisConfig = getRedisConfig()
 
-    if (!redis_host || !redis_port) {
+    if (!redisConfig.host || !redisConfig.port) {
         redisLogger('REDIS_HOST or REDIS_PORT is not set. Skipping Redis connection and running in degraded mode.', { level: 'warn' })
         return { connection: null }
     }
 
-    const url = `redis://${redis_host}:${redis_port}`
+    const url = `redis://${redisConfig.host}:${redisConfig.port}`
 
     try {
-        redisLogger(`Attempting to connect to Redis`, { host: redis_host, port: redis_port, environment: process.env.NODE_ENV })
+        redisLogger(`Attempting to connect to Redis`, { 
+            host: redisConfig.host, 
+            port: redisConfig.port, 
+            environment: process.env.NODE_ENV 
+        })
         client = createClient({ url })
 
         client.on('error', (err) => {
