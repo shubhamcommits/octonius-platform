@@ -1,4 +1,4 @@
-name: 🎯 Determine Action
+name: 🤔 Determine Action
 
 on:
   workflow_call:
@@ -13,26 +13,32 @@ on:
         description: 'Action to perform (plan/apply/destroy)'
 
 jobs:
+  validate-env:
+    name: 🔍 Validate Environment Variables
+    uses: ./.github/workflows/validate-env.yml
+    with:
+      required_vars: GITHUB_EVENT_NAME,GITHUB_REF
+      job_name: determine-action
+
   determine:
-    name: 🎯 Determine Action
+    name: 🤔 Determine Action
+    needs: validate-env
     runs-on: ubuntu-latest
     outputs:
-      should-apply: ${{ steps.action.outputs.should-apply }}
+      should-apply: ${{ steps.outputs.should-apply }}
     
     steps:
-      - name: 🎯 Determine Action
+      - name: 🤔 Determine Action
         id: action
         run: |
-          echo "🎯 Determining whether to apply infrastructure..."
-          echo "Event: ${{ github.event_name }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Environment: ${{ inputs.environment }}"
-          echo "Action: ${{ inputs.action }}"
+          # Default to plan
+          SHOULD_APPLY="false"
           
-          if [[ "${{ inputs.action }}" == "apply" || "${{ inputs.action }}" == "destroy" ]]; then
-            echo "✅ Should apply: true (apply/destroy action)"
-            echo "should-apply=true" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Should apply: false (plan only)"
-            echo "should-apply=false" >> $GITHUB_OUTPUT
-          fi 
+          # Check if we should apply
+          if [[ "${{ inputs.action }}" == "apply" ]]; then
+            SHOULD_APPLY="true"
+          fi
+          
+          echo "should-apply=$SHOULD_APPLY" >> $GITHUB_OUTPUT
+          echo "Action: ${{ inputs.action }}"
+          echo "Should Apply: $SHOULD_APPLY" 
