@@ -4,8 +4,16 @@ on:
   workflow_call:
 
 jobs:
+  validate-env:
+    name: 🔍 Validate Environment Variables
+    uses: ./.github/workflows/validate-env.yml
+    with:
+      required_vars: GITHUB_EVENT_NAME,GITHUB_REF,GITHUB_HEAD_REF
+      job_name: setup-environment
+
   setup:
     name: 🔧 Setup Environment
+    needs: validate-env
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.env.outputs.environment }}
