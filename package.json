@@ -9,11 +9,11 @@
     "scripts": {
         "build": "NODE_OPTIONS=--max-old-space-size=4096 tsc --diagnostics --extendedDiagnostics",
         "serve": "ts-node-dev server.ts",
-        "start:dev": "NODE_ENV=dev APP_NAME=octonius-platform-service AWS_DEFAULT_REGION=eu-central-1 node dist/server.js",
-        "start:prod": "NODE_ENV=prod APP_NAME=octonius-platform-service AWS_DEFAULT_REGION=eu-central-1 node dist/server.js",
-        "dev": "NODE_ENV=dev APP_NAME=octonius-platform-service AWS_DEFAULT_REGION=eu-central-1  NODE_OPTIONS=--max-old-space-size=6144 ts-node-dev server.ts",
-        "prod": "NODE_ENV=prod APP_NAME=octonius-platform-service AWS_DEFAULT_REGION=eu-central-1  NODE_OPTIONS=--max-old-space-size=6144 ts-node-dev server.ts",
-        "local": "NODE_ENV=local APP_NAME=octonius-platform-service AWS_DEFAULT_REGION=eu-central-1 NODE_OPTIONS=--max-old-space-size=6144 ts-node-dev server.ts",
+        "start:dev": "NODE_ENV=dev node dist/server.js",
+        "start:prod": "NODE_ENV=prod node dist/server.js",
+        "dev": "NODE_ENV=dev NODE_OPTIONS=--max-old-space-size=6144 ts-node-dev server.ts",
+        "prod": "NODE_ENV=prod NODE_OPTIONS=--max-old-space-size=6144 ts-node-dev server.ts",
+        "local": "NODE_ENV=local NODE_OPTIONS=--max-old-space-size=6144 ts-node-dev server.ts",
         "staging": "NODE_ENV=staging node dist/server.js",
         "test": "jest",
         "test:watch": "jest --watch",
@@ -37,9 +37,9 @@
         "typescript": "^5.2.2"
     },
     "dependencies": {
-        "@aws-sdk/client-secrets-manager": "^3.525.0",
-        "@aws-sdk/client-s3": "^3.525.0",
         "@aws-sdk/client-ec2": "^3.525.0",
+        "@aws-sdk/client-s3": "^3.525.0",
+        "@aws-sdk/client-secrets-manager": "^3.525.0",
         "axios": "^1.6.2",
         "bcrypt": "^6.0.0",
         "bcryptjs": "^2.4.3",
@@ -55,7 +55,8 @@
         "redis": "^4.6.11",
         "sequelize": "^6.35.2",
         "ts-node": "^10.9.2",
-        "winston": "^3.11.0"
+        "winston": "^3.11.0",
+        "zod": "^3.25.56"
     },
     "engines": {
         "node": ">=16.0.0",
