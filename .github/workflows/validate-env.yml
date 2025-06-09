@@ -25,7 +25,8 @@ jobs:
           
           # Check each required variable
           for var in "${REQUIRED_VARS[@]}"; do
-            if [[ -z "${{ env[var] }}" ]]; then
+            # Use eval to check if the variable is set
+            if ! eval "[ -n \"\$$var\" ]"; then
               MISSING_VARS+=("$var")
             fi
           done
