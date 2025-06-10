@@ -75,72 +75,286 @@ permissions:
   pull-requests: write
 
 jobs:
-  validate-env:
-    name: 🔍 Validate Environment Variables
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set DOCKER_REGISTRY
-        run: |
-          echo "DOCKER_REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
-        env:
-          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-      - uses: ./.github/actions/validate-env/action.yml
-        with:
-          required_vars: 'TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,DOCKER_REGISTRY,WEB_IMAGE_NAME,NODE_VERSION'
-          job_name: 'platform-deploy'
-    if: ${{ !inputs.skip_validation }}
-
-  setup:
-    name: 🔧 Setup Environment
-    needs: validate-env
-    uses: ./.github/workflows/setup-environment.yml@master
-
   determine-action:
     name: 🤔 Determine Action
-    needs: [validate-env, setup]
-    uses: ./.github/workflows/determine-action.yml@master
-    with:
-      environment: ${{ needs.setup.outputs.environment }}
-      action: ${{ github.event.inputs.action || 'plan' }}
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+    steps:
+      - name: 🎯 Determine Environment
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH="${{ github.head_ref }}"
+          else
+            BRANCH="${{ github.ref_name }}"
+          fi
+          if [[ -n "${{ github.event.inputs.environment }}" ]]; then
+            ENV="${{ github.event.inputs.environment }}"
+          else
+            case "$BRANCH" in
+              master)
+                ENV="prod";;
+              development|dev)
+                ENV="dev";;
+              feature/*)
+                ENV=$(echo "$BRANCH" | sed 's|feature/|feature-|g' | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]');;
+              hotfix/*)
+                ENV=$(echo "$BRANCH" | sed 's|hotfix/|hotfix-|g' | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]');;
+              *)
+                ENV=$(echo "$BRANCH" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]');;
+            esac
+          fi
+          echo "Branch: $BRANCH"
+          echo "Environment: $ENV"
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
 
-  infrastructure:
+  angular-build:
+    name: 🏗️ Angular Build
+    needs: determine-action
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: services/octonius-web/package-lock.json
+      - name: 📦 Install Dependencies
+        working-directory: services/octonius-web
+        run: npm ci
+      - name: 🏗️ Build Angular App
+        id: build
+        working-directory: services/octonius-web
+        run: |
+          if [[ "${{ needs.determine-action.outputs.environment }}" == "prod" ]]; then
+            echo "Using production configuration"
+            export NODE_ENV=production
+            npm run build -- --configuration production
+          else
+            echo "Using development configuration"
+            export NODE_ENV=development
+            npm run build -- --configuration development
+          fi
+          echo "dist_path=services/octonius-web/dist/octonius-web" >> $GITHUB_OUTPUT
+      - name: 📦 Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-build-${{ needs.determine-action.outputs.environment }}
+          path: services/octonius-web/dist/octonius-web
+          retention-days: 1
+
+  docker-image-build:
+    name: 🐳 Docker Image Build
+    needs: angular-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: 📦 Download Web Build
+        uses: actions/download-artifact@v4
+        with:
+          name: angular-build-${{ needs.determine-action.outputs.environment }}
+          path: services/octonius-web/dist/octonius-web
+      - name: 🔑 Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: 🏗️ Build and Push Web Image
+        id: web-image
+        run: |
+          IMAGE_TAG="${{ needs.determine-action.outputs.environment }}-$(date +'%Y%m%d%H%M%S')"
+          docker build \
+            -t ${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG \
+            -t ${{ env.WEB_IMAGE_NAME }}:latest \
+            -f services/octonius-web/Dockerfile \
+            --build-arg NODE_ENV=${{ needs.determine-action.outputs.environment }} \
+            .
+          docker tag ${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG
+          docker tag ${{ env.WEB_IMAGE_NAME }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.WEB_IMAGE_NAME }}:latest
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.WEB_IMAGE_NAME }}:latest
+
+  infra:
     name: 🏗️ Infrastructure Management
-    needs: [validate-env, setup, determine-action]
-    uses: ./.github/workflows/infrastructure.yml@master
-    with:
-      environment: ${{ needs.setup.outputs.environment }}
-      action: ${{ github.event.inputs.action || 'plan' }}
-
-  build-web:
-    name: 🏗️ Build Web Application
-    needs: [validate-env, setup]
-    uses: ./.github/workflows/angular-build.yml@master
-    with:
-      environment: ${{ needs.setup.outputs.environment }}
-
-  docker-images:
-    name: 🐳 Docker Image Management
-    needs: [validate-env, setup, build-web]
-    uses: ./.github/workflows/docker-images.yml@master
-    with:
-      environment: ${{ needs.setup.outputs.environment }}
-      web_image_name: octonius-web
+    needs: docker-image-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      - name: ⚙️ Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: 🗃️ Create DynamoDB Table (State Locking)
+        run: |
+          ENV="${{ needs.determine-action.outputs.environment }}"
+          TABLE_NAME="$ENV-${{ env.PROJECT_NAME }}-terraform-locks-${{ env.AWS_REGION }}"
+          echo "🗃️ Setting up DynamoDB table for state locking: $TABLE_NAME"
+          if ! aws dynamodb describe-table --table-name "$TABLE_NAME" 2>/dev/null >/dev/null; then
+            echo "🔨 Creating DynamoDB table: $TABLE_NAME"
+            aws dynamodb create-table \
+              --table-name "$TABLE_NAME" \
+              --attribute-definitions AttributeName=LockID,AttributeType=S \
+              --key-schema AttributeName=LockID,KeyType=HASH \
+              --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 \
+              --tags \
+                Key=Environment,Value="$ENV" \
+                Key=Project,Value="${{ env.PROJECT_NAME }}" \
+                Key=Purpose,Value=terraform-locks \
+                Key=Repository,Value="${{ github.repository }}"
+            echo "⏳ Waiting for DynamoDB table to become active..."
+            aws dynamodb wait table-exists --table-name "$TABLE_NAME"
+            echo "✅ DynamoDB table created and active"
+          else
+            echo "✅ DynamoDB table already exists: $TABLE_NAME"
+          fi
+      - name: 📝 Generate Terraform Configuration
+        run: |
+          mkdir -p terraform/config
+          case "${{ needs.determine-action.outputs.environment }}" in
+            prod)
+              BUCKET_NAME="${{ env.PROD_S3_BUCKET }}";;
+            *)
+              BUCKET_NAME="${{ env.DEV_S3_BUCKET }}";;
+          esac
+          cat > terraform/backend.tf << EOF
+          terraform {
+            backend "s3" {
+              bucket         = "$BUCKET_NAME"
+              key            = "terraform/${{ needs.determine-action.outputs.environment }}/terraform.tfstate"
+              region         = "${{ env.AWS_REGION }}"
+              encrypt        = true
+              dynamodb_table = "${{ needs.determine-action.outputs.environment }}-${{ env.PROJECT_NAME }}-terraform-locks-${{ env.AWS_REGION }}"
+            }
+          }
+          EOF
+          cat > terraform/config/terraform.tfvars << EOF
+          environment  = "${{ needs.determine-action.outputs.environment }}"
+          project_name = "${{ env.PROJECT_NAME }}"
+          aws_region   = "${{ env.AWS_REGION }}"
+          EOF
+      - name: 🏗️ Initialize Terraform
+        working-directory: terraform
+        run: terraform init
+      - name: ✅ Validate Terraform
+        working-directory: terraform
+        run: terraform validate
+      - name: 📋 Plan Terraform Changes
+        working-directory: terraform
+        run: |
+          terraform plan \
+            -var-file=config/terraform.tfvars \
+            -out=tfplan-${{ needs.determine-action.outputs.environment }} \
+            -detailed-exitcode || exit_code=$?
+          if [[ $exit_code -eq 1 ]]; then
+            echo "❌ Terraform plan failed"
+            exit 1
+          elif [[ $exit_code -eq 2 ]]; then
+            echo "✅ Plan created with changes for ${{ needs.determine-action.outputs.environment }}"
+            echo "has-changes=true" >> $GITHUB_ENV
+          else
+            echo "✅ No changes detected for ${{ needs.determine-action.outputs.environment }}"
+            echo "has-changes=false" >> $GITHUB_ENV
+          fi
+      - name: 🚀 Apply Infrastructure
+        working-directory: terraform
+        run: |
+          if [[ -f "tfplan-${{ needs.determine-action.outputs.environment }}" ]]; then
+            echo "🚀 Applying saved plan..."
+            terraform apply tfplan-${{ needs.determine-action.outputs.environment }}
+          else
+            echo "📋 No saved plan found. Creating new plan and applying..."
+            terraform plan -var-file=config/terraform.tfvars -out=tfplan-${{ needs.determine-action.outputs.environment }}
+            terraform apply tfplan-${{ needs.determine-action.outputs.environment }}
+          fi
+      - name: 🗑️ Destroy Infrastructure
+        if: ${{ github.event.inputs.action == 'destroy' }}
+        working-directory: terraform
+        run: terraform destroy -var-file=config/terraform.tfvars -auto-approve
+      - name: 📊 Extract Outputs
+        id: outputs
+        working-directory: terraform
+        run: |
+          OUTPUTS=$(terraform output -json)
+          echo "web_s3_bucket_name=$(echo $OUTPUTS | jq -r '.web_s3_bucket_name.value')" >> $GITHUB_OUTPUT
+          echo "web_cloudfront_distribution_id=$(echo $OUTPUTS | jq -r '.web_cloudfront_distribution_id.value')" >> $GITHUB_OUTPUT
 
   deploy-web:
     name: 🚀 Deploy Web Assets
-    needs: [validate-env, setup, infrastructure, build-web]
-    uses: ./.github/workflows/web-deploy.yml@master
-    with:
-      environment: ${{ needs.setup.outputs.environment }}
-      s3_bucket: ${{ needs.infrastructure.outputs.web_s3_bucket_name }}
-      cloudfront_id: ${{ needs.infrastructure.outputs.web_cloudfront_distribution_id }}
+    needs: infra
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: 📦 Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: angular-build-${{ needs.determine-action.outputs.environment }}
+          path: dist
+      - name: 🚀 Deploy to S3
+        run: |
+          aws s3 sync dist/ s3://${{ env.PROD_S3_BUCKET }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html" \
+            --exclude "assets/*"
+          aws s3 sync dist/ s3://${{ env.PROD_S3_BUCKET }}/ \
+            --delete \
+            --cache-control "no-cache" \
+            --include "*.html"
+          aws s3 sync dist/assets/ s3://${{ env.PROD_S3_BUCKET }}/assets/ \
+            --delete \
+            --cache-control "public, max-age=3600"
+      - name: 🔄 Invalidate CloudFront Cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
 
   deployment-summary:
     name: 📊 Deployment Summary
-    needs: [validate-env, setup, infrastructure, build-web, docker-images, deploy-web]
-    uses: ./.github/workflows/deployment-summary.yml@master
-    with:
-      environment: ${{ needs.setup.outputs.environment }}
-      action: ${{ github.event.inputs.action || 'plan' }} 
+    needs: deploy-web
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: 📝 Generate Summary
+        run: |
+          echo "## 🚀 Deployment Summary for ${{ needs.determine-action.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔄 Action Performed" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ github.event.inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📅 Deployment Time" >> $GITHUB_STEP_SUMMARY
+          echo "- $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔄 Next Steps" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ github.event.inputs.action }}" == "apply" ]]; then
+            echo "1. Verify the deployment in the AWS Console" >> $GITHUB_STEP_SUMMARY
+            echo "2. Test the application endpoints" >> $GITHUB_STEP_SUMMARY
+            echo "3. Monitor CloudWatch metrics for any issues" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "1. Review the planned changes" >> $GITHUB_STEP_SUMMARY
+            echo "2. Approve the changes if they look correct" >> $GITHUB_STEP_SUMMARY
+            echo "3. Run the workflow again with 'apply' action" >> $GITHUB_STEP_SUMMARY
+          fi 
