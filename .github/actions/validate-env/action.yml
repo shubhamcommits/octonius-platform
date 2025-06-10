@@ -1,0 +1,34 @@
+name: Validate Environment Variables
+
+description: 'Composite action to validate required environment variables.'
+
+inputs:
+  required_vars:
+    description: 'Comma-separated list of required environment variables'
+    required: true
+  job_name:
+    description: 'Name of the job for error messages'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - run: |
+        IFS=',' read -ra REQUIRED_VARS <<< "${{ inputs.required_vars }}"
+        MISSING_VARS=()
+        for var in "${REQUIRED_VARS[@]}"; do
+          if [[ -n "${!var}" ]]; then
+            echo "✅ $var is set"
+            continue
+          fi
+          MISSING_VARS+=("$var")
+        done
+        if [ ${#MISSING_VARS[@]} -ne 0 ]; then
+          echo "❌ Missing required variables in ${{ inputs.job_name }} job:"
+          for var in "${MISSING_VARS[@]}"; do
+            echo "  - $var (not found)"
+          done
+          exit 1
+        else
+          echo "✅ All required variables are set in ${{ inputs.job_name }} job"
+        fi
+      shell: bash 
