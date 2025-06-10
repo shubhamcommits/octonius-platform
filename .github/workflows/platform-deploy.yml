@@ -50,6 +50,7 @@ concurrency:
 env:
   # Terraform Configuration
   TF_VERSION: '1.7.4'
+  REPOSITORY_NAME: 'octonius'
   PROJECT_NAME: 'octonius-platform'
   
   # AWS Configuration
@@ -78,7 +79,7 @@ jobs:
     steps:
       - name: Validate Required Environment Variables
         run: |
-          REQUIRED_VARS="TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,NODE_VERSION"
+          REQUIRED_VARS="TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,NODE_VERSION,REPOSITORY_NAME"
           IFS=',' read -ra VARS <<< "$REQUIRED_VARS"
           MISSING=()
           for var in "${VARS[@]}"; do
@@ -148,15 +149,15 @@ jobs:
         run: |
           IMAGE_TAG="${{ needs.determine-action.outputs.environment }}-$(date +'%Y%m%d%H%M%S')"
           docker build \
-            -t ${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:$IMAGE_TAG \
-            -t ${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:latest \
+            -t ${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:$IMAGE_TAG \
+            -t ${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:latest \
             -f Dockerfile \
             --build-arg NODE_ENV=${{ needs.determine-action.outputs.environment }} \
             .
-          docker tag ${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:$IMAGE_TAG ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:$IMAGE_TAG
-          docker tag ${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:latest
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:$IMAGE_TAG
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:latest
+          docker tag ${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:$IMAGE_TAG ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:$IMAGE_TAG
+          docker tag ${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:latest
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:$IMAGE_TAG
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:latest
 
   infra:
     name: 🏗️ Infrastructure Management
@@ -179,7 +180,7 @@ jobs:
       - name: 🗃️ Create DynamoDB Table (State Locking)
         run: |
           ENV="${{ needs.determine-action.outputs.environment }}"
-          TABLE_NAME="$ENV-${{ env.PROJECT_NAME }}-terraform-locks-${{ env.AWS_REGION }}"
+          TABLE_NAME="$ENV-${{ env.REPOSITORY_NAME }}-terraform-locks-${{ env.AWS_REGION }}"
           echo "🗃️ Setting up DynamoDB table for state locking: $TABLE_NAME"
           if ! aws dynamodb describe-table --table-name "$TABLE_NAME" 2>/dev/null >/dev/null; then
             echo "🔨 Creating DynamoDB table: $TABLE_NAME"
@@ -190,7 +191,7 @@ jobs:
               --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 \
               --tags \
                 Key=Environment,Value="$ENV" \
-                Key=Project,Value="${{ env.PROJECT_NAME }}" \
+                Key=Project,Value="${{ env.REPOSITORY_NAME }}" \
                 Key=Purpose,Value=terraform-locks \
                 Key=Repository,Value="${{ github.repository }}"
             echo "⏳ Waiting for DynamoDB table to become active..."
@@ -215,7 +216,7 @@ jobs:
               key            = "terraform/${{ needs.determine-action.outputs.environment }}/terraform.tfstate"
               region         = "${{ env.AWS_REGION }}"
               encrypt        = true
-              dynamodb_table = "${{ needs.determine-action.outputs.environment }}-${{ env.PROJECT_NAME }}-terraform-locks-${{ env.AWS_REGION }}"
+              dynamodb_table = "${{ needs.determine-action.outputs.environment }}-${{ env.REPOSITORY_NAME }}-terraform-locks-${{ env.AWS_REGION }}"
             }
           }
           EOF
