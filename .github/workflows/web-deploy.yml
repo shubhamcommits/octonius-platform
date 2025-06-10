@@ -1,4 +1,4 @@
-name: 🚀 Deploy Web Assets
+name: 🚀 Web Deploy Workflow
 
 on:
   workflow_call:

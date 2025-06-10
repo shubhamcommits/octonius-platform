@@ -1,4 +1,4 @@
-name: 🤔 Determine Action
+name: 🎯 Determine Action Workflow
 
 on:
   workflow_call:
