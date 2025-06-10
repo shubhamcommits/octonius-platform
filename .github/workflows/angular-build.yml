@@ -1,4 +1,4 @@
-name: 🏗️ Build Angular Application
+name: 🏗️ Angular Build Workflow
 
 on:
   workflow_call:

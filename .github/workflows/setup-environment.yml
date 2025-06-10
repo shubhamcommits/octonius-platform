@@ -1,4 +1,4 @@
-name: 🔧 Setup Environment
+name: 🔧 Setup Environment Workflow
 
 on:
   workflow_call:
