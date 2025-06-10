@@ -130,41 +130,6 @@ jobs:
           echo "Environment: $ENV"
           echo "environment=$ENV" >> $GITHUB_OUTPUT
 
-  angular-build:
-    name: 🏗️ Angular Build
-    needs: [validate-env, determine-action]
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📥 Checkout Code
-        uses: actions/checkout@v4
-      - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: 📦 Install Dependencies
-        working-directory: services/octonius-web
-        run: npm install
-      - name: 🏗️ Build Angular App
-        id: build
-        working-directory: services/octonius-web
-        run: |
-          if [[ "${{ needs.determine-action.outputs.environment }}" == "prod" ]]; then
-            echo "Using production configuration"
-            export NODE_ENV=production
-            npm run build -- --configuration production
-          else
-            echo "Using development configuration"
-            export NODE_ENV=development
-            npm run build -- --configuration development
-          fi
-          echo "dist_path=services/octonius-web/dist/octonius-web" >> $GITHUB_OUTPUT
-      - name: 📦 Upload Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: angular-build-${{ needs.determine-action.outputs.environment }}
-          path: services/octonius-web/dist/octonius-web
-          retention-days: 1
-
   docker-image-build:
     name: 🐳 Docker Image Build
     needs: [validate-env, determine-action, angular-build]
@@ -178,11 +143,6 @@ jobs:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      - name: 📦 Download Web Build
-        uses: actions/download-artifact@v4
-        with:
-          name: angular-build-${{ needs.determine-action.outputs.environment }}
-          path: services/octonius-web/dist/octonius-web
       - name: 🔑 Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -313,9 +273,44 @@ jobs:
           echo "web_s3_bucket_name=$(echo $OUTPUTS | jq -r '.web_s3_bucket_name.value')" >> $GITHUB_OUTPUT
           echo "web_cloudfront_distribution_id=$(echo $OUTPUTS | jq -r '.web_cloudfront_distribution_id.value')" >> $GITHUB_OUTPUT
 
+  angular-build:
+    name: 🏗️ Angular Build
+    needs: [validate-env, determine-action]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: 📦 Install Dependencies
+        working-directory: services/octonius-web
+        run: npm install
+      - name: 🏗️ Build Angular App
+        id: build
+        working-directory: services/octonius-web
+        run: |
+          if [[ "${{ needs.determine-action.outputs.environment }}" == "prod" ]]; then
+            echo "Using production configuration"
+            export NODE_ENV=production
+            npm run build -- --configuration production
+          else
+            echo "Using development configuration"
+            export NODE_ENV=development
+            npm run build -- --configuration development
+          fi
+          echo "dist_path=services/octonius-web/dist/octonius-web" >> $GITHUB_OUTPUT
+      - name: 📦 Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-build-${{ needs.determine-action.outputs.environment }}
+          path: services/octonius-web/dist/octonius-web
+          retention-days: 1
+
   deploy-web:
     name: 🚀 Deploy Web Assets
-    needs: [validate-env, infra]
+    needs: [validate-env, infra, determine-action, angular-build]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
