@@ -19,10 +19,10 @@ on:
 jobs:
   validate-env:
     name: 🔍 Validate Environment Variables
-    uses: ./.github/workflows/validate-env.yml
+    uses: ./.github/actions/validate-env/action.yml
     with:
-      required_vars: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
-      job_name: web-deploy
+      required_vars: 'AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,DOCKER_REGISTRY,WEB_IMAGE_NAME'
+      job_name: 'web-deploy'
 
   deploy-web:
     name: 🚀 Deploy Web Assets
