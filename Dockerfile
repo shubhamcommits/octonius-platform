@@ -1,49 +1,45 @@
 # Build stage
-FROM node:23.11.0-alpine AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
 # Create a non-root user
-RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
-
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
+RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
-COPY . .
+COPY tsconfig.json ./
+COPY src/ ./src/
+COPY server.ts ./
 
 # Build the application
 RUN npm run build
 
 # Production stage
-FROM node:23.11.0-alpine
+FROM node:22-slim
 
 WORKDIR /app
 
 # Create a non-root user
-RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
-
-# Install runtime dependencies
-RUN apk add --no-cache postgresql-client
+RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
 
 # Copy package files
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src ./src
 
-# Copy other necessary files
-COPY .env ./
+# Copy and set up entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set proper permissions
 RUN chown -R nodejs:nodejs /app
@@ -52,7 +48,7 @@ RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose the port
-EXPOSE ${PORT}
+EXPOSE 3000
 
-# Start the application
-CMD ["npm", "run", "start"] 
+# Start the application based on NODE_ENV
+CMD ["docker-entrypoint.sh"] 

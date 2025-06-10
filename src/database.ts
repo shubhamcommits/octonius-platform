@@ -1,7 +1,11 @@
 // Import Sequelize
 import { db } from './sequelize'
-import logger from './logger'
+import { dbLogger } from './logger'
 import { QueryTypes } from 'sequelize'
+import { getDatabaseConfig, isProduction, getEnv } from './config'
+
+// Get environment variables
+const { NODE_ENV } = getEnv()
 
 interface VersionResult {
     version: string;
@@ -17,40 +21,31 @@ interface UserResult {
 
 /**
  * This function initializes the PostgreSQL database
- * @returns Promise<{ message: string }>
+ * @returns Promise<{ message: string, connected: boolean }>
  */
-export async function initiliazeDatabase(): Promise<{ message: string }> {
+export async function initiliazeDatabase(): Promise<{ message: string, connected: boolean }> {
     try {
-        // Fetch Environment Variables
-        const { DB_WRITER_HOST, DB_READER_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME, NODE_ENV } = process.env
+        // Get database configuration
+        const dbConfig = getDatabaseConfig()
 
         // Fetch the alter flag
-        let alter_tables_auto = true
-
-        // Set the alter flag to prod if environment is PROD
-        if(NODE_ENV == 'prod' || NODE_ENV == 'staging')
-            alter_tables_auto = false
-
-        if(!DB_WRITER_HOST?.startsWith(NODE_ENV || '')){
-            logger.error(`Database \t: The NODE_ENV is not compatible with the database endpoint`)
-            throw new Error(`The NODE_ENV is not compatible with the database endpoint`)
-        }
+        let alter_tables_auto = !isProduction()
 
         // Log database connection details
-        logger.info(`Database \t: Attempting to connect to PostgreSQL with replication`)
-        logger.info(`Database \t: Writer Host: ${DB_WRITER_HOST}`)
-        logger.info(`Database \t: Reader Host: ${DB_READER_HOST}`)
-        logger.info(`Database \t: Port: ${DB_PORT}`)
-        logger.info(`Database \t: Database: ${DB_NAME}`)
-        logger.info(`Database \t: Environment: ${NODE_ENV}`)
-        logger.info(`Database \t: Auto Alter Tables: ${alter_tables_auto}`)
-        logger.info(`Database \t: Replication Mode: Active`)
-        logger.info(`Database \t: Write operations will be directed to: ${DB_WRITER_HOST}`)
-        logger.info(`Database \t: Read operations will be directed to: ${DB_READER_HOST}`)
+        dbLogger(`Attempting to connect to PostgreSQL with replication`)
+        dbLogger(`Writer Host: ${dbConfig.writer.host}`)
+        dbLogger(`Reader Host: ${dbConfig.reader.host}`)
+        dbLogger(`Port: ${dbConfig.writer.port}`)
+        dbLogger(`Database: ${dbConfig.writer.database}`)
+        dbLogger(`Environment: ${NODE_ENV}`)
+        dbLogger(`Auto Alter Tables: ${alter_tables_auto}`)
+        dbLogger(`Replication Mode: Active`)
+        dbLogger(`Write operations will be directed to: ${dbConfig.writer.host}`)
+        dbLogger(`Read operations will be directed to: ${dbConfig.reader.host}`)
 
         // Authenticate the Sequelize and Initialize the ORM inside the application
         await db.authenticate()
-        logger.info(`Database \t: Successfully authenticated with PostgreSQL`)
+        dbLogger(`Successfully authenticated with PostgreSQL`)
 
         try {
             // Get database version from writer
@@ -60,7 +55,7 @@ export async function initiliazeDatabase(): Promise<{ message: string }> {
                 useMaster: true // Force using writer for version check
             })
             if (versionResult && versionResult[0]) {
-                logger.info(`Database \t: PostgreSQL Version: ${versionResult[0].version}`)
+                dbLogger(`PostgreSQL Version: ${versionResult[0].version}`)
             }
 
             // Get current database name from writer
@@ -70,7 +65,7 @@ export async function initiliazeDatabase(): Promise<{ message: string }> {
                 useMaster: true // Force using writer for database name check
             })
             if (dbNameResult && dbNameResult[0]) {
-                logger.info(`Database \t: Connected to database: ${dbNameResult[0].current_database}`)
+                dbLogger(`Connected to database: ${dbNameResult[0].current_database}`)
             }
 
             // Get current user from writer
@@ -80,7 +75,7 @@ export async function initiliazeDatabase(): Promise<{ message: string }> {
                 useMaster: true // Force using writer for user check
             })
             if (userResult && userResult[0]) {
-                logger.info(`Database \t: Connected as user: ${userResult[0].current_user}`)
+                dbLogger(`Connected as user: ${userResult[0].current_user}`)
             }
 
             // Test read replication
@@ -90,20 +85,21 @@ export async function initiliazeDatabase(): Promise<{ message: string }> {
                 useMaster: false // Force using reader
             })
             if (readTest) {
-                logger.info(`Database \t: Read replication is working correctly`)
+                dbLogger(`Read replication is working correctly`)
             }
         } catch (queryError) {
-            logger.error(`Database \t: Error fetching database information - ${queryError}`)
+            dbLogger(`Error fetching database information - ${queryError}`, { level: 'error' })
         }
 
         await db.sync({ alter: alter_tables_auto })
-        logger.info(`Database \t: All Models are Synced with Database Tables`)
-        logger.info(`Database \t: Database initialization completed successfully`)
+        dbLogger(`All Models are Synced with Database Tables`)
+        dbLogger(`Database initialization completed successfully`)
 
-        return { message: 'Database initialized successfully' }
+        return { message: 'Database initialized successfully', connected: true }
 
-    } catch (error) {
-        logger.error(`Database \t: Error during database initialization - ${error}`)
-        throw new Error(`Error during database initialization - ${error}`)
+    } catch (error: any) {
+        dbLogger(`Error during database initialization: ${error.message}`, { level: 'error' })
+        // Do not throw, just return a failed state
+        return { message: `Database unavailable: ${error.message}`, connected: false }
     }
 }

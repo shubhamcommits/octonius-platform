@@ -1,288 +1,263 @@
-# Octonius Platform
+# 🚀 Octonius Platform
 
-A modern, scalable platform built with Node.js, Express, and PostgreSQL.
+A modern, scalable web application platform built with **Node.js/TypeScript** and **Terraform** infrastructure on AWS.
 
-## Features
+## 🎯 Overview
 
-- **Database Replication**: Read-write separation with PostgreSQL
-  - Write operations directed to primary database
-  - Read operations distributed to replica database
-  - Automatic failover support
-- **Redis Caching**: High-performance caching layer
-  - Key-based caching
-  - Prefix-based key management
-  - Automatic cache invalidation
-- **Docker Support**: Containerized deployment
-  - Multi-container setup
-  - PostgreSQL replication configuration
-  - Redis caching service
-- **Structured Logging**: Comprehensive logging system
-  - Service-specific logging (Database, Redis, Application)
-  - Color-coded log levels
-  - Detailed metadata for debugging
-- **Cluster Support**: Multi-process architecture
-  - Automatic worker process management
-  - Load balancing across CPU cores
-  - Graceful worker recovery
+The Octonius Platform provides a robust foundation for web applications with:
+- **Application**: Modern Node.js/TypeScript server with Express, PostgreSQL, and Redis
+- **Infrastructure**: Clean, modular Terraform setup for AWS resources
+- **CI/CD**: Automated GitHub Actions workflows for deployment
+- **Monitoring**: Comprehensive logging and monitoring setup
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Octonius Platform                        │
+├─────────────────────────────────────────────────────────────────┤
+│  Application Layer                                              │
+│  ├── Node.js/TypeScript Server (Express)                       │
+│  ├── PostgreSQL Database                                        │
+│  ├── Redis Cache                                               │
+│  └── Winston Logging                                           │
+├─────────────────────────────────────────────────────────────────┤
+│  Infrastructure Layer (Terraform)                              │
+│  ├── VPC with Public/Private Subnets                          │
+│  ├── NAT Gateways & Internet Gateway                           │
+│  ├── Security Groups & NACLs                                   │
+│  └── Future: ECS, RDS, ALB, CloudFront                        │
+├─────────────────────────────────────────────────────────────────┤
+│  CI/CD Pipeline (GitHub Actions)                               │
+│  ├── Terraform Plan & Apply                                    │
+│  ├── Application Build & Test                                  │
+│  └── Deployment Automation                                     │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- [Node.js](https://nodejs.org/en/download/) (Latest LTS version recommended)
-- Package manager of your choice:
-  - [npm](https://www.npmjs.com/) (comes with Node.js)
-  - [Yarn](https://classic.yarnpkg.com/en/docs/install/)
-- Docker and Docker Compose
-- PostgreSQL (v15 or higher)
-- Redis (v7 or higher)
+### Infrastructure Setup (Terraform)
 
-### Installation
+**📖 See [README-terraform.md](README-terraform.md) for complete infrastructure documentation**
 
-1. Clone the repository:
    ```bash
-   git clone https://github.com/Octonius/octonius-platform.git
-   cd octonius-platform
-   ```
+# 1. Bootstrap Terraform state management
+./scripts/terraform-bootstrap.sh -e dev
 
-2. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-3. Configure environment:
-   Create a `.env` file in the root directory with the following variables:
-   ```env
-   # Application Environment
-   HOST=localhost
-   APP_NAME='Octonius Platform'
-   PORT=3000
-   NODE_ENV=dev
-   CLUSTER=false
-   DOMAIN=dev.api.octonius.com
-
-   # JWT Configuration
-   JWT_ACCESS_KEY='your-secure-key-here'
-   JWT_ACCESS_TIME=30d
-
-   # Redis Credentials
-   REDIS_HOST='127.0.0.1'
-   REDIS_PORT=6379
-
-   # Database (Writer)
-   DB_WRITER_HOST=postgres-writer
-   DB_PORT=5432
-   DB_USER=postgres
-   DB_PASS=your_password
-   DB_NAME=octonius
-
-   # Database (Reader)
-   DB_READER_HOST=postgres-reader
-
-   # Connection Pool
-   MAX_POOL=20
-   MIN_POOL=0
-   ```
-
-4. Start the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn run dev
-   ```
-   The server will start on port 3000.
-
-## 📋 Development Guidelines
-
-### Branch Management
-
-#### Branch Naming Convention
-Branches should follow the pattern: `type_CapitalizedName`
-
-**Types:**
-- `bugfix`: For fixing bugs
-- `feature`: For new features
-- `release`: For release preparation
-- `hotfix`: For critical production fixes
-
-**Example:**
-```bash
-git checkout -b bugfix_EditPostContent
+# 2. Deploy infrastructure
+cd terraform/environments/dev
+terraform init
+terraform plan
+terraform apply
 ```
 
-#### Daily Workflow
+### Application Setup
 
-1. **Before Starting Work:**
    ```bash
-   # Switch to your branch
-   git checkout your-branch-name
-   
-   # Pull latest changes
-   git pull
+# 1. Install dependencies
+   npm install
+
+# 2. Build application
+npm run build
+
+# 3. Start development server
+npm run dev
+
+# 4. Start production server
+npm run start
+```
+
+## 📁 Project Structure
+
+```
+octonius-platform/
+├── 📱 Application
+│   ├── server.ts              # Main application server
+│   ├── src/                   # Application source code
+│   ├── services/              # Business logic services
+│   ├── package.json           # Node.js dependencies
+│   └── tsconfig.json          # TypeScript configuration
+│
+├── 🏗️ Infrastructure (Terraform)
+│   ├── terraform/
+│   │   ├── main.tf            # Main Terraform configuration
+│   │   ├── variables.tf       # Variable definitions
+│   │   ├── outputs.tf         # Output definitions
+│   │   ├── modules/vpc/       # VPC networking module
+│   │   └── config/            # Environment-specific configs
+│   │       ├── dev.backend.hcl     # Dev backend configuration
+│   │       ├── dev.tfvars          # Dev variables
+│   │       ├── prod.backend.hcl    # Prod backend configuration
+│   │       └── prod.tfvars         # Prod variables
+│   └── scripts/
+│       └── terraform-bootstrap.sh  # State management setup
+│
+├── 🔄 CI/CD
+│   └── .github/workflows/
+│       └── terraform.yml     # Terraform deployment pipeline
+│
+├── 🐳 Containerization
+│   ├── Dockerfile            # Application container
+│   └── docker-compose.yml    # Local development setup
+│
+└── 📚 Documentation
+    ├── README.md             # This file (overview)
+    └── README-terraform.md   # Infrastructure documentation
+```
+
+## 🛠️ Development
+
+### Local Development
+
+   ```bash
+# Start with Docker Compose (recommended)
+docker-compose up -d
+
+# Or run directly
+   npm run dev
+```
+
+### Application Scripts
+
+```bash
+npm run dev         # Development server with hot reload
+npm run build       # Build TypeScript to JavaScript
+npm run start       # Production server
+npm run test        # Run tests
+npm run lint        # TypeScript type checking
+```
+
+### Infrastructure Management
+
+   ```bash
+# Environment setup
+./scripts/terraform-bootstrap.sh -e dev
+
+# Terraform operations
+cd terraform/environments/dev
+terraform plan      # Preview changes
+terraform apply     # Apply changes
+terraform destroy   # Destroy infrastructure
+```
+
+## 🌍 Environment Configuration
+
+### Development (dev)
+- **Purpose**: Development and testing
+- **VPC**: `10.0.0.0/16`
+- **Cost Optimized**: Single NAT Gateway
+- **Auto-Deploy**: On feature branch pushes
+
+### Production (prod)  
+- **Purpose**: Live production workloads
+- **VPC**: `10.1.0.0/16`
+- **High Availability**: Multiple NAT Gateways
+- **Auto-Deploy**: On main branch pushes
+
+## 🚀 Deployment
+
+### Automated (GitHub Actions)
+
+**Terraform Infrastructure:**
+1. Push to `main` → Auto-deploy to production
+2. Create PR → Auto-plan for development
+3. Manual dispatch → Choose environment and action
+
+**Manual Deployment:**
+1. Go to Actions → "Terraform Infrastructure"
+2. Click "Run workflow"
+3. Select environment (dev/prod) and action (plan/apply/destroy)
+
+### Manual Deployment
+
+   ```bash
+# Infrastructure
+cd terraform/environments/dev
+terraform apply
+
+# Application (after infrastructure)
+npm run build
+npm run start
+```
+
+## 🔐 Security Features
+
+- **Infrastructure**: VPC with private subnets, NAT gateways
+- **State Management**: Encrypted S3 backend with DynamoDB locking
+- **Access Control**: IAM policies with least privilege
+- **Secrets**: Environment-based configuration
+- **Monitoring**: CloudWatch logs and metrics (future)
+
+## 📊 Monitoring & Logging
+
+- **Application Logs**: Winston logging framework
+- **Infrastructure**: Terraform state tracking
+- **Future Enhancements**: CloudWatch, ELK stack integration
+
+## 🧪 Testing
+
+   ```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode for development
    ```
 
-2. **After Completing Work:**
-   ```bash
-   # Push your changes
-   git push
-   ```
+## 🚧 Roadmap
 
-### Pull Request Process
+### Phase 1: Foundation ✅
+- [x] Clean Terraform infrastructure
+- [x] VPC with public/private subnets
+- [x] GitHub Actions CI/CD
+- [x] Application containerization
 
-1. **Update Development Branch:**
-   ```bash
-   git checkout development
-   git pull
-   ```
+### Phase 2: Application Infrastructure
+- [ ] RDS PostgreSQL setup
+- [ ] ElastiCache Redis setup
+- [ ] Application Load Balancer
+- [ ] ECS container deployment
 
-2. **Rebase Your Feature Branch:**
-   ```bash
-   git checkout your-feature-branch
-   git rebase development
-   ```
+### Phase 3: Enhanced Features
+- [ ] CloudFront CDN
+- [ ] Route53 DNS management
+- [ ] SSL/TLS certificates
+- [ ] Auto-scaling configuration
 
-   > ⚠️ **Important:** 
-   > - Notify team members before rebasing
-   > - Resolve any conflicts in your branch
-   > - Test thoroughly after resolving conflicts
-
-3. **Create Pull Request:**
-   - Open a PR from your branch to `development`
-   - Notify team members about the PR
-   - Wait for review and approval
-
-4. **Clean Up:**
-   ```bash
-   # Delete local branch after PR is merged
-   git branch -d your-branch-name
-   ```
-
-### Resuming Work on Old Branches
-
-1. **Update Main Branch:**
-   ```bash
-   git checkout main
-   git pull
-   ```
-
-2. **Update Feature Branch:**
-   ```bash
-   git checkout feature-branch
-   git pull
-   ```
-
-3. **Rebase and Push:**
-   ```bash
-   git rebase main
-   git push
-   ```
-
-   > ⚠️ **Important:** 
-   > - Notify team members before rebasing
-   > - Resolve any conflicts before continuing work
+### Phase 4: Observability
+- [ ] CloudWatch monitoring
+- [ ] ELK logging stack
+- [ ] Health checks & alerts
+- [ ] Performance metrics
 
 ## 🤝 Contributing
 
-1. Always branch from `development`, never from `main`
-2. Follow the branch naming conventions
-3. Keep your branches up to date
-4. Test thoroughly before creating PRs
-5. Communicate with the team about your changes
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Test** your changes thoroughly
+4. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+5. **Push** to the branch (`git push origin feature/amazing-feature`)
+6. **Open** a Pull Request
+
+## 📞 Support
+
+- **Infrastructure**: See [README-terraform.md](README-terraform.md)
+- **Issues**: GitHub Issues for bug reports and feature requests
+- **Discussions**: GitHub Discussions for questions
 
 ## 📝 License
 
-This project is proprietary and confidential. All rights reserved.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Docker Setup
+---
 
-The application can be run using Docker Compose:
+## 🎉 Migration from CDK Complete!
 
-```bash
-# Build and start all services
-docker-compose up -d
+This project has been successfully migrated from AWS CDK to Terraform for a cleaner, simpler infrastructure management experience. All the complex CDK bootstrap issues are now resolved with straightforward Terraform workflows.
 
-# View logs
-docker-compose logs -f
+**Key Improvements:**
+- ✅ **No more CDK bootstrap failures**
+- ✅ **Simplified state management**
+- ✅ **Clean, readable infrastructure code**  
+- ✅ **Better error handling and recovery**
+- ✅ **Consistent naming conventions**
 
-# Stop all services
-docker-compose down
-```
-
-The Docker setup includes:
-- Application container
-- PostgreSQL writer container
-- PostgreSQL reader container
-- Redis container
-
-## Database Replication
-
-The platform uses PostgreSQL replication for read-write separation:
-
-- **Writer Node**: Handles all write operations
-  - Located at `DB_WRITER_HOST`
-  - Handles INSERT, UPDATE, DELETE operations
-  - Primary database for data consistency
-
-- **Reader Node**: Handles read operations
-  - Located at `DB_READER_HOST`
-  - Handles SELECT queries
-  - Improves read performance
-
-## Redis Caching
-
-Redis is used for caching with the following features:
-
-- **Key Management**:
-  - Prefix-based key organization
-  - Automatic key cleanup
-  - Bulk key operations
-
-- **Cache Operations**:
-  - Set/Get operations
-  - Key deletion by prefix
-  - Key listing by prefix
-
-## Logging
-
-The application uses a structured logging system:
-
-- **Database Logs**: `Database \t: [message]`
-- **Redis Logs**: `Redis \t: [message]`
-- **Application Logs**: `Application \t: [message]`
-
-Log levels:
-- INFO: General information
-- ERROR: Error messages
-- DEBUG: Debug information (development only)
-
-## Development
-
-1. Start the development environment:
-   ```bash
-   npm run dev
-   ```
-
-2. The application will automatically:
-   - Connect to the database
-   - Set up Redis caching
-   - Start worker processes
-   - Enable development logging
-
-## Production
-
-1. Build the application:
-   ```bash
-   npm run build
-   ```
-
-2. Start in production mode:
-   ```bash
-   npm start
-   ```
-
-3. The application will:
-   - Use production database settings
-   - Enable caching
-   - Start in cluster mode
-   - Use production logging
+🚀 **Ready to scale!** The foundation is now clean and ready for future enhancements.

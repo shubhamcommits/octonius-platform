@@ -1,0 +1,44 @@
+name: 🤔 Determine Action
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+        description: 'Environment to deploy to'
+      action:
+        required: true
+        type: string
+        description: 'Action to perform (plan/apply/destroy)'
+
+jobs:
+  validate-env:
+    name: 🔍 Validate Environment Variables
+    uses: ./.github/actions/validate-env/action.yml
+    with:
+      required_vars: 'TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,DOCKER_REGISTRY,WEB_IMAGE_NAME,NODE_VERSION'
+      job_name: 'determine-action'
+
+  determine:
+    name: 🤔 Determine Action
+    needs: validate-env
+    runs-on: ubuntu-latest
+    outputs:
+      should-apply: ${{ steps.outputs.should-apply }}
+    
+    steps:
+      - name: 🤔 Determine Action
+        id: action
+        run: |
+          # Default to plan
+          SHOULD_APPLY="false"
+          
+          # Check if we should apply
+          if [[ "${{ inputs.action }}" == "apply" ]]; then
+            SHOULD_APPLY="true"
+          fi
+          
+          echo "should-apply=$SHOULD_APPLY" >> $GITHUB_OUTPUT
+          echo "Action: ${{ inputs.action }}"
+          echo "Should Apply: $SHOULD_APPLY" 

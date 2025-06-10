@@ -1,0 +1,44 @@
+name: 📊 Deployment Summary
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+        description: 'Environment that was deployed'
+      action:
+        required: true
+        type: string
+        description: 'Action that was performed (plan/apply)'
+
+jobs:
+  summary:
+    name: 📊 Deployment Summary
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: 📝 Generate Summary
+        run: |
+          echo "## 🚀 Deployment Summary for ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### 🔄 Action Performed" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📅 Deployment Time" >> $GITHUB_STEP_SUMMARY
+          echo "- $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔄 Next Steps" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ inputs.action }}" == "apply" ]]; then
+            echo "1. Verify the deployment in the AWS Console" >> $GITHUB_STEP_SUMMARY
+            echo "2. Test the application endpoints" >> $GITHUB_STEP_SUMMARY
+            echo "3. Monitor CloudWatch metrics for any issues" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "1. Review the planned changes" >> $GITHUB_STEP_SUMMARY
+            echo "2. Approve the changes if they look correct" >> $GITHUB_STEP_SUMMARY
+            echo "3. Run the workflow again with 'apply' action" >> $GITHUB_STEP_SUMMARY
+          fi 

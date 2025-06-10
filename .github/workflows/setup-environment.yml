@@ -1,0 +1,58 @@
+name: 🔧 Setup Environment
+
+on:
+  workflow_call:
+
+jobs:
+  validate-env:
+    name: 🔍 Validate Environment Variables
+    uses: ./.github/actions/validate-env/action.yml
+    with:
+      required_vars: 'TF_VERSION,PROJECT_NAME,NODE_VERSION'
+      job_name: 'setup-environment'
+
+  setup:
+    name: 🔧 Setup Environment
+    needs: validate-env
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+    
+    steps:
+      - name: 🎯 Determine Environment
+        id: env
+        run: |
+          # Get branch name
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH="${{ github.head_ref }}"
+          else
+            BRANCH="${{ github.ref_name }}"
+          fi
+          
+          # Use manual environment if provided
+          if [[ -n "${{ github.event.inputs.environment }}" ]]; then
+            ENV="${{ github.event.inputs.environment }}"
+          else
+            # Convert branch to environment
+            case "$BRANCH" in
+              master)
+                ENV="prod"
+                ;;
+              development|dev)
+                ENV="dev"
+                ;;
+              feature/*)
+                ENV=$(echo "$BRANCH" | sed 's|feature/|feature-|' | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]')
+                ;;
+              hotfix/*)
+                ENV=$(echo "$BRANCH" | sed 's|hotfix/|hotfix-|' | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]')
+                ;;
+              *)
+                ENV=$(echo "$BRANCH" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]')
+                ;;
+            esac
+          fi
+          
+          echo "Branch: $BRANCH"
+          echo "Environment: $ENV"
+          echo "environment=$ENV" >> $GITHUB_OUTPUT 

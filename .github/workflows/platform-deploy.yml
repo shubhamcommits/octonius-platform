@@ -1,0 +1,146 @@
+name: 🚀 Platform Deployment
+
+on:
+  push:
+    branches:
+      - master
+      - development
+      - 'feature/*'
+      - 'hotfix/*'
+    paths:
+      - 'services/**'
+      - 'terraform/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches:
+      - master
+      - development
+    paths:
+      - 'services/**'
+      - 'terraform/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - deploy
+          - destroy
+      skip_validation:
+        description: 'Skip validation steps'
+        required: false
+        type: boolean
+        default: false
+
+# Prevent parallel deployments of the same environment
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Define all environment variables at the top level
+env:
+  # Terraform Configuration
+  TF_VERSION: '1.7.4'
+  PROJECT_NAME: 'octonius-platform'
+  
+  # AWS Configuration
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} 
+  
+  # S3 Bucket Configuration
+  PROD_S3_BUCKET: ${{ secrets.PROD_S3_BUCKET }}
+  DEV_S3_BUCKET: ${{ secrets.DEV_S3_BUCKET }}
+  
+  # Node.js Configuration
+  NODE_VERSION: '20.x'
+  
+  # Docker Configuration
+  WEB_IMAGE_NAME: 'octonius-web'
+
+# Set minimum required permissions
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  validate-env:
+    name: 🔍 Validate Environment Variables
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set DOCKER_REGISTRY
+        run: |
+          echo "DOCKER_REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
+        env:
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+      - uses: ./.github/actions/validate-env
+        with:
+          required_vars: 'TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,DOCKER_REGISTRY,WEB_IMAGE_NAME,NODE_VERSION'
+          job_name: 'platform-deploy'
+    if: ${{ !inputs.skip_validation }}
+
+  setup:
+    name: 🔧 Setup Environment
+    needs: validate-env
+    uses: ./.github/workflows/setup-environment.yml
+
+  determine-action:
+    name: 🤔 Determine Action
+    needs: [validate-env, setup]
+    uses: ./.github/workflows/determine-action.yml
+    with:
+      environment: ${{ needs.setup.outputs.environment }}
+      action: ${{ github.event.inputs.action || 'plan' }}
+
+  infrastructure:
+    name: 🏗️ Infrastructure Management
+    needs: [validate-env, setup, determine-action]
+    uses: ./.github/workflows/infrastructure.yml
+    with:
+      environment: ${{ needs.setup.outputs.environment }}
+      action: ${{ github.event.inputs.action || 'plan' }}
+
+  build-web:
+    name: 🏗️ Build Web Application
+    needs: [validate-env, setup]
+    uses: ./.github/workflows/angular-build.yml
+    with:
+      environment: ${{ needs.setup.outputs.environment }}
+
+  docker-images:
+    name: 🐳 Docker Image Management
+    needs: [validate-env, setup, build-web]
+    uses: ./.github/workflows/docker-images.yml
+    with:
+      environment: ${{ needs.setup.outputs.environment }}
+      web_image_name: octonius-web
+
+  deploy-web:
+    name: 🚀 Deploy Web Assets
+    needs: [validate-env, setup, infrastructure, build-web]
+    uses: ./.github/workflows/web-deploy.yml
+    with:
+      environment: ${{ needs.setup.outputs.environment }}
+      s3_bucket: ${{ needs.infrastructure.outputs.web_s3_bucket_name }}
+      cloudfront_id: ${{ needs.infrastructure.outputs.web_cloudfront_distribution_id }}
+
+  deployment-summary:
+    name: 📊 Deployment Summary
+    needs: [validate-env, setup, infrastructure, build-web, docker-images, deploy-web]
+    uses: ./.github/workflows/deployment-summary.yml
+    with:
+      environment: ${{ needs.setup.outputs.environment }}
+      action: ${{ github.event.inputs.action || 'plan' }} 
