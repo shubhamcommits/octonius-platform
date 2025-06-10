@@ -142,10 +142,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: services/octonius-web/package-lock.json
       - name: 📦 Install Dependencies
         working-directory: services/octonius-web
-        run: npm ci
+        run: npm install
       - name: 🏗️ Build Angular App
         id: build
         working-directory: services/octonius-web
