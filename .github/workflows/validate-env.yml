@@ -19,7 +19,6 @@ jobs:
     steps:
       - name: Check Required Variables
         run: |
-          # Convert comma-separated list to array
           IFS=',' read -ra REQUIRED_VARS <<< "${{ inputs.required_vars }}"
           MISSING_VARS=()
           

@@ -80,6 +80,15 @@ jobs:
     with:
       required_vars: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,DOCKER_REGISTRY,WEB_IMAGE_NAME
       job_name: platform-deploy
+    secrets:
+      AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+      AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      PROD_S3_BUCKET: ${{ secrets.PROD_S3_BUCKET }}
+      DEV_S3_BUCKET: ${{ secrets.DEV_S3_BUCKET }}
+      DOCKER_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+      WEB_IMAGE_NAME: octonius-web
 
   setup:
     name: 🔧 Setup Environment
