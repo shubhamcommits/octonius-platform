@@ -132,7 +132,7 @@ jobs:
 
   docker-image-build:
     name: 🐳 Docker Image Build
-    needs: [validate-env, determine-action, angular-build]
+    needs: [validate-env, determine-action]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
