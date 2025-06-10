@@ -25,9 +25,9 @@ jobs:
           
           # Check each required variable
           for var in "${REQUIRED_VARS[@]}"; do
-            # Check if the variable is set in environment
+            # Check if the variable is set
             if [[ -n "${!var}" ]]; then
-              echo "✅ $var is set in environment"
+              echo "✅ $var is set"
               continue
             fi
             
@@ -38,7 +38,7 @@ jobs:
           if [ ${#MISSING_VARS[@]} -ne 0 ]; then
             echo "❌ Missing required variables in ${{ inputs.job_name }} job:"
             for var in "${MISSING_VARS[@]}"; do
-              echo "  - $var (not found in environment)"
+              echo "  - $var (not found)"
             done
             exit 1
           else
