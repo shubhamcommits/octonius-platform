@@ -19,23 +19,28 @@ jobs:
     steps:
       - name: Check Required Variables
         run: |
+          # Convert comma-separated list to array
           IFS=',' read -ra REQUIRED_VARS <<< "${{ inputs.required_vars }}"
           MISSING_VARS=()
           
           # Check each required variable
           for var in "${REQUIRED_VARS[@]}"; do
-            # Use eval to check if the variable is set
-            if ! eval "[ -n \"\$$var\" ]"; then
-              MISSING_VARS+=("$var")
+            # Check if the variable is set in environment
+            if [[ -n "${!var}" ]]; then
+              echo "✅ $var is set in environment"
+              continue
             fi
+            
+            # Variable is not set
+            MISSING_VARS+=("$var")
           done
           
           if [ ${#MISSING_VARS[@]} -ne 0 ]; then
-            echo "❌ Missing required environment variables in ${{ inputs.job_name }} job:"
+            echo "❌ Missing required variables in ${{ inputs.job_name }} job:"
             for var in "${MISSING_VARS[@]}"; do
-              echo "  - $var"
+              echo "  - $var (not found in environment)"
             done
             exit 1
           else
-            echo "✅ All required environment variables are set in ${{ inputs.job_name }} job"
+            echo "✅ All required variables are set in ${{ inputs.job_name }} job"
           fi 

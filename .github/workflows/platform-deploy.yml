@@ -1,4 +1,4 @@
-name: 🚀 100% Pipeline-Native Platform Deployment
+name: 🚀 Platform Deployment
 
 on:
   push:
@@ -24,7 +24,6 @@ on:
       environment:
         description: 'Environment to deploy to'
         required: true
-        default: 'dev'
         type: choice
         options:
           - dev
@@ -32,12 +31,15 @@ on:
       action:
         description: 'Action to perform'
         required: true
-        default: 'plan'
         type: choice
         options:
-          - plan
-          - apply
+          - deploy
           - destroy
+      skip_validation:
+        description: 'Skip validation steps'
+        required: false
+        type: boolean
+        default: false
 
 # Prevent parallel deployments of the same environment
 concurrency:
@@ -51,8 +53,8 @@ env:
   PROJECT_NAME: 'octonius-platform'
   
   # AWS Configuration
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} 
   
@@ -64,7 +66,7 @@ env:
   NODE_VERSION: '20.x'
   
   # Docker Configuration
-  DOCKER_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
   WEB_IMAGE_NAME: 'octonius-web'
 
 # Set minimum required permissions
@@ -78,17 +80,9 @@ jobs:
     name: 🔍 Validate Environment Variables
     uses: ./.github/workflows/validate-env.yml
     with:
-      required_vars: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,DOCKER_REGISTRY,WEB_IMAGE_NAME
-      job_name: platform-deploy
-    secrets:
-      AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
-      AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      PROD_S3_BUCKET: ${{ secrets.PROD_S3_BUCKET }}
-      DEV_S3_BUCKET: ${{ secrets.DEV_S3_BUCKET }}
-      DOCKER_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-      WEB_IMAGE_NAME: octonius-web
+      required_vars: 'TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY,AWS_SECRET_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,DOCKER_REGISTRY,WEB_IMAGE_NAME,NODE_VERSION'
+      job_name: 'platform-deploy'
+    if: ${{ !inputs.skip_validation }}
 
   setup:
     name: 🔧 Setup Environment
