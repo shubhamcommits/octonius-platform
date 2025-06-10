@@ -75,8 +75,29 @@ permissions:
   pull-requests: write
 
 jobs:
+  validate-env:
+    name: "🔍 Validate All Environment Variables"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Required Environment Variables
+        run: |
+          REQUIRED_VARS="TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,NODE_VERSION,WEB_IMAGE_NAME"
+          IFS=',' read -ra VARS <<< "$REQUIRED_VARS"
+          MISSING=()
+          for var in "${VARS[@]}"; do
+            if [[ -z "${!var}" ]]; then
+              MISSING+=("$var")
+            fi
+          done
+          if [ ${#MISSING[@]} -ne 0 ]; then
+            echo "❌ Missing required variables: ${MISSING[*]}"
+            exit 1
+          else
+            echo "✅ All required variables are set."
+          fi
   determine-action:
     name: 🤔 Determine Action
+    needs: validate-env
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.env.outputs.environment }}
@@ -111,7 +132,7 @@ jobs:
 
   angular-build:
     name: 🏗️ Angular Build
-    needs: determine-action
+    needs: [validate-env, determine-action]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
@@ -148,7 +169,7 @@ jobs:
 
   docker-image-build:
     name: 🐳 Docker Image Build
-    needs: angular-build
+    needs: [validate-env, angular-build]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
@@ -184,7 +205,7 @@ jobs:
 
   infra:
     name: 🏗️ Infrastructure Management
-    needs: docker-image-build
+    needs: [validate-env, docker-image-build]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
@@ -296,7 +317,7 @@ jobs:
 
   deploy-web:
     name: 🚀 Deploy Web Assets
-    needs: infra
+    needs: [validate-env, infra]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
@@ -334,7 +355,7 @@ jobs:
 
   deployment-summary:
     name: 📊 Deployment Summary
-    needs: deploy-web
+    needs: [validate-env, deploy-web]
     runs-on: ubuntu-latest
     if: always()
     steps:
