@@ -6,10 +6,10 @@ on:
 jobs:
   validate-env:
     name: 🔍 Validate Environment Variables
-    uses: ./.github/workflows/validate-env.yml
+    uses: ./.github/actions/validate-env/action.yml
     with:
-      required_vars: GITHUB_EVENT_NAME,GITHUB_REF,GITHUB_HEAD_REF
-      job_name: setup-environment
+      required_vars: 'TF_VERSION,PROJECT_NAME,NODE_VERSION'
+      job_name: 'setup-environment'
 
   setup:
     name: 🔧 Setup Environment

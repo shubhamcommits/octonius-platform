@@ -15,10 +15,10 @@ on:
 jobs:
   validate-env:
     name: 🔍 Validate Environment Variables
-    uses: ./.github/workflows/validate-env.yml
+    uses: ./.github/actions/validate-env/action.yml
     with:
-      required_vars: GITHUB_EVENT_NAME,GITHUB_REF
-      job_name: determine-action
+      required_vars: 'TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,DOCKER_REGISTRY,WEB_IMAGE_NAME,NODE_VERSION'
+      job_name: 'determine-action'
 
   determine:
     name: 🤔 Determine Action

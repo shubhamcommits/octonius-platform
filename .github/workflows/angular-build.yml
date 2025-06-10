@@ -21,10 +21,10 @@ on:
 jobs:
   validate-env:
     name: 🔍 Validate Environment Variables
-    uses: ./.github/workflows/validate-env.yml
+    uses: ./.github/actions/validate-env/action.yml
     with:
-      required_vars: NODE_VERSION
-      job_name: angular-build
+      required_vars: 'NODE_VERSION,WEB_IMAGE_NAME'
+      job_name: 'angular-build'
 
   build:
     name: 🏗️ Build Angular Application
