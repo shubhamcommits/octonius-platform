@@ -95,12 +95,12 @@ jobs:
   setup:
     name: 🔧 Setup Environment
     needs: validate-env
-    uses: ./.github/workflows/setup-environment.yml@master
+    uses: ./.github/workflows/setup-environment.yml
 
   determine-action:
     name: 🤔 Determine Action
     needs: [validate-env, setup]
-    uses: ./.github/workflows/determine-action.yml@master
+    uses: ./.github/workflows/determine-action.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
       action: ${{ github.event.inputs.action || 'plan' }}
@@ -108,7 +108,7 @@ jobs:
   infrastructure:
     name: 🏗️ Infrastructure Management
     needs: [validate-env, setup, determine-action]
-    uses: ./.github/workflows/infrastructure.yml@master
+    uses: ./.github/workflows/infrastructure.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
       action: ${{ github.event.inputs.action || 'plan' }}
@@ -116,14 +116,14 @@ jobs:
   build-web:
     name: 🏗️ Build Web Application
     needs: [validate-env, setup]
-    uses: ./.github/workflows/angular-build.yml@master
+    uses: ./.github/workflows/angular-build.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
 
   docker-images:
     name: 🐳 Docker Image Management
     needs: [validate-env, setup, build-web]
-    uses: ./.github/workflows/docker-images.yml@master
+    uses: ./.github/workflows/docker-images.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
       web_image_name: octonius-web
@@ -131,7 +131,7 @@ jobs:
   deploy-web:
     name: 🚀 Deploy Web Assets
     needs: [validate-env, setup, infrastructure, build-web]
-    uses: ./.github/workflows/web-deploy.yml@master
+    uses: ./.github/workflows/web-deploy.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
       s3_bucket: ${{ needs.infrastructure.outputs.web_s3_bucket_name }}
@@ -140,7 +140,7 @@ jobs:
   deployment-summary:
     name: 📊 Deployment Summary
     needs: [validate-env, setup, infrastructure, build-web, docker-images, deploy-web]
-    uses: ./.github/workflows/deployment-summary.yml@master
+    uses: ./.github/workflows/deployment-summary.yml
     with:
       environment: ${{ needs.setup.outputs.environment }}
       action: ${{ github.event.inputs.action || 'plan' }} 
