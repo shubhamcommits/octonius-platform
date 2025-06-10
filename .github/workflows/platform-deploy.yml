@@ -86,7 +86,7 @@ jobs:
         env:
           AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
           AWS_REGION: ${{ env.AWS_REGION }}
-      - uses: ./.github/actions/validate-env
+      - uses: ./.github/actions/validate-env/action.yml
         with:
           required_vars: 'TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,DOCKER_REGISTRY,WEB_IMAGE_NAME,NODE_VERSION'
           job_name: 'platform-deploy'
@@ -95,12 +95,12 @@ jobs:
   setup:
     name: 🔧 Setup Environment
     needs: validate-env
-    uses: ./.github/workflows/setup-environment.yml
+    uses: ./.github/workflows/setup-environment.yml@master
 
   determine-action:
     name: 🤔 Determine Action
     needs: [validate-env, setup]
-    uses: ./.github/workflows/determine-action.yml
+    uses: ./.github/workflows/determine-action.yml@master
     with:
       environment: ${{ needs.setup.outputs.environment }}
       action: ${{ github.event.inputs.action || 'plan' }}
@@ -108,7 +108,7 @@ jobs:
   infrastructure:
     name: 🏗️ Infrastructure Management
     needs: [validate-env, setup, determine-action]
-    uses: ./.github/workflows/infrastructure.yml
+    uses: ./.github/workflows/infrastructure.yml@master
     with:
       environment: ${{ needs.setup.outputs.environment }}
       action: ${{ github.event.inputs.action || 'plan' }}
@@ -116,14 +116,14 @@ jobs:
   build-web:
     name: 🏗️ Build Web Application
     needs: [validate-env, setup]
-    uses: ./.github/workflows/angular-build.yml
+    uses: ./.github/workflows/angular-build.yml@master
     with:
       environment: ${{ needs.setup.outputs.environment }}
 
   docker-images:
     name: 🐳 Docker Image Management
     needs: [validate-env, setup, build-web]
-    uses: ./.github/workflows/docker-images.yml
+    uses: ./.github/workflows/docker-images.yml@master
     with:
       environment: ${{ needs.setup.outputs.environment }}
       web_image_name: octonius-web
@@ -131,7 +131,7 @@ jobs:
   deploy-web:
     name: 🚀 Deploy Web Assets
     needs: [validate-env, setup, infrastructure, build-web]
-    uses: ./.github/workflows/web-deploy.yml
+    uses: ./.github/workflows/web-deploy.yml@master
     with:
       environment: ${{ needs.setup.outputs.environment }}
       s3_bucket: ${{ needs.infrastructure.outputs.web_s3_bucket_name }}
@@ -140,7 +140,7 @@ jobs:
   deployment-summary:
     name: 📊 Deployment Summary
     needs: [validate-env, setup, infrastructure, build-web, docker-images, deploy-web]
-    uses: ./.github/workflows/deployment-summary.yml
+    uses: ./.github/workflows/deployment-summary.yml@master
     with:
       environment: ${{ needs.setup.outputs.environment }}
       action: ${{ github.event.inputs.action || 'plan' }} 

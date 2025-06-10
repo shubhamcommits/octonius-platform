@@ -1,4 +1,4 @@
-name: 🏗️ Infrastructure Management
+name: 🏗️ Infrastructure Management Workflow
 
 on:
   workflow_call:

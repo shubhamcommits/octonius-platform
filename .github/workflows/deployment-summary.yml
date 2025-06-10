@@ -1,4 +1,4 @@
-name: 📊 Deployment Summary
+name: �� Deployment Summary Workflow
 
 on:
   workflow_call:
