@@ -193,7 +193,7 @@ jobs:
           docker build \
             -t ${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG \
             -t ${{ env.WEB_IMAGE_NAME }}:latest \
-            -f services/octonius-web/Dockerfile \
+            -f Dockerfile \
             --build-arg NODE_ENV=${{ needs.determine-action.outputs.environment }} \
             .
           docker tag ${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG
