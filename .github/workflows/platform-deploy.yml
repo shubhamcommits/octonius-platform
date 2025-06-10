@@ -141,7 +141,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
       - name: 📦 Install Dependencies
         working-directory: services/octonius-web
         run: npm install
