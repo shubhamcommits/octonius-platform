@@ -64,9 +64,6 @@ env:
   
   # Node.js Configuration
   NODE_VERSION: '20.x'
-  
-  # Docker Configuration
-  WEB_IMAGE_NAME: 'octonius-web'
 
 # Set minimum required permissions
 permissions:
@@ -81,7 +78,7 @@ jobs:
     steps:
       - name: Validate Required Environment Variables
         run: |
-          REQUIRED_VARS="TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,NODE_VERSION,WEB_IMAGE_NAME"
+          REQUIRED_VARS="TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,NODE_VERSION"
           IFS=',' read -ra VARS <<< "$REQUIRED_VARS"
           MISSING=()
           for var in "${VARS[@]}"; do
@@ -151,15 +148,15 @@ jobs:
         run: |
           IMAGE_TAG="${{ needs.determine-action.outputs.environment }}-$(date +'%Y%m%d%H%M%S')"
           docker build \
-            -t ${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG \
-            -t ${{ env.WEB_IMAGE_NAME }}:latest \
+            -t ${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:$IMAGE_TAG \
+            -t ${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:latest \
             -f Dockerfile \
             --build-arg NODE_ENV=${{ needs.determine-action.outputs.environment }} \
             .
-          docker tag ${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG
-          docker tag ${{ env.WEB_IMAGE_NAME }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.WEB_IMAGE_NAME }}:latest
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.WEB_IMAGE_NAME }}:$IMAGE_TAG
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.WEB_IMAGE_NAME }}:latest
+          docker tag ${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:$IMAGE_TAG ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:$IMAGE_TAG
+          docker tag ${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:latest
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:$IMAGE_TAG
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.PROJECT_NAME }}:latest
 
   infra:
     name: 🏗️ Infrastructure Management
