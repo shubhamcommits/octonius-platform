@@ -17,4 +17,6 @@ variable "common_tags" {
   description = "Common tags to apply to all resources"
   type        = map(string)
   default     = {}
-} 
+}
+
+# This module uses CloudFront Origin Access Control (OAC) for secure S3 access 

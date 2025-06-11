@@ -30,4 +30,9 @@ output "cache_policy_ids" {
     html_files    = aws_cloudfront_cache_policy.html_files.id
     assets        = aws_cloudfront_cache_policy.assets.id
   }
+}
+
+output "cloudfront_oac_id" {
+  description = "ID of the CloudFront Origin Access Control (OAC)"
+  value       = aws_cloudfront_origin_access_control.web.id
 } 
