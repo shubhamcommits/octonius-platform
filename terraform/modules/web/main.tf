@@ -39,14 +39,14 @@ resource "aws_s3_bucket_public_access_block" "web" {
   restrict_public_buckets = true
 }
 
-# S3 bucket policy for CloudFront access
+# S3 bucket policy for CloudFront OAC access
 resource "aws_s3_bucket_policy" "web" {
   bucket = aws_s3_bucket.web.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowCloudFrontServicePrincipal"
+        Sid       = "AllowCloudFrontServicePrincipalOAC"
         Effect    = "Allow"
         Principal = {
           Service = "cloudfront.amazonaws.com"
@@ -63,12 +63,16 @@ resource "aws_s3_bucket_policy" "web" {
   })
 }
 
-# CloudFront Origin Access Identity
-resource "aws_cloudfront_origin_access_identity" "web" {
-  comment = "OAI for ${var.environment}-${var.project_name}-web"
+# CloudFront Origin Access Control (OAC)
+resource "aws_cloudfront_origin_access_control" "web" {
+  name                              = "${var.environment}-${var.project_name}-web-oac"
+  description                       = "OAC for ${var.environment}-${var.project_name}-web"
+  origin_access_control_origin_type  = "s3"
+  signing_behavior                   = "always"
+  signing_protocol                   = "sigv4"
 }
 
-# CloudFront distribution
+# CloudFront distribution (with OAC)
 resource "aws_cloudfront_distribution" "web" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -79,9 +83,7 @@ resource "aws_cloudfront_distribution" "web" {
     domain_name = aws_s3_bucket.web.bucket_regional_domain_name
     origin_id   = "S3-${aws_s3_bucket.web.bucket}"
 
-    s3_origin_config {
-      origin_access_identity = aws_cloudfront_origin_access_identity.web.cloudfront_access_identity_path
-    }
+    origin_access_control_id = aws_cloudfront_origin_access_control.web.id
   }
 
   # Default cache behavior
