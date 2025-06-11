@@ -70,4 +70,11 @@ export function isProduction(): boolean {
  */
 export function isDevelopment(): boolean {
   return process.env.NODE_ENV === 'dev'
+}
+
+/**
+ * Checks if running in local
+ */
+export function isLocal(): boolean {
+    return process.env.NODE_ENV === 'local'
 } 
