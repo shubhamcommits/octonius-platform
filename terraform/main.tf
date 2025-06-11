@@ -235,9 +235,6 @@ module "app_runner" {
     DB_PASS               = "${data.aws_secretsmanager_secret.database_password.arn}:password::"
   }
 
-  # Force new deployment when secrets change
-  # Set to true when you need to force App Runner to redeploy (e.g., after updating secret values)
-  # Set back to false after deployment to avoid unnecessary redeployments
   force_new_deployment = false
 
   tags = local.common_tags
