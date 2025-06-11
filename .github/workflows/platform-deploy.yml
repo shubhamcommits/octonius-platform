@@ -203,6 +203,7 @@ jobs:
       - name: 📝 Generate Variables Configuration
         working-directory: terraform
         run: |
+          mkdir -p config
           ENV="${{ needs.determine-action.outputs.environment }}"
           case "$ENV" in
             prod)
