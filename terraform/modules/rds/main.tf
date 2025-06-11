@@ -45,7 +45,7 @@ resource "aws_security_group" "rds" {
   description = "Security group for RDS PostgreSQL"
   vpc_id      = var.vpc_id
 
-  # Allow PostgreSQL traffic from ECS tasks only
+  # Allow PostgreSQL traffic from the current App Runner security group only
   ingress {
     from_port       = 5432
     to_port         = 5432

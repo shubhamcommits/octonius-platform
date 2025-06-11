@@ -98,6 +98,9 @@ export async function initiliazeDatabase(): Promise<{ message: string, connected
         return { message: 'Database initialized successfully', connected: true }
 
     } catch (error: any) {
+
+        console.error('Error during database initialization: ', error)
+        
         dbLogger(`Error during database initialization: ${error.message}`, { level: 'error' })
         // Do not throw, just return a failed state
         return { message: `Database unavailable: ${error.message}`, connected: false }

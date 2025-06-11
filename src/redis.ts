@@ -1,70 +1,122 @@
 // Import redis module
 import { createClient } from 'redis'
-
-// Import global connection map
-import { global_connection_map } from '../server'
-
 // Import logger
 import { redisLogger } from './logger'
 
-// Import environment configuration
-import { getRedisConfig, getEnv } from './config'
+// Create client
+const client = createClient({
+    url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+    socket: {
+        reconnectStrategy: (retries) => {
+            redisLogger('redis_reconnect_attempt', {
+                attempt: retries,
+                host: process.env.REDIS_HOST,
+                port: process.env.REDIS_PORT
+            })
+            if (retries > 10) {
+                redisLogger('redis_reconnect_failed', {
+                    level: 'error',
+                    message: 'Retry attempts exhausted',
+                    host: process.env.REDIS_HOST,
+                    port: process.env.REDIS_PORT
+                })
+                return new Error('Retry attempts exhausted')
+            }
+            // Exponential backoff, max 3s
+            return Math.min(retries * 100, 3000)
+        },
+        connectTimeout: 10000 // 10 seconds
+    }
+})
 
-let client: ReturnType<typeof createClient> | null = null
+// Tracks if Redis is currently available
+let redis_available = false
+// Timestamp of the last error log (for throttling repeated logs)
+let last_error_log_time = 0
+// Throttle interval for error logs (in milliseconds)
+const ERROR_LOG_THROTTLE_MS = 60000 // 60 seconds
 
 /**
- * Connects to Redis
+ * Checks if Redis is currently available.
+ * @returns {boolean} True if Redis is available, false otherwise.
+ */
+export function isRedisAvailable() {
+    return redis_available
+}
+
+/**
+ * Establishes a connection to Redis. Uses built-in reconnect strategy.
+ * Logs each connection attempt, error, and final status.
+ * @returns {Promise<{ connection: typeof client } | { message: string, connected: boolean }>}
  */
 export async function connectRedis() {
-    try {
-        const config = getRedisConfig()
-        const url = `redis://${config.host}:${config.port}`
+    redisLogger('redis_connection_initiated', {
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT
+    })
 
-        redisLogger('Connecting to Redis', {
-            host: config.host,
-            port: config.port
-        })
-
-        client = createClient({ url })
-
-        client.on('error', (err) => {
-            redisLogger('Client Error', {
+    // Attach error handler with throttled logging
+    client.on('error', (err) => {
+        const now = Date.now()
+        if (now - last_error_log_time > ERROR_LOG_THROTTLE_MS) {
+            redisLogger('redis_client_error', {
                 level: 'error',
-                error: err.message
+                error: err.message,
+                host: process.env.REDIS_HOST,
+                port: process.env.REDIS_PORT
             })
-        })
+            last_error_log_time = now
+        }
+    })
 
+    try {
         await client.connect()
-
-        redisLogger('Connected', {
-            host: config.host,
-            port: config.port
+        redisLogger('redis_connected', {
+            host: process.env.REDIS_HOST,
+            port: process.env.REDIS_PORT
         })
-
-        return client
+        redis_available = true
+        return { connection: client }
     } catch (error: any) {
-        redisLogger('Connection Error', {
+        redis_available = false
+        redisLogger('redis_unavailable', {
             level: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
+            host: process.env.REDIS_HOST,
+            port: process.env.REDIS_PORT
         })
-        return { message: `Redis unavailable: ${error.message}`, connected: false }
+        return { message: 'redis_unavailable', connected: false }
     }
 }
 
 /**
- * Disconnects from Redis
+ * Gracefully disconnects from Redis and updates availability state.
+ * Logs the disconnection event.
+ * @returns {Promise<void>}
  */
 export async function disconnectRedis() {
-    if (client) {
+    try {
         await client.quit()
-        client = null
-        redisLogger('Disconnected')
+        redis_available = false
+        redisLogger('redis_disconnected', {
+            host: process.env.REDIS_HOST,
+            port: process.env.REDIS_PORT
+        })
+    } catch (err: any) {
+        redisLogger('redis_disconnect_error', {
+            level: 'error',
+            error: err instanceof Error ? err.message : 'Unknown error',
+            host: process.env.REDIS_HOST,
+            port: process.env.REDIS_PORT
+        })
     }
 }
 
 /**
- * Deletes Redis keys by prefix
- * @param prefix - The prefix to match keys
+ * Deletes all Redis keys that match a given prefix.
+ * Logs the number of deleted keys or any errors encountered.
+ * @param {string} prefix - The prefix to match keys.
+ * @returns {Promise<{ message: string, keys: string[] }>}
  */
 export async function deleteRedisKeysByPrefix(prefix: string) {
     if (!client) {
@@ -76,6 +128,7 @@ export async function deleteRedisKeysByPrefix(prefix: string) {
         if (keys.length > 0) {
             await client.del(keys)
             redisLogger(`Deleted ${keys.length} keys with prefix: ${prefix}`)
+            return { message: `Deleted ${keys.length} keys with prefix: ${prefix}`, keys: keys }
         }
     } catch (error: any) {
         redisLogger('Error deleting keys', {
@@ -83,46 +136,47 @@ export async function deleteRedisKeysByPrefix(prefix: string) {
             prefix,
             error: error instanceof Error ? error.message : 'Unknown error'
         })
+        return { message: `Error deleting Redis keys with prefix ${prefix}: ${error}`, keys: [] }
     }
     return { message: 'Delete operation completed', keys: [] }
 }
 
 /**
- * Fetch redis keys by prefix
- * @param prefix - The prefix to search for
- * @returns Promise<{ message: string, keys: string[] }>
+ * Fetches all Redis keys that match a given prefix using SCAN for efficiency.
+ * Logs the number of fetched keys or any errors encountered.
+ * @param {string} prefix - The prefix to search for.
+ * @returns {Promise<{ message: string, keys: string[] }>}
  */
 export async function fetchRedisKeysByPrefix(prefix: string): Promise<{ message: string, keys: string[] }> {
     try {
-        const redis: any = global_connection_map.get('redis')
-        let cursor = '0'
-        const g_keys: string[] = []
+        let cursor = 0;
+        const g_keys: string[] = [];
 
         do {
-            const result = await redis.scan(cursor, 'MATCH', '*', 'COUNT', 100)
-            cursor = result.cursor || 0
-            const keys = result.keys || []
+            const result = await client.scan(cursor, { MATCH: '*', COUNT: 100 });
+            cursor = result.cursor;
+            const keys = result.keys || [];
 
             if (keys.length > 0) {
                 keys.forEach((key: string) => {
                     if (key.startsWith(prefix)) {
-                        g_keys.push(key)
+                        g_keys.push(key);
                     }
-                })
+                });
             }
-        } while (cursor != '0')
+        } while (cursor !== 0);
 
         redisLogger(`Fetched ${g_keys.length} keys with prefix ${prefix}*`)
         return {
             message: `Keys with prefix ${prefix}* were fetched`,
             keys: g_keys
-        }
+        };
     } catch (error: any) {
-        redisLogger(`Error fetching keys with prefix ${prefix}*`, { 
+        redisLogger(`Error fetching keys with prefix ${prefix}*`, {
             level: 'error',
             error: error instanceof Error ? error.message : 'Unknown error'
         })
-        return { message: `Error fetching Redis keys with prefix ${prefix}: ${error}`, keys: [] }
+        return { message: `Error fetching Redis keys with prefix ${prefix}: ${error}`, keys: [] };
     }
 }
 
