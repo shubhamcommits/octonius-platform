@@ -68,4 +68,10 @@ variable "database_username" {
   description = "Username for the RDS database (defaults to project_name)"
   type        = string
   default     = "octonius"
+}
+
+variable "image_tag" {
+  description = "The tag of the Docker image to deploy."
+  type        = string
+  default     = "latest"
 } 

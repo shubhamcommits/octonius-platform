@@ -105,4 +105,14 @@ variable "force_new_deployment" {
   description = "Force a new deployment of the App Runner service (useful when secrets change)"
   type        = bool
   default     = false
+}
+
+variable "image_tag" {
+  description = "The tag of the Docker image to deploy."
+  type        = string
+}
+
+variable "ecr_repository_url" {
+  description = "The ECR repository URL."
+  type        = string
 } 
