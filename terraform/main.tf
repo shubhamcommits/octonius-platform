@@ -195,9 +195,9 @@ module "app_runner" {
   # Container configuration
   container_port     = 3000
   health_check_path  = "/api/health"
-  image_tag          = var.image_tag
+  image_tag          = "latest-${local.environment}"
   ecr_repository_url = module.ecr.repository_url
-  image_identifier   = "${module.ecr.repository_url}:${var.image_tag}"
+  image_identifier   = "${module.ecr.repository_url}:latest-${local.environment}"
 
   # Auto-scaling configuration
   cpu      = local.environment == "prod" ? 1024 : 512
