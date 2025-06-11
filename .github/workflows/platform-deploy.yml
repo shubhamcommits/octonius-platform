@@ -335,27 +335,6 @@ jobs:
         working-directory: terraform
         run: |
           echo "WEB_CLOUDFRONT_DISTRIBUTION_ID=$(terraform output -raw web_cloudfront_distribution_id)" >> $GITHUB_OUTPUT
-      - name: ⏳ Wait for App Runner to be ready
-        working-directory: terraform
-        run: |
-          SERVICE_ARN=$(terraform output -raw app_runner_service_arn)
-          STATUS=""
-          TIMEOUT=600  # 10 minutes
-          INTERVAL=10
-          ELAPSED=0
-          while true; do
-            STATUS=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --region "${{ env.AWS_REGION }}" | jq -r '.Service.Status')
-            echo "Current App Runner status: $STATUS"
-            if [[ "$STATUS" == "RUNNING" || "$STATUS" == "FAILED" ]]; then
-              break
-            fi
-            if [[ $ELAPSED -ge $TIMEOUT ]]; then
-              echo "Timed out waiting for App Runner to be ready."
-              exit 1
-            fi
-            sleep $INTERVAL
-            ELAPSED=$((ELAPSED + INTERVAL))
-          done
 
   angular-build:
     name: 🏗️ Angular Build
