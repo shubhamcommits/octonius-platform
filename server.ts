@@ -115,17 +115,17 @@ async function setUpExpressApplication() {
     // Creating Microservice Server
     const server = http.createServer(app)
 
-    // // Connect Database
-    // const dbStatus = await initiliazeDatabase()
-    // if (!dbStatus.connected) {
-    //     logger.warn('Database credentials unavailable, running in degraded mode')
-    // }
+    // Connect Database
+    const dbStatus = await initiliazeDatabase()
+    if (!dbStatus.connected) {
+        logger.warn('Database credentials unavailable, running in degraded mode')
+    }
 
-    // // Connect Redis
-    // const redisStatus = await connectRedis()
-    // if (!redisStatus) {
-    //     logger.warn('Redis is unavailable, running in degraded mode')
-    // }
+    // Connect Redis
+    const redisStatus = await connectRedis()
+    if (!redisStatus) {
+        logger.warn('Redis is unavailable, running in degraded mode')
+    }
 
     // Catch unhandled promise rejections globally
     process.on('unhandledRejection', (reason, promise) => {
