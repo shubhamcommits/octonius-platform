@@ -51,7 +51,8 @@ env:
   # Terraform Configuration
   TF_VERSION: '1.7.4'
   REPOSITORY_NAME: 'octonius'
-  
+  OWNER: 'Octonius-Team'
+
   # AWS Configuration
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
@@ -78,7 +79,7 @@ jobs:
     steps:
       - name: Validate Required Environment Variables
         run: |
-          REQUIRED_VARS="TF_VERSION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,NODE_VERSION,REPOSITORY_NAME"
+          REQUIRED_VARS="TF_VERSION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,NODE_VERSION,REPOSITORY_NAME,OWNER"
           IFS=',' read -ra VARS <<< "$REQUIRED_VARS"
           MISSING=()
           for var in "${VARS[@]}"; do
@@ -206,6 +207,7 @@ jobs:
           ACCOUNT_ID="${{ env.AWS_ACCOUNT_ID }}"
           REGION="${{ env.AWS_REGION }}"
           ACTOR="${{ github.actor }}"
+          OWNER="${{ env.OWNER }}"
           DATE="$(date -u +"%Y-%m-%d")"
           cat > locals.tf <<EOF
           locals {
@@ -224,6 +226,7 @@ jobs:
               Region      = local.aws_region
               CreatedBy   = "$ACTOR"
               CreatedAt   = "$DATE"
+              Owner       = "$OWNER"
             }
           }
           EOF
@@ -380,16 +383,17 @@ jobs:
           path: dist
       - name: 🚀 Deploy to S3
         run: |
-          aws s3 sync dist/ s3://${{ env.PROD_S3_BUCKET }}/ \
+          BUCKET_NAME="${{ needs.determine-action.outputs.environment }}-${{ env.REPOSITORY_NAME }}-web-deployment-bucket-${{ env.AWS_REGION }}"
+          aws s3 sync dist/ s3://$BUCKET_NAME/ \
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
             --exclude "*.html" \
             --exclude "assets/*"
-          aws s3 sync dist/ s3://${{ env.PROD_S3_BUCKET }}/ \
+          aws s3 sync dist/ s3://$BUCKET_NAME/ \
             --delete \
             --cache-control "no-cache" \
             --include "*.html"
-          aws s3 sync dist/assets/ s3://${{ env.PROD_S3_BUCKET }}/assets/ \
+          aws s3 sync dist/assets/ s3://$BUCKET_NAME/assets/ \
             --delete \
             --cache-control "public, max-age=3600"
       - name: 🔄 Invalidate CloudFront Cache
