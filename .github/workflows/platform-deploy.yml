@@ -161,7 +161,7 @@ jobs:
 
   infra:
     name: 🏗️ Infrastructure Management
-    needs: [validate-env, docker-image-build]
+    needs: [validate-env, docker-image-build, determine-action]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
