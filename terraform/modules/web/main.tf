@@ -82,8 +82,12 @@ resource "aws_cloudfront_distribution" "web" {
   origin {
     domain_name = aws_s3_bucket.web.bucket_regional_domain_name
     origin_id   = "S3-${aws_s3_bucket.web.bucket}"
-
     origin_access_control_id = aws_cloudfront_origin_access_control.web.id
+    origin_path = "/latest/browser"
+    origin_shield {
+      enabled = true
+      origin_shield_region = var.aws_region
+    }
   }
 
   # Default cache behavior
@@ -197,8 +201,3 @@ resource "aws_cloudfront_cache_policy" "assets" {
     }
   }
 }
-
-# CloudFront Origin Access Identity (OAI) - commented out for safe two-stage apply
-# resource "aws_cloudfront_origin_access_identity" "web" {
-#   comment = "OAI for ${var.environment}-${var.project_name}-web"
-# } 
