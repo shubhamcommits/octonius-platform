@@ -164,7 +164,6 @@ jobs:
     needs: [validate-env, docker-image-build, determine-action]
     runs-on: ubuntu-latest
     outputs:
-      web_s3_bucket_name: ${{ steps.extract.outputs.WEB_S3_BUCKET_NAME }}
       web_cloudfront_distribution_id: ${{ steps.extract.outputs.WEB_CLOUDFRONT_DISTRIBUTION_ID }}
     steps:
       - name: 📥 Checkout Code
@@ -327,7 +326,6 @@ jobs:
         id: extract
         working-directory: terraform
         run: |
-          echo "WEB_S3_BUCKET_NAME=$(terraform output -raw web_s3_bucket_name)" >> $GITHUB_OUTPUT
           echo "WEB_CLOUDFRONT_DISTRIBUTION_ID=$(terraform output -raw web_cloudfront_distribution_id)" >> $GITHUB_OUTPUT
 
   angular-build:
@@ -383,18 +381,29 @@ jobs:
         with:
           name: angular-build-${{ needs.determine-action.outputs.environment }}
           path: dist
-      - name: 🚀 Deploy to S3
+      - name: 🚀 Deploy to S3 (Versioned)
         run: |
+          BUILD_VERSION="$(date +'%Y%m%d%H%M%S')-${GITHUB_SHA:0:7}"
+          echo "Build version: $BUILD_VERSION"
           BUCKET_NAME="${{ needs.determine-action.outputs.environment }}-${{ env.REPOSITORY_NAME }}-web-deployment-bucket-${{ env.AWS_REGION }}"
-          aws s3 sync dist/ s3://$BUCKET_NAME/ \
+          aws s3 sync dist/ s3://$BUCKET_NAME/builds/$BUILD_VERSION/ \
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
             --exclude "*.html" \
             --exclude "assets/*"
-          aws s3 sync dist/ s3://$BUCKET_NAME/ \
+          aws s3 sync dist/ s3://$BUCKET_NAME/builds/$BUILD_VERSION/ \
             --delete \
             --cache-control "no-cache" \
             --include "*.html"
+          if [ -d dist/assets ]; then
+            aws s3 sync dist/assets/ s3://$BUCKET_NAME/builds/$BUILD_VERSION/assets/ \
+              --delete \
+              --cache-control "public, max-age=3600"
+          fi
+          echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
+      - name: 📢 Output Build Version
+        run: |
+          echo "## Build Version: $BUILD_VERSION" >> $GITHUB_STEP_SUMMARY
       - name: 🔄 Invalidate CloudFront Cache
         run: |
           aws cloudfront create-invalidation \
