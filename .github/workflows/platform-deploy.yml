@@ -200,6 +200,37 @@ jobs:
           else
             echo "✅ DynamoDB table already exists: $TABLE_NAME"
           fi
+      - name: 📝 Generate Variables Configuration
+        working-directory: terraform
+        run: |
+          ENV="${{ needs.determine-action.outputs.environment }}"
+          case "$ENV" in
+            prod)
+              VPC_CIDR="10.0.0.0/16"
+              PUBLIC_SUBNETS='["10.0.1.0/24", "10.0.2.0/24"]'
+              PRIVATE_SUBNETS='["10.0.10.0/24", "10.0.20.0/24"]'
+              ;;
+            dev)
+              VPC_CIDR="10.1.0.0/16"
+              PUBLIC_SUBNETS='["10.1.1.0/24", "10.1.2.0/24"]'
+              PRIVATE_SUBNETS='["10.1.10.0/24", "10.1.20.0/24"]'
+              ;;
+            *)
+              ENV_HASH=$(echo -n "$ENV" | md5sum | cut -c1-2)
+              SECOND_OCTET=$((0x$ENV_HASH % 240 + 10))
+              VPC_CIDR="10.${SECOND_OCTET}.0.0/16"
+              PUBLIC_SUBNETS="[\"10.${SECOND_OCTET}.1.0/24\", \"10.${SECOND_OCTET}.2.0/24\"]"
+              PRIVATE_SUBNETS="[\"10.${SECOND_OCTET}.10.0/24\", \"10.${SECOND_OCTET}.20.0/24\"]"
+              ;;
+          esac
+          cat > config/terraform.tfvars <<EOF
+          environment  = "$ENV"
+          project_name = "${{ env.PROJECT_NAME }}"
+          aws_region   = "${{ env.AWS_REGION }}"
+          vpc_cidr           = "$VPC_CIDR"
+          public_subnets     = $PUBLIC_SUBNETS
+          private_subnets    = $PRIVATE_SUBNETS
+          EOF
       - name: 📝 Generate Terraform Configuration
         run: |
           mkdir -p terraform/config
@@ -219,11 +250,6 @@ jobs:
               dynamodb_table = "${{ needs.determine-action.outputs.environment }}-${{ env.REPOSITORY_NAME }}-terraform-locks-${{ env.AWS_REGION }}"
             }
           }
-          EOF
-          cat > terraform/config/terraform.tfvars << EOF
-          environment  = "${{ needs.determine-action.outputs.environment }}"
-          project_name = "${{ env.PROJECT_NAME }}"
-          aws_region   = "${{ env.AWS_REGION }}"
           EOF
       - name: 🏗️ Initialize Terraform
         working-directory: terraform
