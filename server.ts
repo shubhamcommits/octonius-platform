@@ -51,7 +51,7 @@ import app from './src/app'
 import { initiliazeDatabase } from './src/database'
 
 // Import Redis function
-import { connectRedis, deleteRedisKeysByPrefix, disconnectRedis } from './src/redis'
+import { connectRedis } from './src/redis'
 
 // Import node-fetch module
 import { Headers } from 'node-fetch'
@@ -114,6 +114,15 @@ async function setUpExpressApplication() {
 
     // Creating Microservice Server
     const server = http.createServer(app)
+
+    console.log('DB HOST', process.env.DB_WRITER_HOST)
+    console.log('DB HOST', process.env.DB_READER_HOST)
+    console.log('DB PORT', process.env.DB_PORT)
+    console.log('DB USER', process.env.DB_USER)
+    console.log('DB NAME', process.env.DB_NAME)
+    console.log('DB PASS', process.env.DB_PASS)
+    console.log('REDIS HOST', process.env.REDIS_HOST)
+    console.log('REDIS PORT', process.env.REDIS_PORT)
 
     // Connect Database
     const dbStatus = await initiliazeDatabase()

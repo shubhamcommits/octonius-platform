@@ -19,7 +19,7 @@ resource "aws_security_group" "redis" {
   description = "Security group for Redis ElastiCache"
   vpc_id      = var.vpc_id
 
-  # Allow Redis traffic from ECS tasks only
+  # Allow Redis traffic from the current App Runner security group only
   ingress {
     from_port       = 6379
     to_port         = 6379
