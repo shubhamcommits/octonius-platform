@@ -196,4 +196,9 @@ resource "aws_cloudfront_cache_policy" "assets" {
       query_string_behavior = "none"
     }
   }
-} 
+}
+
+# CloudFront Origin Access Identity (OAI) - commented out for safe two-stage apply
+# resource "aws_cloudfront_origin_access_identity" "web" {
+#   comment = "OAI for ${var.environment}-${var.project_name}-web"
+# } 
