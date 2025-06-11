@@ -386,6 +386,7 @@ jobs:
           BUILD_VERSION="$(date +'%Y%m%d%H%M%S')-${GITHUB_SHA:0:7}"
           echo "Build version: $BUILD_VERSION"
           BUCKET_NAME="${{ needs.determine-action.outputs.environment }}-${{ env.REPOSITORY_NAME }}-web-deployment-bucket-${{ env.AWS_REGION }}"
+          # Versioned build
           aws s3 sync dist/ s3://$BUCKET_NAME/builds/$BUILD_VERSION/ \
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
@@ -397,6 +398,21 @@ jobs:
             --include "*.html"
           if [ -d dist/assets ]; then
             aws s3 sync dist/assets/ s3://$BUCKET_NAME/builds/$BUILD_VERSION/assets/ \
+              --delete \
+              --cache-control "public, max-age=3600"
+          fi
+          # Latest build
+          aws s3 sync dist/ s3://$BUCKET_NAME/latest/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html" \
+            --exclude "assets/*"
+          aws s3 sync dist/ s3://$BUCKET_NAME/latest/ \
+            --delete \
+            --cache-control "no-cache" \
+            --include "*.html"
+          if [ -d dist/assets ]; then
+            aws s3 sync dist/assets/ s3://$BUCKET_NAME/latest/assets/ \
               --delete \
               --cache-control "public, max-age=3600"
           fi
