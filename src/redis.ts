@@ -3,9 +3,15 @@ import { createClient } from 'redis'
 // Import logger
 import { redisLogger } from './logger'
 
+// Import environment variables
+import { isLocal } from './config/env'
+
+// Determine protocol based on environment
+const redis_protocol = isLocal() ? 'redis' : 'rediss'
+
 // Create client
 const client = createClient({
-    url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+    url: `${redis_protocol}://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
     socket: {
         reconnectStrategy: (retries) => {
             redisLogger('redis_reconnect_attempt', {

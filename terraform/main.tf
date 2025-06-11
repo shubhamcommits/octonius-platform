@@ -215,8 +215,8 @@ module "app_runner" {
     DOMAIN             = "${var.environment}.api.octonius.com"
     AWS_ACCOUNT_NUMBER = local.account_id
     AWS_DEFAULT_REGION = local.aws_region
-    DB_WRITER_HOST     = module.rds.endpoint
-    DB_READER_HOST     = module.rds.endpoint
+    DB_WRITER_HOST     = module.rds.address
+    DB_READER_HOST     = module.rds.address
     DB_PORT            = module.rds.port
     DB_NAME            = module.rds.database_name
     DB_USER            = var.database_username
