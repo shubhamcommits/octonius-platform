@@ -163,6 +163,9 @@ jobs:
     name: 🏗️ Infrastructure Management
     needs: [validate-env, docker-image-build, determine-action]
     runs-on: ubuntu-latest
+    outputs:
+      web_s3_bucket_name: ${{ steps.extract.outputs.WEB_S3_BUCKET_NAME }}
+      web_cloudfront_distribution_id: ${{ steps.extract.outputs.WEB_CLOUDFRONT_DISTRIBUTION_ID }}
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
@@ -321,12 +324,11 @@ jobs:
         working-directory: terraform
         run: terraform destroy -var-file=config/terraform.tfvars -auto-approve
       - name: 📊 Extract Outputs
-        id: outputs
+        id: extract
         working-directory: terraform
         run: |
-          OUTPUTS=$(terraform output -json)
-          echo "web_s3_bucket_name=$(echo $OUTPUTS | jq -r '.web_s3_bucket_name.value')" >> $GITHUB_OUTPUT
-          echo "web_cloudfront_distribution_id=$(echo $OUTPUTS | jq -r '.web_cloudfront_distribution_id.value')" >> $GITHUB_OUTPUT
+          echo "WEB_S3_BUCKET_NAME=$(terraform output -raw web_s3_bucket_name)" >> $GITHUB_OUTPUT
+          echo "WEB_CLOUDFRONT_DISTRIBUTION_ID=$(terraform output -raw web_cloudfront_distribution_id)" >> $GITHUB_OUTPUT
 
   angular-build:
     name: 🏗️ Angular Build
@@ -383,7 +385,7 @@ jobs:
           path: dist
       - name: 🚀 Deploy to S3
         run: |
-          BUCKET_NAME="${{ needs.determine-action.outputs.environment }}-${{ env.REPOSITORY_NAME }}-web-deployment-bucket-${{ env.AWS_REGION }}"
+          BUCKET_NAME="${{ needs.infra.outputs.web_s3_bucket_name }}"
           aws s3 sync dist/ s3://$BUCKET_NAME/ \
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
@@ -396,7 +398,7 @@ jobs:
       - name: 🔄 Invalidate CloudFront Cache
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --distribution-id ${{ needs.infra.outputs.web_cloudfront_distribution_id }} \
             --paths "/*"
 
   deployment-summary:
