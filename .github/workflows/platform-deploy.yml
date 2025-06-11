@@ -51,7 +51,6 @@ env:
   # Terraform Configuration
   TF_VERSION: '1.7.4'
   REPOSITORY_NAME: 'octonius'
-  PROJECT_NAME: 'octonius-platform'
   
   # AWS Configuration
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
@@ -79,7 +78,7 @@ jobs:
     steps:
       - name: Validate Required Environment Variables
         run: |
-          REQUIRED_VARS="TF_VERSION,PROJECT_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,NODE_VERSION,REPOSITORY_NAME"
+          REQUIRED_VARS="TF_VERSION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_ACCOUNT_ID,PROD_S3_BUCKET,DEV_S3_BUCKET,NODE_VERSION,REPOSITORY_NAME"
           IFS=',' read -ra VARS <<< "$REQUIRED_VARS"
           MISSING=()
           for var in "${VARS[@]}"; do
@@ -200,6 +199,34 @@ jobs:
           else
             echo "✅ DynamoDB table already exists: $TABLE_NAME"
           fi
+      - name: 📝 Generate Locals Configuration
+        working-directory: terraform
+        run: |
+          ENV="${{ needs.determine-action.outputs.environment }}"
+          ACCOUNT_ID="${{ env.AWS_ACCOUNT_ID }}"
+          REGION="${{ env.AWS_REGION }}"
+          ACTOR="${{ github.actor }}"
+          DATE="$(date -u +"%Y-%m-%d")"
+          cat > locals.tf <<EOF
+          locals {
+            environment  = "$ENV"
+            project_name = "${{ env.REPOSITORY_NAME }}"
+            aws_region   = "$REGION"
+            account_id   = "$ACCOUNT_ID"
+            name_prefix  = "\${local.environment}-\${local.project_name}"
+            common_tags = {
+              Environment = local.environment
+              Project     = local.project_name
+              ManagedBy   = "terraform"
+              Repository  = "${{ github.repository }}"
+              Branch      = local.environment
+              Account     = local.account_id
+              Region      = local.aws_region
+              CreatedBy   = "$ACTOR"
+              CreatedAt   = "$DATE"
+            }
+          }
+          EOF
       - name: 📝 Generate Variables Configuration
         working-directory: terraform
         run: |
@@ -226,7 +253,7 @@ jobs:
           esac
           cat > config/terraform.tfvars <<EOF
           environment  = "$ENV"
-          project_name = "${{ env.PROJECT_NAME }}"
+          project_name = "${{ env.REPOSITORY_NAME }}"
           aws_region   = "${{ env.AWS_REGION }}"
           vpc_cidr           = "$VPC_CIDR"
           public_subnets     = $PUBLIC_SUBNETS
