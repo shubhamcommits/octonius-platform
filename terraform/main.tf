@@ -193,9 +193,11 @@ module "app_runner" {
   secret_name_pattern = "${var.environment}-${local.project_name}-platform-service-env-${local.aws_region}"
 
   # Container configuration
-  container_port    = 3000
-  health_check_path = "/api/health"
-  image_identifier  = "${module.ecr.repository_url}:latest-${local.environment}"
+  container_port     = 3000
+  health_check_path  = "/api/health"
+  image_tag          = var.image_tag
+  ecr_repository_url = module.ecr.repository_url
+  image_identifier   = "${module.ecr.repository_url}:${var.image_tag}"
 
   # Auto-scaling configuration
   cpu      = local.environment == "prod" ? 1024 : 512

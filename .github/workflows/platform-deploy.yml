@@ -151,17 +151,18 @@ jobs:
       - name: 🏗️ Build and Push Web Image
         id: web-image
         run: |
-          IMAGE_TAG="${{ needs.determine-action.outputs.environment }}-$(date +'%Y%m%d%H%M%S')"
+          IMAGE_TAG="${GITHUB_SHA}"
+          ECR_REGISTRY="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
+          ECR_REPOSITORY="${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}"
           docker build \
-            -t ${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:$IMAGE_TAG \
-            -t ${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest-${{ needs.determine-action.outputs.environment }} \
             -f Dockerfile \
             --build-arg NODE_ENV=${{ needs.determine-action.outputs.environment }} \
             .
-          docker tag ${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:$IMAGE_TAG ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:$IMAGE_TAG
-          docker tag ${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:latest
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:$IMAGE_TAG
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest-${{ needs.determine-action.outputs.environment }}
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
   infra:
     name: 🏗️ Infrastructure Management
@@ -267,6 +268,7 @@ jobs:
           vpc_cidr           = "$VPC_CIDR"
           public_subnets     = $PUBLIC_SUBNETS
           private_subnets    = $PRIVATE_SUBNETS
+          image_tag          = "$IMAGE_TAG"
           EOF
       - name: 📝 Generate Terraform Configuration
         run: |

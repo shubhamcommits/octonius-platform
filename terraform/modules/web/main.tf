@@ -46,8 +46,8 @@ resource "aws_s3_bucket_policy" "web" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowCloudFrontServicePrincipalOAC"
-        Effect    = "Allow"
+        Sid    = "AllowCloudFrontServicePrincipalOAC"
+        Effect = "Allow"
         Principal = {
           Service = "cloudfront.amazonaws.com"
         }
@@ -67,9 +67,9 @@ resource "aws_s3_bucket_policy" "web" {
 resource "aws_cloudfront_origin_access_control" "web" {
   name                              = "${var.environment}-${var.project_name}-web-oac"
   description                       = "OAC for ${var.environment}-${var.project_name}-web"
-  origin_access_control_origin_type  = "s3"
-  signing_behavior                   = "always"
-  signing_protocol                   = "sigv4"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
 }
 
 # CloudFront distribution (with OAC)
@@ -78,14 +78,14 @@ resource "aws_cloudfront_distribution" "web" {
   is_ipv6_enabled     = true
   default_root_object = "index.html"
   price_class         = var.environment == "prod" ? "PriceClass_All" : "PriceClass_100"
-  
+
   origin {
-    domain_name = aws_s3_bucket.web.bucket_regional_domain_name
-    origin_id   = "S3-${aws_s3_bucket.web.bucket}"
+    domain_name              = aws_s3_bucket.web.bucket_regional_domain_name
+    origin_id                = "S3-${aws_s3_bucket.web.bucket}"
     origin_access_control_id = aws_cloudfront_origin_access_control.web.id
-    origin_path = "/latest/browser"
+    origin_path              = "/latest/browser"
     origin_shield {
-      enabled = true
+      enabled              = true
       origin_shield_region = var.aws_region
     }
   }
@@ -185,7 +185,7 @@ resource "aws_cloudfront_cache_policy" "html_files" {
 resource "aws_cloudfront_cache_policy" "assets" {
   name        = "${var.environment}-${var.project_name}-assets"
   comment     = "Cache policy for assets"
-  default_ttl = 3600 # 1 hour
+  default_ttl = 3600  # 1 hour
   max_ttl     = 86400 # 1 day
   min_ttl     = 0
 
