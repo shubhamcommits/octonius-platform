@@ -31,4 +31,9 @@ output "arn" {
 output "id" {
   description = "The ID of the RDS instance"
   value       = aws_db_instance.main.id
+}
+
+output "address" {
+  description = "The hostname (address) of the RDS instance, without port."
+  value       = aws_db_instance.main.address
 } 
