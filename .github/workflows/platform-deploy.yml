@@ -162,11 +162,6 @@ jobs:
             .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest-${{ needs.determine-action.outputs.environment }}
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
-      - name: 📝 Debug IMAGE_TAG
-        run: |
-          echo "IMAGE_TAG is: $IMAGE_TAG"
 
   infra:
     name: 🏗️ Infrastructure Management
@@ -272,7 +267,7 @@ jobs:
           vpc_cidr           = "$VPC_CIDR"
           public_subnets     = $PUBLIC_SUBNETS
           private_subnets    = $PRIVATE_SUBNETS
-          image_tag          = "$IMAGE_TAG"
+          image_tag          = "${GITHUB_SHA}"
           EOF
 
       - name: 📝 Show terraform.tfvars
