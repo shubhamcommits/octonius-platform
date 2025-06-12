@@ -21,8 +21,8 @@ output "service_status" {
 }
 
 output "security_group_id" {
-  description = "The ID of the security group created for App Runner"
-  value       = aws_security_group.app_runner.id
+  description = "The ID of the security group used for App Runner"
+  value       = var.app_runner_security_group_id
 }
 
 output "vpc_connector_arn" {
