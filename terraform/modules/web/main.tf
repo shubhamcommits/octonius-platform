@@ -113,9 +113,18 @@ resource "aws_cloudfront_distribution" "web" {
 
   # Custom error responses
   custom_error_response {
-    error_code         = 404
-    response_code      = 200
-    response_page_path = "/index.html"
+    error_code            = 404
+    error_caching_min_ttl = 10
+    response_code         = 200
+    response_page_path    = "/index.html"
+  }
+
+  # Custom error response for 403
+  custom_error_response {
+    error_code            = 403
+    error_caching_min_ttl = 10
+    response_code         = 200
+    response_page_path    = "/index.html"
   }
 
   # Restrictions
