@@ -115,4 +115,9 @@ variable "image_tag" {
 variable "ecr_repository_url" {
   description = "The ECR repository URL."
   type        = string
+}
+
+variable "app_runner_security_group_id" {
+  description = "ID of the security group to use for App Runner VPC connector"
+  type        = string
 } 

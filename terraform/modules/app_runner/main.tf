@@ -64,7 +64,7 @@ resource "aws_apprunner_service" "main" {
 resource "aws_apprunner_vpc_connector" "main" {
   vpc_connector_name = "${var.environment}-${var.project_name}-vpc-connector"
   subnets            = var.subnet_ids
-  security_groups    = [aws_security_group.app_runner.id]
+  security_groups    = [var.app_runner_security_group_id]
 }
 
 # Auto Scaling Configuration
@@ -74,22 +74,6 @@ resource "aws_apprunner_auto_scaling_configuration_version" "main" {
   max_concurrency = var.max_concurrency
   max_size        = var.max_size
   min_size        = var.min_size
-
-  tags = var.tags
-}
-
-# Security Group for App Runner
-resource "aws_security_group" "app_runner" {
-  name        = "${var.environment}-${var.project_name}-app-runner-security-group"
-  description = "Security group for App Runner service"
-  vpc_id      = var.vpc_id
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   tags = var.tags
 }
