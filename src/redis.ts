@@ -1,5 +1,6 @@
 // Import redis module
 import { createClient } from 'redis'
+
 // Import logger
 import { redisLogger } from './logger'
 
@@ -31,16 +32,18 @@ const client = createClient({
             // Exponential backoff, max 3s
             return Math.min(retries * 100, 3000)
         },
-        connectTimeout: 10000 // 10 seconds
+        connectTimeout: 10000
     }
 })
 
 // Tracks if Redis is currently available
 let redis_available = false
+
 // Timestamp of the last error log (for throttling repeated logs)
 let last_error_log_time = 0
+
 // Throttle interval for error logs (in milliseconds)
-const ERROR_LOG_THROTTLE_MS = 60000 // 60 seconds
+const ERROR_LOG_THROTTLE_MS = 60000
 
 /**
  * Checks if Redis is currently available.
