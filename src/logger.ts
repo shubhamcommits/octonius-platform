@@ -1,4 +1,5 @@
 import winston from 'winston'
+import { isLocal, isDevelopment } from './config'
 
 // Define log levels
 const levels = {
@@ -127,7 +128,9 @@ const logger = winston.createLogger({
         new winston.transports.Console({
             format: winston.format.combine(
                 winston.format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ss.SSSZ' }),
-                prettyJsonFormat
+                (isLocal())
+                    ? prettyJsonFormat
+                    : compactJsonFormat
             )
         }),
         new winston.transports.File({

@@ -13,6 +13,7 @@ const redis_protocol = isLocal() ? 'redis' : 'rediss'
 // Create client
 const client = createClient({
     url: `${redis_protocol}://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+    password: process.env.REDIS_PASS,
     socket: {
         reconnectStrategy: (retries) => {
             redisLogger('redis_reconnect_attempt', {
