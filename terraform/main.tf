@@ -185,12 +185,12 @@ module "ecr" {
 module "app_runner" {
   source = "./modules/app_runner"
 
-  environment         = var.environment
-  project_name        = local.project_name
-  region              = local.aws_region
-  vpc_id              = module.vpc.vpc_id
-  subnet_ids          = module.vpc.private_subnet_ids
-  secret_name_pattern = "${var.environment}-${local.project_name}-platform-service-env-${local.aws_region}"
+  environment                  = var.environment
+  project_name                 = local.project_name
+  region                       = local.aws_region
+  vpc_id                       = module.vpc.vpc_id
+  subnet_ids                   = module.vpc.private_subnet_ids
+  secret_name_pattern          = "${var.environment}-${local.project_name}-platform-service-env-${local.aws_region}"
   app_runner_security_group_id = aws_security_group.app_runner.id
 
   # Container configuration
