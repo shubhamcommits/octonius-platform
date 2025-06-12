@@ -225,6 +225,7 @@ module "app_runner" {
     MIN_POOL           = var.environment == "prod" ? "5" : "1"
     REDIS_HOST         = module.elasticache.endpoint
     REDIS_PORT         = module.elasticache.port
+    REDIS_PASS         = module.elasticache.auth_token
   }
 
   # Secrets from Secrets Manager
