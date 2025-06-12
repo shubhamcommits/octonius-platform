@@ -51,7 +51,7 @@ import app from './src/app'
 import { initiliazeDatabase } from './src/database'
 
 // Import Redis function
-import { connectRedis } from './src/redis'
+import { connectRedis, deleteRedisKeysByPrefix, disconnectRedis } from './src/redis'
 
 // Import node-fetch module
 import { Headers } from 'node-fetch'
@@ -131,10 +131,23 @@ async function setUpExpressApplication() {
     }
 
     // Connect Redis
-    const redisStatus = await connectRedis()
-    if (!redisStatus) {
-        logger.warn('Redis is unavailable, running in degraded mode')
-    }
+    await connectRedis()
+        .then((data: any) => {
+
+            // Set redis client
+            global_connection_map.set('redis', data.connection)
+
+            // Remove cache if redis was connected successfully
+            deleteRedisKeysByPrefix('')
+        })
+        .catch((error) => {
+
+            // Disconnect Redis 
+            disconnectRedis()
+
+            // Console Error
+            logger.warn('Redis is unavailable, running in degraded mode', error)
+        })
 
     // Catch unhandled promise rejections globally
     process.on('unhandledRejection', (reason, promise) => {
@@ -161,7 +174,7 @@ if (isClusterRequired == 'true' && cluster.isMaster) {
 
     // Setup worker processes
     setupWorkerProcesses()
-    
+
 } else {
 
     // To setup server configurations and share port address for incoming requests
