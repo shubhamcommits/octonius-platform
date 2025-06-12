@@ -49,7 +49,7 @@ const ERROR_LOG_THROTTLE_MS = 60000
  * Checks if Redis is currently available.
  * @returns {boolean} True if Redis is available, false otherwise.
  */
-export function isRedisAvailable() {
+export function isRedisAvailable(): boolean {
     return redis_available
 }
 

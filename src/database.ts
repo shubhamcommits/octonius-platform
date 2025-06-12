@@ -8,15 +8,15 @@ import { getDatabaseConfig, isProduction, getEnv } from './config'
 const { NODE_ENV } = getEnv()
 
 interface VersionResult {
-    version: string;
+    version: string
 }
 
 interface DatabaseResult {
-    current_database: string;
+    current_database: string
 }
 
 interface UserResult {
-    current_user: string;
+    current_user: string
 }
 
 /**
@@ -33,15 +33,15 @@ export async function initiliazeDatabase(): Promise<{ message: string, connected
 
         // Log database connection details
         dbLogger(`Attempting to connect to PostgreSQL with replication`)
-        dbLogger(`Writer Host: ${dbConfig.writer.host}`)
-        dbLogger(`Reader Host: ${dbConfig.reader.host}`)
-        dbLogger(`Port: ${dbConfig.writer.port}`)
-        dbLogger(`Database: ${dbConfig.writer.database}`)
-        dbLogger(`Environment: ${NODE_ENV}`)
-        dbLogger(`Auto Alter Tables: ${alter_tables_auto}`)
-        dbLogger(`Replication Mode: Active`)
-        dbLogger(`Write operations will be directed to: ${dbConfig.writer.host}`)
-        dbLogger(`Read operations will be directed to: ${dbConfig.reader.host}`)
+        dbLogger(`Writer Host`, { host: dbConfig.writer.host })
+        dbLogger(`Reader Host`, { host: dbConfig.reader.host })
+        dbLogger(`Port`, { port: dbConfig.writer.port })
+        dbLogger(`Database`, { database: dbConfig.writer.database })
+        dbLogger(`Environment`, { environment: NODE_ENV })
+        dbLogger(`Auto Alter Tables`, { auto_alter_tables: alter_tables_auto })
+        dbLogger(`Replication Mode`, { replication_mode: 'Active' })
+        dbLogger(`Write operations will be directed to`, { host: dbConfig.writer.host })
+        dbLogger(`Read operations will be directed to`, { host: dbConfig.reader.host })
 
         // Authenticate the Sequelize and Initialize the ORM inside the application
         await db.authenticate()
@@ -99,9 +99,9 @@ export async function initiliazeDatabase(): Promise<{ message: string, connected
 
     } catch (error: any) {
 
-        console.error('Error during database initialization: ', error)
-        
+        // Log error
         dbLogger(`Error during database initialization: ${error.message}`, { level: 'error' })
+
         // Do not throw, just return a failed state
         return { message: `Database unavailable: ${error.message}`, connected: false }
     }
