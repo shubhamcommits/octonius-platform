@@ -29,7 +29,7 @@ if (process.env.NODE_ENV === 'local') {
     updateLoggerLevel()
 
     // Log the environment
-    logger.info('Environment \t: Local environment configured')
+    appLogger('Environment', { environment: 'Local' })
 } else {
     // Validate environment variables (App Runner has already loaded them)
     validateEnv()
@@ -38,10 +38,7 @@ if (process.env.NODE_ENV === 'local') {
     updateLoggerLevel()
 
     // Log that we're using App Runner managed environment
-    logger.info('Environment \t: App Runner managed environment', {
-        environment: process.env.NODE_ENV,
-        region: process.env.AWS_DEFAULT_REGION
-    })
+    appLogger('Environment', { environment: process.env.NODE_ENV, region: process.env.AWS_DEFAULT_REGION })
 }
 
 // Express App
@@ -115,15 +112,6 @@ async function setUpExpressApplication() {
     // Creating Microservice Server
     const server = http.createServer(app)
 
-    console.log('DB HOST', process.env.DB_WRITER_HOST)
-    console.log('DB HOST', process.env.DB_READER_HOST)
-    console.log('DB PORT', process.env.DB_PORT)
-    console.log('DB USER', process.env.DB_USER)
-    console.log('DB NAME', process.env.DB_NAME)
-    console.log('DB PASS', process.env.DB_PASS)
-    console.log('REDIS HOST', process.env.REDIS_HOST)
-    console.log('REDIS PORT', process.env.REDIS_PORT)
-
     // Connect Database
     const dbStatus = await initiliazeDatabase()
     if (!dbStatus.connected) {
@@ -162,10 +150,7 @@ async function setUpExpressApplication() {
 
     // Exposing the server to the desired port
     server.listen(Number(PORT), HOST, () => {
-        appLogger(APP_NAME + ' server is working')
-        appLogger(HOST + ':' + PORT)
-        appLogger(NODE_ENV + ' environment')
-        appLogger(process.pid + ' is listening to all incoming requests')
+        appLogger('Server is working', { host: HOST, port: PORT, environment: NODE_ENV, pid: process.pid })
     })
 }
 

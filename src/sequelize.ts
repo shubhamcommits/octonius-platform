@@ -36,15 +36,7 @@ const sequelizeOptions: any = {
         acquire: 60000,
         idle: 5000
     },
-    logging: (msg: string, timing?: number) => {
-        if (isDevelopment() || isLocal()) {
-            if (timing && timing > 1000) {
-                logger.warn(`[SLOW QUERY] ${msg}`, { context: 'sequelize', timing: `${timing} ms` })
-            } else {
-                logger.info(`[DB] ${msg}`, { context: 'sequelize', timing: `${timing} ms` })
-            }
-        }
-    },
+    logging: false,
     benchmark: true,
     define: {
         timestamps: true,

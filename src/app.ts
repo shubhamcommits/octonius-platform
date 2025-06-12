@@ -28,8 +28,8 @@ import { UserRoute } from './users'
 // Define the express application
 const app = express()
 
-// Import Global Connection Map
-import { global_connection_map } from '../server'
+// Import Redis function
+import { isRedisAvailable } from './redis'
 
 // Cors middleware for origin and Headers
 app.use(cors())
@@ -69,13 +69,8 @@ app.get('/api/health', async (req: Request, res: Response, next: NextFunction) =
             .then(() => 'available')
             .catch(() => 'unavailable')
 
-        // Fetch Redis Client
-        let redis_client: any = global_connection_map.get('redis')
-
         // Check Redis connection
-        const redis_status_promise = redis_client.ping()
-            .then(() => 'available')
-            .catch(() => 'unavailable')
+        const redis_status_promise = isRedisAvailable() ? 'available' : 'unavailable'
 
         // Wait for both statuses
         const [db_status, redis_status] = await Promise.all([db_status_promise, redis_status_promise])
