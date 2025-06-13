@@ -2,12 +2,13 @@
 
 # 🚀 Octonius Platform
 
-A modern, scalable web application platform built with **Node.js/TypeScript** and **Terraform** infrastructure on AWS.
+A modern, scalable web application platform built with **Node.js/TypeScript**, **Angular**, and **Terraform** infrastructure on AWS.
 
 ## 🎯 Overview
 
 The Octonius Platform provides a robust foundation for web applications with:
-- **Application**: Modern Node.js/TypeScript server with Express, PostgreSQL, and Redis
+- **Frontend**: Modern Angular application with Tailwind CSS and DaisyUI
+- **Backend**: Node.js/TypeScript server with Express, PostgreSQL, and Redis
 - **Infrastructure**: Clean, modular Terraform setup for AWS resources
 - **CI/CD**: Automated GitHub Actions workflows for deployment
 - **Monitoring**: Comprehensive logging and monitoring setup
@@ -18,7 +19,18 @@ The Octonius Platform provides a robust foundation for web applications with:
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Octonius Platform                        │
 ├─────────────────────────────────────────────────────────────────┤
-│  Application Layer                                              │
+│  Frontend Layer (Angular)                                       │
+│  ├── Authentication Module                                      │
+│  │   ├── Workplace Selection                                    │
+│  │   ├── OTP Verification                                       │
+│  │   └── Workplace Login                                        │
+│  ├── My Space Module                                           │
+│  │   ├── Inbox                                                 │
+│  │   ├── Workload                                              │
+│  │   └── Files                                                 │
+│  └── Shared Components & Services                               │
+├─────────────────────────────────────────────────────────────────┤
+│  Backend Layer                                                  │
 │  ├── Node.js/TypeScript Server (Express)                       │
 │  ├── PostgreSQL Database                                        │
 │  ├── Redis Cache                                               │
@@ -39,26 +51,27 @@ The Octonius Platform provides a robust foundation for web applications with:
 
 ## 🚀 Quick Start
 
-### Infrastructure Setup (Terraform)
+### Frontend Setup (Angular)
 
-**📖 See [README-terraform.md](README-terraform.md) for complete infrastructure documentation**
+```bash
+# 1. Navigate to web application
+cd services/octonius-web
 
-   ```bash
-# 1. Bootstrap Terraform state management
-./scripts/terraform-bootstrap.sh -e dev
+# 2. Install dependencies
+npm install
 
-# 2. Deploy infrastructure
-cd terraform/environments/dev
-terraform init
-terraform plan
-terraform apply
+# 3. Start development server
+npm run start
+
+# 4. Build for production
+npm run build
 ```
 
-### Application Setup
+### Backend Setup
 
-   ```bash
+```bash
 # 1. Install dependencies
-   npm install
+npm install
 
 # 2. Build application
 npm run build
@@ -70,43 +83,94 @@ npm run dev
 npm run start
 ```
 
+### Infrastructure Setup (Terraform)
+
+**📖 See [README-terraform.md](README-terraform.md) for complete infrastructure documentation**
+
+```bash
+# 1. Bootstrap Terraform state management
+./scripts/terraform-bootstrap.sh -e dev
+
+# 2. Deploy infrastructure
+cd terraform/environments/dev
+terraform init
+terraform plan
+terraform apply
+```
+
 ## 📁 Project Structure
 
 ```
 octonius-platform/
-├── 📱 Application
-│   ├── server.ts              # Main application server
-│   ├── src/                   # Application source code
-│   ├── services/              # Business logic services
-│   ├── package.json           # Node.js dependencies
-│   └── tsconfig.json          # TypeScript configuration
+├── 📱 Frontend (Angular)
+│   ├── services/octonius-web/
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── modules/
+│   │   │   │   │   ├── auth/           # Authentication components
+│   │   │   │   │   ├── my-space/       # My Space components
+│   │   │   │   │   └── shared/         # Shared components & services
+│   │   │   │   ├── app.config.ts
+│   │   │   │   └── app.routes.ts
+│   │   │   └── environments/           # Environment configurations
+│   │   ├── package.json
+│   │   └── angular.json
+│   │
+├── 📱 Backend
+│   ├── src/
+│   │   ├── auths/                     # Authentication logic
+│   │   ├── users/                     # User management
+│   │   ├── workplaces/               # Workplace management
+│   │   ├── notifications/            # Email & notification system
+│   │   └── shared/                   # Shared utilities
+│   ├── server.ts                     # Main application server
+│   └── package.json                  # Node.js dependencies
 │
 ├── 🏗️ Infrastructure (Terraform)
 │   ├── terraform/
-│   │   ├── main.tf            # Main Terraform configuration
-│   │   ├── variables.tf       # Variable definitions
-│   │   ├── outputs.tf         # Output definitions
-│   │   ├── modules/vpc/       # VPC networking module
-│   │   └── config/            # Environment-specific configs
-│   │       ├── dev.backend.hcl     # Dev backend configuration
-│   │       ├── dev.tfvars          # Dev variables
-│   │       ├── prod.backend.hcl    # Prod backend configuration
-│   │       └── prod.tfvars         # Prod variables
+│   │   ├── main.tf                   # Main Terraform configuration
+│   │   ├── variables.tf              # Variable definitions
+│   │   ├── outputs.tf                # Output definitions
+│   │   ├── modules/vpc/              # VPC networking module
+│   │   └── config/                   # Environment-specific configs
 │   └── scripts/
-│       └── terraform-bootstrap.sh  # State management setup
-│
-├── 🔄 CI/CD
-│   └── .github/workflows/
-│       └── terraform.yml     # Terraform deployment pipeline
-│
-├── 🐳 Containerization
-│   ├── Dockerfile            # Application container
-│   └── docker-compose.yml    # Local development setup
+│       └── terraform-bootstrap.sh     # State management setup
 │
 └── 📚 Documentation
-    ├── README.md             # This file (overview)
-    └── README-terraform.md   # Infrastructure documentation
+    ├── README.md                     # This file (overview)
+    └── README-terraform.md           # Infrastructure documentation
 ```
+
+## 🔐 Authentication System
+
+The platform implements a secure authentication system with:
+
+- **Workplace Selection**: Users can select or create their workspace
+- **OTP Verification**: Secure one-time password verification
+- **Email Notifications**: Automated email delivery for OTP
+- **Session Management**: Secure session handling with Redis
+- **Role-Based Access**: Granular permission control
+
+## 🎨 Frontend Features
+
+### Authentication Module
+- Workplace selection and creation
+- OTP-based verification
+- Secure login process
+- Email notifications
+
+### My Space Module
+- Inbox for notifications and updates
+- Workload management
+- File management system
+- Note editor
+- Navigation bar with theme switching
+
+### Shared Components
+- Theme switching (Light/Dark)
+- Responsive layout
+- Modern UI with Tailwind CSS and DaisyUI
+- Reusable services for auth, users, and workplaces
 
 ## 🛠️ Development
 
