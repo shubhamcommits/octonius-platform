@@ -25,11 +25,26 @@ import { db } from './sequelize'
 // Import User Route
 import { UserRoute } from './users'
 
+// Import Notification Route
+import { NotificationRoute } from './notifications'
+
+// Import Auth Route
+import { AuthRoute } from './auths'
+
+// Import Workplace Route
+import { WorkplaceRoute } from './workplaces'
+
 // Define the express application
 const app = express()
 
 // Import Redis function
 import { isRedisAvailable } from './redis'
+
+// Import path
+import path from 'path'
+
+// Import request timer middleware
+import { requestTimer } from './middleware/request-timer.middleware'
 
 // Cors middleware for origin and Headers
 app.use(cors())
@@ -59,6 +74,9 @@ app.use(morgan('dev'))
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
     res.status(200).json({ message: `${APP_NAME} server is working!` })
 })
+
+// Static files route
+app.use('/public', express.static(path.join(__dirname, 'public/')))
 
 // Health check Route
 app.get('/api/health', async (req: Request, res: Response, next: NextFunction) => {
@@ -119,8 +137,14 @@ app.get('/api/health', async (req: Request, res: Response, next: NextFunction) =
 // Logging middleware, after initial setup and before route definitions
 // app.use(createWebRequestLogTransaction)
 
+// Add request timer middleware
+app.use(requestTimer)
+
 // Correct REST naming
+app.use('/v1/auths', new AuthRoute().router)
+app.use('/v1/notifications', new NotificationRoute().router)
 app.use('/v1/users', new UserRoute().router)
+app.use('/v1/workplaces', new WorkplaceRoute().router)
 
 // Invalid routes handling middleware
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
@@ -139,7 +163,17 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         stack: err.stack,
         environment: NODE_ENV,
     })
-    res.status(500).json({ error: 'Internal Server Error' })
+    
+    // Return a more detailed error response
+    return res.status(500).json({
+        success: false,
+        error: {
+            code: 500,
+            timestamp: new Date().toISOString(),
+            message: err.message || 'Internal server error',
+            details: err.stack || 'No stack trace available'
+        }
+    })
 })
 
 // Compressing the application

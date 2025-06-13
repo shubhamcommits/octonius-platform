@@ -1,3 +1,5 @@
+[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v3/monitor/1za90.svg)](https://uptime.betterstack.com/?utm_source=status_badge)
+
 # 🚀 Octonius Platform
 
 A modern, scalable web application platform built with **Node.js/TypeScript** and **Terraform** infrastructure on AWS.
