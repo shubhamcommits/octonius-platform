@@ -1,0 +1,27 @@
+<div class="min-h-screen bg-base-100 text-base-content">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header with logo and navigation -->
+    <header class="px-8 py-6">
+      <div class="flex items-center justify-between">
+        <!-- Logo Left -->
+        <div class="flex items-center gap-2">
+          <img [src]="logoSrc" alt="Octonius Logo" class="w-12 h-12 object-contain" />
+        </div>
+        <!-- Theme Switcher Right -->
+        <div class="relative">
+          <button class="btn btn-ghost btn-circle" (click)="toggleTheme()">
+            <lucide-icon [name]="currentTheme === 'night' ? 'SunMoon' : 'SunMoon'" class="w-8 h-8"></lucide-icon>
+          </button>
+        </div>
+      </div>
+      <app-navbar activeTab="my-space"></app-navbar>
+    </header>
+    
+    <!-- Main content area -->
+    <main class="px-8 pb-8">
+      <div class="bg-base-200 rounded-lg shadow-md p-8">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+  </div>
+</div> 
