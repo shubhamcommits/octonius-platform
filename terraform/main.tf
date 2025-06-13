@@ -231,6 +231,9 @@ module "app_runner" {
   # Secrets from Secrets Manager
   environment_secrets = {
     AWS_ACCESS_KEY_ID     = "${data.aws_secretsmanager_secret.platform_env.arn}:AWS_ACCESS_KEY_ID::"
+    RESEND_API_KEY        = "${data.aws_secretsmanager_secret.platform_env.arn}:RESEND_API_KEY::"
+    SUPPORT_EMAIL         = "${data.aws_secretsmanager_secret.platform_env.arn}:SUPPORT_EMAIL::"
+    RESEND_FROM_EMAIL     = "${data.aws_secretsmanager_secret.platform_env.arn}:RESEND_FROM_EMAIL::"
     AWS_SECRET_ACCESS_KEY = "${data.aws_secretsmanager_secret.platform_env.arn}:AWS_SECRET_ACCESS_KEY::"
     JWT_ACCESS_KEY        = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_KEY::"
     JWT_ACCESS_TIME       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_TIME::"
