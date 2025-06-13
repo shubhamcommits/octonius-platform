@@ -82,7 +82,7 @@ resource "aws_cloudfront_origin_access_control" "web" {
 resource "aws_cloudfront_distribution" "web" {
   enabled             = true
   is_ipv6_enabled     = true
-  aliases             = ["${var.environment}-${var.project_name}.octonius.com"]
+  aliases             = ["${var.environment == "prod" ? "app.octonius.com" : "dev.app.octonius.com"}"]
   comment             = "CloudFront distribution for ${var.environment}-${var.project_name}-web"
   default_root_object = "index.html"
   price_class         = var.environment == "prod" ? "PriceClass_All" : "PriceClass_100"
@@ -224,7 +224,7 @@ resource "aws_cloudfront_cache_policy" "assets" {
 
 # Get the existing ACM certificate
 data "aws_acm_certificate" "web" {
-  domain   = "${var.environment}-${var.project_name}.octonius.com"
+  domain   = "${var.environment == "prod" ? "app.octonius.com" : "dev.app.octonius.com"}"
   statuses = ["ISSUED"]
   provider = aws.us-east-1
 }
