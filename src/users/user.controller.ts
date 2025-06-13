@@ -251,24 +251,25 @@ export class UserController {
                     responseTime: `${responseTime}ms`
                 }
             })
-        } catch (error) {
+        } catch (error: any) {
+
             // Calculate response time
             const responseTime = Date.now() - startTime
 
             // Logs the error for debugging
             logger.error('Error in getUserByEmail controller', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-                stack: error instanceof Error ? error.stack : undefined,
+                stack: error,
+                error: error.stack instanceof Error ? error.stack.message : 'Unknown error',
                 responseTime: `${responseTime}ms`,
                 statusCode: 500,
                 params: req.params
             })
 
             // Returns error response
-            return res.status(500).json({
+            return res.status(error.code).json({
                 success: false,
-                message: 'Failed to fetch user',
-                error: error instanceof Error ? error.message : 'Unknown error',
+                message: error.message,
+                error: error.stack instanceof Error ? error.stack.message : 'Unknown error',
                 meta: {
                     responseTime: `${responseTime}ms`
                 }

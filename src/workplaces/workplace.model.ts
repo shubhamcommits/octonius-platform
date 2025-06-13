@@ -40,16 +40,24 @@ export class Workplace extends Model<WorkplaceAttributes, WorkplaceCreationAttri
 
     // Define associations
     static associate(models: any) {
-        // Workplace has many users (members)
-        Workplace.hasMany(models.User, {
-            foreignKey: 'workplace_id',
-            as: 'members'
-        })
-
         // Workplace has many roles
         Workplace.hasMany(models.Role, {
             foreignKey: 'workplace_id',
             as: 'roles'
+        })
+
+        // Workplace has many workplace memberships
+        Workplace.hasMany(models.WorkplaceMembership, {
+            foreignKey: 'workplace_id',
+            as: 'memberships'
+        })
+
+        // Workplace belongs to many users through memberships
+        Workplace.belongsToMany(models.User, {
+            through: models.WorkplaceMembership,
+            foreignKey: 'workplace_id',
+            otherKey: 'user_id',
+            as: 'users'
         })
     }
 }

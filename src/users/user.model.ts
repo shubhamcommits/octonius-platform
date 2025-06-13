@@ -172,7 +172,7 @@ User.init({
         defaultValue: null
     },
     source: {
-        type: DataTypes.CHAR(50),
+        type: DataTypes.STRING(50),
         defaultValue: 'email',
         allowNull: false,
         validate: {
