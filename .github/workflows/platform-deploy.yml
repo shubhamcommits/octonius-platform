@@ -231,7 +231,6 @@ jobs:
               Account     = local.account_id
               Region      = local.aws_region
               CreatedBy   = "$ACTOR"
-              CreatedAt   = "$DATE"
               Owner       = "$OWNER"
             }
           }
