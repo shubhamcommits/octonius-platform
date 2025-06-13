@@ -1,3 +1,9 @@
+# Provider configuration for us-east-1 (required for ACM certificates used with CloudFront)
+provider "aws" {
+  alias  = "us-east-1"
+  region = "us-east-1"
+}
+
 # S3 bucket for web assets
 resource "aws_s3_bucket" "web" {
   bucket = "${var.environment}-${var.project_name}-web-deployment-bucket-${var.aws_region}"
@@ -76,6 +82,8 @@ resource "aws_cloudfront_origin_access_control" "web" {
 resource "aws_cloudfront_distribution" "web" {
   enabled             = true
   is_ipv6_enabled     = true
+  aliases             = ["${var.environment}-${var.project_name}.octonius.com"]
+  comment             = "CloudFront distribution for ${var.environment}-${var.project_name}-web"
   default_root_object = "index.html"
   price_class         = var.environment == "prod" ? "PriceClass_All" : "PriceClass_100"
 
@@ -136,7 +144,9 @@ resource "aws_cloudfront_distribution" "web" {
 
   # SSL certificate
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = false
+    ssl_support_method             = "sni-only"
+    acm_certificate_arn            = data.aws_acm_certificate.web.arn
   }
 
   # Tags
@@ -209,4 +219,11 @@ resource "aws_cloudfront_cache_policy" "assets" {
       query_string_behavior = "none"
     }
   }
+}
+
+# Get the existing ACM certificate
+data "aws_acm_certificate" "web" {
+  domain   = "${var.environment}-${var.project_name}.octonius.com"
+  statuses = ["ISSUED"]
+  provider = aws.us-east-1
 }
