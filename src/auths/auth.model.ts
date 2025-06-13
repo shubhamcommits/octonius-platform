@@ -27,6 +27,9 @@ export class Auth extends Model {
     }
 }
 
+/**
+ * Initialize the Auth model
+ */
 Auth.init({
     uuid: {
         type: DataTypes.UUID,
@@ -78,4 +81,7 @@ Auth.init({
     indexes: []
 })
 
+/**
+ * Export the Auth model
+ */
 export default Auth 

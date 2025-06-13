@@ -1,0 +1,89 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold">{{userName}}, these are your Files and Notes</h1>
+    <p class="text-base-content opacity-70 mt-2">Organize your documents and ideas in one place</p>
+  </div>
+
+  <!-- Action Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+    <!-- Create Note Card -->
+    <div (click)="onCreateNote()" 
+         class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+      <div class="card-body">
+        <div class="flex items-start space-x-4">
+          <div class="text-4xl">📄</div>
+          <div class="flex-1">
+            <h3 class="font-bold text-lg mb-1">Make note, write an idea...</h3>
+            <p class="text-sm text-base-content opacity-70">No one has access to your private notes.</p>
+          </div>
+        </div>
+        <div class="card-actions justify-end mt-4">
+          <button class="btn btn-circle btn-sm btn-ghost">
+            <span class="text-xl">✏️</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload File Card -->
+    <div (click)="onUploadFile()" 
+         class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+      <div class="card-body">
+        <div class="flex items-start space-x-4">
+          <div class="text-4xl">📁</div>
+          <div class="flex-1">
+            <h3 class="font-bold text-lg mb-1">Upload files to your Pod.</h3>
+            <p class="text-sm text-base-content opacity-70">No one has access to your private files.</p>
+          </div>
+        </div>
+        <div class="card-actions justify-end mt-4">
+          <button class="btn btn-circle btn-sm btn-ghost">
+            <span class="text-xl">📤</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- File List Card -->
+  <div class="card bg-base-100 shadow-sm">
+    <div class="card-body">
+      <!-- File List Controls -->
+      <div class="flex items-center space-x-2 mb-4">
+        <button class="btn btn-sm btn-ghost btn-square">
+          <span>☰</span>
+        </button>
+        <button class="btn btn-sm btn-ghost btn-square">
+          <span>🔢</span>
+        </button>
+        <button class="btn btn-sm btn-ghost btn-square">
+          <span>🔍</span>
+        </button>
+      </div>
+
+      <!-- Files List -->
+      <div class="space-y-2">
+        <div *ngFor="let file of files" 
+             (click)="onFileClick(file)"
+             class="flex items-center justify-between p-4 hover:bg-base-200 rounded-lg cursor-pointer transition-colors">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">{{file.icon}}</span>
+            <span class="font-medium">{{file.name}}</span>
+          </div>
+          <div class="flex items-center space-x-6 text-sm">
+            <div class="flex items-center space-x-2">
+              <div class="avatar">
+                <div class="w-6 h-6 rounded-full bg-base-300">
+                  <span class="flex items-center justify-center h-full text-xs">{{file.ownerAvatar}}</span>
+                </div>
+              </div>
+              <span class="text-base-content opacity-70">{{file.owner}}</span>
+            </div>
+            <span class="text-base-content opacity-50 text-xs">{{file.lastModified}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

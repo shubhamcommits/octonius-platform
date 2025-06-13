@@ -4,6 +4,9 @@ import { dbLogger } from './logger'
 import { QueryTypes } from 'sequelize'
 import { getDatabaseConfig, isProduction, getEnv } from './config'
 
+// Import models initialization
+import { initializeAssociations } from './models'
+
 // Get environment variables
 const { NODE_ENV } = getEnv()
 
@@ -46,6 +49,10 @@ export async function initiliazeDatabase(): Promise<{ message: string, connected
         // Authenticate the Sequelize and Initialize the ORM inside the application
         await db.authenticate()
         dbLogger(`Successfully authenticated with PostgreSQL`)
+
+        // Initialize model associations
+        initializeAssociations()
+        dbLogger(`Model associations initialized successfully`)
 
         try {
             // Get database version from writer

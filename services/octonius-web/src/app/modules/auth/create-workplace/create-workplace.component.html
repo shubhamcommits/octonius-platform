@@ -1,0 +1,36 @@
+<div class="min-h-screen flex flex-col items-center justify-center bg-base-100 text-base-content">
+  <h1 class="text-3xl font-bold text-center mb-8 underline decoration-primary">Turn busy into brilliant.</h1>
+  <div class="w-full max-w-sm p-8 bg-base-200 rounded-lg shadow-md flex flex-col items-center">
+    <!-- Workplace Name Input -->
+    <form [formGroup]="createWorkplaceForm" (ngSubmit)="onSubmit()" class="w-full flex flex-col gap-4">
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Workplace Name</span>
+        <input 
+          type="text" 
+          formControlName="workplace_name"
+          placeholder="Enter your workplace name..." 
+          class="input input-bordered w-full"
+          [ngClass]="{'input-error': createWorkplaceForm.get('workplace_name')?.invalid && createWorkplaceForm.get('workplace_name')?.touched}"
+          required />
+        <div class="text-error text-xs mt-1" *ngIf="createWorkplaceForm.get('workplace_name')?.invalid && createWorkplaceForm.get('workplace_name')?.touched">
+          <span *ngIf="createWorkplaceForm.get('workplace_name')?.errors?.['required']">Workplace name is required</span>
+          <span *ngIf="createWorkplaceForm.get('workplace_name')?.errors?.['minlength']">Workplace name must be at least 3 characters</span>
+        </div>
+      </label>
+      <span class="text-xs text-base-content/70 mb-2">This will be the name of your organization's workspace</span>
+      <button 
+        class="btn btn-primary w-full text-primary-content" 
+        type="submit"
+        [disabled]="createWorkplaceForm.invalid || isLoading">
+        <span *ngIf="!isLoading">Create Workplace</span>
+        <span *ngIf="isLoading" class="loading loading-spinner loading-sm"></span>
+      </button>
+    </form>
+    <!-- Helper Text -->
+    <div class="mt-6 text-xs text-base-content/60 text-center">
+      By continuing, you acknowledge that you understand and agree to the
+      <a href="#" class="link link-hover text-primary">Terms & Conditions</a> and
+      <a href="#" class="link link-hover text-primary">Privacy Policy</a>
+    </div>
+  </div>
+</div>

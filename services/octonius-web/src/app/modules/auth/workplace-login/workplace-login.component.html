@@ -1,0 +1,90 @@
+<div class="min-h-screen flex flex-col items-center justify-center bg-base-100 text-base-content">
+    <h1 class="text-3xl font-bold text-center mb-8 underline decoration-primary">Turn busy into brilliant.</h1>
+    <div class="w-full max-w-sm p-8 bg-base-200 rounded-lg shadow-md flex flex-col items-center">
+        <h2 class="text-2xl font-bold mb-2">Welcome back, <span class="text-primary">{{userName}}!</span></h2>
+        <p class="text-base-content/70 text-sm mb-8">Please verify your identity to access your workplace.</p>
+
+        <!-- Selected Workplace Display -->
+        <div class="w-full mb-6" *ngIf="selectedWorkplace">
+            <div class="flex items-center p-4 bg-base-100 rounded-lg border-2 border-primary">
+                <!-- Workplace Logo/Avatar -->
+                <div class="w-12 h-12 bg-base-300 rounded-lg flex items-center justify-center mr-4">
+                    <img [src]="selectedWorkplace.logo_url || defaultLogoUrl" 
+                         [alt]="selectedWorkplace.name" 
+                         class="w-8 h-8 object-contain">
+                </div>
+                <!-- Workplace Name -->
+                <div class="flex-grow">
+                    <span class="font-medium">{{selectedWorkplace.name}}</span>
+                    <p *ngIf="selectedWorkplace.description" class="text-sm text-base-content/70 mt-1">{{selectedWorkplace.description}}</p>
+                </div>
+                <!-- Selected Indicator -->
+                <div class="text-primary">
+                    <i class="fas fa-check"></i>
+                </div>
+            </div>
+            
+            <!-- Change Workplace Link -->
+            <button (click)="onChangeWorkplace()" 
+                    class="btn btn-ghost btn-sm w-full mt-2 justify-center text-primary hover:bg-base-300">
+                <span>Change workplace</span>
+            </button>
+        </div>
+
+        <!-- OTP Form -->
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="w-full">
+            <label class="form-control w-full mb-4">
+                <span class="label-text mb-1">Verification Code</span>
+                <input type="text" 
+                       formControlName="otp" 
+                       placeholder="Enter 6-digit code"
+                       class="input input-bordered w-full text-center text-lg tracking-wider"
+                       [ngClass]="{'input-error': loginForm.get('otp')?.invalid && loginForm.get('otp')?.touched}"
+                       maxlength="6"
+                       pattern="[A-Z0-9]{6}"
+                       style="text-transform: uppercase;"
+                       required />
+                <span class="text-xs text-base-content/70 mt-1">We sent a code to {{email}}</span>
+                <div class="text-error text-xs mt-1"
+                     *ngIf="loginForm.get('otp')?.invalid && loginForm.get('otp')?.touched">
+                    <span *ngIf="loginForm.get('otp')?.errors?.['required']">Verification code is required</span>
+                    <span *ngIf="loginForm.get('otp')?.errors?.['minlength'] || loginForm.get('otp')?.errors?.['maxlength']">
+                        Code must be exactly 6 characters
+                    </span>
+                </div>
+            </label>
+
+            <!-- Resend OTP Link -->
+            <div class="text-center mb-6">
+                <button type="button"
+                        (click)="onResendOtp()"
+                        [disabled]="!canResendOtp || isLoading"
+                        class="text-sm transition-all duration-300"
+                        [ngClass]="{
+                            'link link-primary cursor-pointer hover:underline': canResendOtp && !isLoading,
+                            'text-base-content/50 cursor-not-allowed': !canResendOtp || isLoading
+                        }">
+                    Didn't receive the code? Resend
+                    <span *ngIf="!canResendOtp && resendTimer > 0" class="text-base-content/50">
+                        ({{resendTimer}}s)
+                    </span>
+                </button>
+            </div>
+
+            <!-- Continue Button -->
+            <button type="submit"
+                    [disabled]="loginForm.invalid || isLoading || !selectedWorkplace"
+                    class="btn btn-primary w-full text-primary-content">
+                <span *ngIf="!isLoading">Continue</span>
+                <span *ngIf="isLoading" class="loading loading-spinner"></span>
+            </button>
+        </form>
+
+        <!-- Footer Links -->
+        <div class="mt-6 text-xs text-base-content/60 text-center">
+            By continuing, you acknowledge that you understand and agree to the 
+            <a href="#" class="link link-hover text-primary">Terms & Conditions</a> and 
+            <a href="#" class="link link-hover text-primary">Privacy Policy</a>
+        </div>
+    </div>
+</div>

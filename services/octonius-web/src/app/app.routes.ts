@@ -4,11 +4,15 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'auth/login'
+    redirectTo: 'auths/login'
   },
   {
-    path: 'auth',
+    path: 'auths',
     loadChildren: () => import('./modules/auth/auth.module').then(m => m.AuthModule)
+  },
+  {
+    path: 'dashboard',
+    loadChildren: () => import('./modules/my-space/my-space.module').then(m => m.MySpaceModule)
   },
   {
     path: '**',
