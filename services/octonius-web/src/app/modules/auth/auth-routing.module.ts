@@ -4,6 +4,10 @@ import { LayoutComponent } from './layout/layout.component'
 import { WelcomeComponent } from './welcome/welcome.component'
 import { LoginComponent } from './login/login.component'
 import { RegisterComponent } from './register/register.component'
+import { VerifyOtpComponent } from './verify-otp/verify-otp.component'
+import { SelectWorkplaceComponent } from './select-workplace/select-workplace.component'
+import { CreateWorkplaceComponent } from './create-workplace/create-workplace.component'
+import { WorkplaceLoginComponent } from './workplace-login/workplace-login.component'
 
 const routes: Routes = [
   {
@@ -14,6 +18,10 @@ const routes: Routes = [
       { path: 'welcome', component: WelcomeComponent },
       { path: 'login', component: LoginComponent },
       { path: 'register', component: RegisterComponent },
+      { path: 'verify-otp', component: VerifyOtpComponent },
+      { path: 'select-workplace', component: SelectWorkplaceComponent },
+      { path: 'create-workplace', component: CreateWorkplaceComponent },
+      { path: 'workplace-login', component: WorkplaceLoginComponent }
     ]
   }
 ]
