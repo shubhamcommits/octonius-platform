@@ -99,23 +99,30 @@ module "vpc" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
-  enable_nat_gateway = true
-  single_nat_gateway = var.environment == "prod" ? false : true
+  enable_nat_gateway = false
+  single_nat_gateway = false
 
   tags = local.common_tags
 }
 
 # Security Group for App Runner
+# Note: App Runner uses public subnets for VPC connector to avoid NAT gateway costs
+# This is secure because:
+# 1. App Runner instances are not directly accessible from internet
+# 2. Security group controls all traffic
+# 3. RDS and ElastiCache remain in private subnets
 resource "aws_security_group" "app_runner" {
   name        = "${local.name_prefix}-app-runner"
   description = "Security group for App Runner service"
   vpc_id      = module.vpc.vpc_id
 
+  # Allow all outbound traffic for internet access and AWS services
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
   }
 
   tags = local.common_tags
@@ -189,7 +196,7 @@ module "app_runner" {
   project_name                 = local.project_name
   region                       = local.aws_region
   vpc_id                       = module.vpc.vpc_id
-  subnet_ids                   = module.vpc.private_subnet_ids
+  subnet_ids                   = module.vpc.public_subnet_ids
   secret_name_pattern          = "${var.environment}-${local.project_name}-platform-service-env-${local.aws_region}"
   app_runner_security_group_id = aws_security_group.app_runner.id
 
