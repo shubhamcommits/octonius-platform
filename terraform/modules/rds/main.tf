@@ -61,7 +61,12 @@ resource "aws_security_group" "rds" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = var.tags
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.environment}-${var.project_name}-db-${var.region}"
+    }
+  )
 }
 
 # RDS PostgreSQL Instance

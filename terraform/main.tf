@@ -106,11 +106,6 @@ module "vpc" {
 }
 
 # Security Group for App Runner
-# Note: App Runner uses public subnets for VPC connector to avoid NAT gateway costs
-# This is secure because:
-# 1. App Runner instances are not directly accessible from internet
-# 2. Security group controls all traffic
-# 3. RDS and ElastiCache remain in private subnets
 resource "aws_security_group" "app_runner" {
   name        = "${local.name_prefix}-app-runner"
   description = "Security group for App Runner service"
@@ -125,7 +120,12 @@ resource "aws_security_group" "app_runner" {
     description = "Allow all outbound traffic"
   }
 
-  tags = local.common_tags
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-app-runner"
+    }
+  )
 }
 
 module "rds" {
