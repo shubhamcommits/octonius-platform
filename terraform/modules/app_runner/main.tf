@@ -65,6 +65,10 @@ resource "aws_apprunner_vpc_connector" "main" {
   vpc_connector_name = "${var.environment}-${var.project_name}-vpc-connector-with-gw"
   subnets            = var.subnet_ids
   security_groups    = [var.app_runner_security_group_id]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Auto Scaling Configuration
