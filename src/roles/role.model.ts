@@ -65,7 +65,7 @@ export class Role extends Model<RoleAttributes, RoleCreationAttributes> implemen
             through: models.RolePermission,
             foreignKey: 'role_id',
             otherKey: 'permission_id',
-            as: 'permissions'
+            as: 'permission_records'
         })
 
         // Role has many role permissions

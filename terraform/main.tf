@@ -111,14 +111,21 @@ resource "aws_security_group" "app_runner" {
   description = "Security group for App Runner service"
   vpc_id      = module.vpc.vpc_id
 
+  # Allow all outbound traffic for internet access and AWS services
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
   }
 
-  tags = local.common_tags
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-app-runner"
+    }
+  )
 }
 
 module "rds" {
@@ -189,7 +196,7 @@ module "app_runner" {
   project_name                 = local.project_name
   region                       = local.aws_region
   vpc_id                       = module.vpc.vpc_id
-  subnet_ids                   = module.vpc.private_subnet_ids
+  subnet_ids                   = module.vpc.public_subnet_ids
   secret_name_pattern          = "${var.environment}-${local.project_name}-platform-service-env-${local.aws_region}"
   app_runner_security_group_id = aws_security_group.app_runner.id
 

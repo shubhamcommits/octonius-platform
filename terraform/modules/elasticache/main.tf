@@ -1,12 +1,3 @@
-# Redis ElastiCache Module
-# This module creates a Redis ElastiCache cluster with the following features:
-# - Redis 7.0 with encryption at rest and in transit
-# - Multi-AZ support for production
-# - Automatic failover enabled in production
-# - LRU cache eviction policy
-# - Keyspace notifications enabled
-# - Private subnet placement with VPC security
-
 # ElastiCache Subnet Group
 resource "aws_elasticache_subnet_group" "main" {
   name       = "${var.environment}-${var.project_name}-redis-${var.region}"
@@ -35,7 +26,12 @@ resource "aws_security_group" "redis" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = var.tags
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.environment}-${var.project_name}-redis-${var.region}"
+    }
+  )
 }
 
 # Redis Parameter Group
