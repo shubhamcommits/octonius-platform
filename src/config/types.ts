@@ -33,6 +33,11 @@ export const envSchema = z.object({
   // JWT
   JWT_ACCESS_KEY: z.string(),
   JWT_ACCESS_TIME: z.string(),
+
+  // Resend
+  RESEND_API_KEY: z.string(),
+  SUPPORT_EMAIL: z.string(),
+  RESEND_FROM_EMAIL: z.string()
 })
 
 // Infer the type from the schema

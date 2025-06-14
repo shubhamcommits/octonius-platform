@@ -4,11 +4,14 @@ import { Resend } from 'resend'
 // Import logger
 import { appLogger } from '../../logger'
 
+// Import environment variables
+import { getEnv } from '../../config/env'
+
 // Import notification code
 import { NotificationCode } from '../notification.code'
 
 // Instantiate the module
-export const resend = new Resend(process.env.RESEND_API_KEY)
+export const resend = new Resend(getEnv().RESEND_API_KEY)
 
 /**
  * This function is responsible for sending the emai;
@@ -23,7 +26,7 @@ export async function sendMail(data: any, react_template: any) {
 
         // Send the email
         await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL || '',
+            from: getEnv().RESEND_FROM_EMAIL || '',
             to: [data.email],
             subject: data.subject,
             react: react_template,
