@@ -224,7 +224,7 @@ resource "aws_cloudfront_cache_policy" "assets" {
 
 # Get the existing ACM certificate
 data "aws_acm_certificate" "web" {
-  domain   = "${var.environment == "prod" ? "app.octonius.com" : "dev.app.octonius.com"}"
+  domain   = var.environment == "prod" ? "app.octonius.com" : "dev.app.octonius.com"
   statuses = ["ISSUED"]
   provider = aws.us-east-1
 }

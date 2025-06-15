@@ -119,7 +119,7 @@ variable "force_destroy_secret" {
 variable "whitelisted_ips" {
   description = "List of whitelisted IP addresses for RDS access"
   type        = list(string)
-  default     = [
+  default = [
     "127.0.0.1/32",
     "10.0.0.0/8",
     "172.16.0.0/12",

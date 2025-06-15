@@ -10,12 +10,12 @@ locals {
 
   # Default whitelisted IPs
   default_whitelisted_ips = [
-    "10.0.0.0/8",       # Private network
-    "172.16.0.0/12",    # Private network
-    "192.168.0.0/16",   # Private network
-    "183.83.0.0/32" # Shubham's IP
+    "10.0.0.0/8",     # Private network
+    "172.16.0.0/12",  # Private network
+    "192.168.0.0/16", # Private network
+    "183.83.0.0/32"   # Shubham's IP
   ]
-  
+
   # Combine default IPs with any additional IPs provided
   all_whitelisted_ips = distinct(concat(local.default_whitelisted_ips, var.whitelisted_ips))
 
