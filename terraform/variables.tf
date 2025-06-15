@@ -3,6 +3,7 @@
 variable "environment" {
   description = "Environment name (automatically computed from branch name: main->prod, develop->dev, feature/*->feature-name)"
   type        = string
+  default     = "dev"
   validation {
     condition     = contains(["prod", "dev"], var.environment)
     error_message = "Environment must be one of: prod, dev"
@@ -74,4 +75,10 @@ variable "image_tag" {
   description = "The tag of the Docker image to deploy."
   type        = string
   default     = "latest"
+}
+
+variable "whitelisted_ips" {
+  description = "List of whitelisted IP addresses for RDS access"
+  type        = list(string)
+  default     = []
 } 
