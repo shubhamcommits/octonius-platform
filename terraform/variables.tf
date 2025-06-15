@@ -74,4 +74,10 @@ variable "image_tag" {
   description = "The tag of the Docker image to deploy."
   type        = string
   default     = "latest"
+}
+
+variable "whitelisted_ips" {
+  description = "List of whitelisted IP addresses for RDS access"
+  type        = list(string)
+  default     = []
 } 
