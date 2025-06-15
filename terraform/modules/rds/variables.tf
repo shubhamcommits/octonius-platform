@@ -117,12 +117,27 @@ variable "force_destroy_secret" {
 }
 
 variable "whitelisted_ips" {
-  description = "List of whitelisted IP addresses for RDS access"
-  type        = list(string)
-  default = [
-    "10.0.0.0/8",     # Private network - Class A
-    "172.16.0.0/12",  # Private network - Class B
-    "192.168.0.0/16", # Private network - Class C
-    "183.83.0.0/16"   # Shubham's IP
-  ]
+  description = "Map of whitelisted IP addresses for RDS access with descriptions"
+  type = map(object({
+    cidr        = string
+    description = string
+  }))
+  default = {
+    "private-class-a" = {
+      cidr        = "10.0.0.0/8"
+      description = "Private network - Class A (RFC 1918)"
+    }
+    "private-class-b" = {
+      cidr        = "172.16.0.0/12"
+      description = "Private network - Class B (RFC 1918)"
+    }
+    "private-class-c" = {
+      cidr        = "192.168.0.0/16"
+      description = "Private network - Class C (RFC 1918)"
+    }
+    "shubham-ip" = {
+      cidr        = "183.83.0.0/16"
+      description = "Shubham's IP range for RDS access"
+    }
+  }
 } 

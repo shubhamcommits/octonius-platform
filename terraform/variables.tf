@@ -78,7 +78,10 @@ variable "image_tag" {
 }
 
 variable "whitelisted_ips" {
-  description = "List of whitelisted IP addresses for RDS access"
-  type        = list(string)
-  default     = []
+  description = "Map of whitelisted IP addresses for RDS access with descriptions"
+  type = map(object({
+    cidr        = string
+    description = string
+  }))
+  default = {}
 } 

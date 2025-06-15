@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://dev.api.octonius.com'
+  apiUrl: 'https://dev.api.octonius.com/v1'
 } 
