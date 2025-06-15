@@ -56,7 +56,12 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "optimization": true,
+              "aot": true,
+              "extractLicenses": true,
+              "namedChunks": false,
+              "sourceMap": false
             },
             "development": {
               "fileReplacements": [
@@ -65,12 +70,14 @@
                   "with": "src/environments/environment.dev.ts"
                 }
               ],
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": true
+              "outputHashing": "all",
+              "optimization": true,
+              "aot": true,
+              "extractLicenses": true,
+              "namedChunks": false,
+              "sourceMap": false
             },
-            "local": {
-            }
+            "local": {}
           },
           "defaultConfiguration": "production"
         },
