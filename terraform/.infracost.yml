@@ -2,7 +2,7 @@ version: 0.1
 
 projects:
   - path: .
-    name: terraform
+    name: terraform-dev
     terraform_vars:
       environment: "dev"
       project_name: "octonius"
@@ -11,4 +11,5 @@ projects:
       vpc_cidr: "10.1.0.0/16"
       public_subnets: '["10.1.1.0/24", "10.1.2.0/24"]'
       private_subnets: '["10.1.10.0/24", "10.1.20.0/24"]'
-      image_tag: "latest" 
+      image_tag: "latest"
+      database_username: "octonius" 
