@@ -137,7 +137,9 @@ module "rds" {
   vpc_id                = module.vpc.vpc_id
   subnet_ids            = module.vpc.private_subnet_ids
   ecs_security_group_id = aws_security_group.app_runner.id
-  whitelisted_ips       = local.all_whitelisted_ips
+
+  # Only pass whitelisted_ips if explicitly provided
+  whitelisted_ips = length(var.whitelisted_ips) > 0 ? var.whitelisted_ips : null
 
   instance_class          = var.environment == "prod" ? "db.t4g.small" : "db.t4g.micro"
   allocated_storage       = var.environment == "prod" ? 100 : 20
