@@ -3,7 +3,7 @@
 
 locals {
   # Environment and project info
-  environment  = var.environment
+  environment  = var.environment || "dev"
   project_name = var.project_name
   aws_region   = var.aws_region
   account_id   = var.account_id
