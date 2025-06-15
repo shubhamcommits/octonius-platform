@@ -24,7 +24,7 @@ locals {
     Project     = local.project_name
     ManagedBy   = "terraform"
     Repository  = "octonius-platform"
-    Branch      = local.environment # Since env is derived from branch
+    Branch      = local.environment
     Account     = local.account_id
     Region      = local.aws_region
 

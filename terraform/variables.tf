@@ -3,6 +3,7 @@
 variable "environment" {
   description = "Environment name (automatically computed from branch name: main->prod, develop->dev, feature/*->feature-name)"
   type        = string
+  default     = "dev"
   validation {
     condition     = contains(["prod", "dev"], var.environment)
     error_message = "Environment must be one of: prod, dev"
