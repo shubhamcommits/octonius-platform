@@ -3,10 +3,12 @@ version: 0.1
 projects:
   - path: .
     name: terraform
-    terraform_var_files:
-      - terraform.tfvars
     terraform_vars:
       environment: "dev"
-      vpc_cidr: "10.0.0.0/16"
+      project_name: "octonius"
+      aws_region: "eu-central-1"
+      account_id: "000000000000"
+      vpc_cidr: "10.1.0.0/16"
       public_subnets: '["10.1.1.0/24", "10.1.2.0/24"]'
-      private_subnets: '["10.1.10.0/24", "10.1.20.0/24"]' 
+      private_subnets: '["10.1.10.0/24", "10.1.20.0/24"]'
+      image_tag: "latest" 
