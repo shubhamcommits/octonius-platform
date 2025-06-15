@@ -401,7 +401,7 @@ jobs:
             --exclude "assets/*"
           aws s3 sync dist/ s3://$BUCKET_NAME/builds/$BUILD_VERSION/ \
             --delete \
-            --cache-control "no-cache" \
+            --cache-control "no-cache, no-store, must-revalidate" \
             --include "*.html"
           if [ -d dist/assets ]; then
             aws s3 sync dist/assets/ s3://$BUCKET_NAME/builds/$BUILD_VERSION/assets/ \
@@ -416,7 +416,7 @@ jobs:
             --exclude "assets/*"
           aws s3 sync dist/ s3://$BUCKET_NAME/latest/ \
             --delete \
-            --cache-control "no-cache" \
+            --cache-control "no-cache, no-store, must-revalidate" \
             --include "*.html"
           if [ -d dist/assets ]; then
             aws s3 sync dist/assets/ s3://$BUCKET_NAME/latest/assets/ \
