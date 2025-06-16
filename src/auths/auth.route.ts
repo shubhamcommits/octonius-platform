@@ -60,5 +60,10 @@ export class AuthRoute {
         this.router.post('/request-otp', (req: Request, res: Response, next: NextFunction) => {
             this.auth_controller.request_otp(req, res, next)
         })
+
+        // Refresh token route
+        this.router.post('/refresh', (req: Request, res: Response, next: NextFunction) => {
+            this.auth_controller.refresh(req, res, next)
+        })
     }
 } 
