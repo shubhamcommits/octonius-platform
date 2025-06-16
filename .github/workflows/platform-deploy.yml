@@ -314,6 +314,29 @@ jobs:
             echo "✅ No changes detected for ${{ needs.determine-action.outputs.environment }}"
             echo "has-changes=false" >> $GITHUB_ENV
           fi
+      - name: ⏳ Wait for App Runner to be idle
+        env:
+          APP_RUNNER_SERVICE_ARN: ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+        run: |
+          if [ -z "$APP_RUNNER_SERVICE_ARN" ]; then
+            echo "No App Runner service ARN provided, skipping check."
+            exit 0
+          fi
+          echo "Checking App Runner service status for $APP_RUNNER_SERVICE_ARN"
+          MAX_RETRIES=30
+          RETRY_DELAY=20
+          for ((i=1;i<=MAX_RETRIES;i++)); do
+            STATUS=$(aws apprunner describe-service --service-arn "$APP_RUNNER_SERVICE_ARN" --query 'Service.Status' --output text)
+            echo "Current status: $STATUS"
+            if [[ "$STATUS" != "OPERATION_IN_PROGRESS" ]]; then
+              echo "App Runner is ready."
+              exit 0
+            fi
+            echo "App Runner is in OPERATION_IN_PROGRESS, waiting ($i/$MAX_RETRIES)..."
+            sleep $RETRY_DELAY
+          done
+          echo "Timed out waiting for App Runner to be ready."
+          exit 1
       - name: 🚀 Apply Infrastructure
         working-directory: terraform
         run: |
