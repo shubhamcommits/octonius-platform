@@ -6,6 +6,7 @@ import { Role } from '../roles/role.model'
 import { Permission } from '../roles/permission.model'
 import { RolePermission } from '../roles/role-permission.model'
 import { Auth } from '../auths/auth.model'
+import { Token } from '../auths/token.model'
 
 // Export all models
 export {
@@ -15,7 +16,8 @@ export {
     Role,
     Permission,
     RolePermission,
-    Auth
+    Auth,
+    Token
 }
 
 // Create models object
@@ -26,7 +28,8 @@ const models = {
     Role,
     Permission,
     RolePermission,
-    Auth
+    Auth,
+    Token
 }
 
 // Initialize associations

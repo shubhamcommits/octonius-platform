@@ -33,6 +33,8 @@ export const envSchema = z.object({
   // JWT
   JWT_ACCESS_KEY: z.string(),
   JWT_ACCESS_TIME: z.string(),
+  JWT_REFRESH_KEY: z.string(),
+  JWT_REFRESH_TIME: z.string(),
 
   // Resend
   RESEND_API_KEY: z.string(),
@@ -85,4 +87,6 @@ export interface AWSConfig {
 export interface JWTConfig {
   accessKey: string
   accessTime: string
+  refreshKey: string
+  refreshTime: string
 } 

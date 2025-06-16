@@ -72,6 +72,7 @@ Workplace.init({
     name: {
         type: DataTypes.STRING(100),
         allowNull: false,
+        unique: true,
         validate: {
             notEmpty: true,
             len: [1, 100]
@@ -141,10 +142,6 @@ Workplace.init({
         {
             unique: true,
             fields: ['uuid']
-        },
-        {
-            unique: true,
-            fields: ['name']
         },
         {
             fields: ['created_by']

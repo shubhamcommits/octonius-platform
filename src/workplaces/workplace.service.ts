@@ -189,4 +189,59 @@ export class WorkplaceService {
             }
         }
     }
+
+    /**
+     * Selects a workplace for a user (sets as current workplace)
+     * @param user_id - The UUID of the user
+     * @param workplace_id - The UUID of the workplace
+     * @returns Success or error response
+     */
+    async selectWorkplace(user_id: string, workplace_id: string): Promise<WorkplaceResponse<{ user_id: string, workplace_id: string, user?: any }> | WorkplaceError> {
+        try {
+            // Check if the user is a member of the workplace
+            const membership = await WorkplaceMembership.findOne({
+                where: {
+                    user_id,
+                    workplace_id,
+                    status: 'active'
+                }
+            })
+            if (!membership) {
+                return {
+                    success: false,
+                    message: WorkplaceCode.WORKPLACE_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('User is not a member of this workplace')
+                }
+            }
+            // Set current_workplace_id in user profile
+            const user = await User.findByPk(user_id)
+            if (!user) {
+                return {
+                    success: false,
+                    message: WorkplaceCode.USER_NOT_IN_WORKPLACE,
+                    code: 404,
+                    stack: new Error('User not found')
+                }
+            }
+            user.current_workplace_id = workplace_id
+            await user.save()
+            // Return success with updated user
+            return {
+                success: true,
+                message: WorkplaceCode.WORKPLACE_SELECTED,
+                code: 200,
+                workplace: { user_id, workplace_id, user }
+            }
+        } catch (error) {
+            // Log error
+            logger.error('Failed to select workplace', { error, user_id, workplace_id })
+            return {
+                success: false,
+                message: WorkplaceCode.DATABASE_ERROR,
+                code: 500,
+                stack: error instanceof Error ? error : new Error('Database error')
+            }
+        }
+    }
 } 

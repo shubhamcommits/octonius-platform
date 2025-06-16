@@ -244,6 +244,8 @@ module "app_runner" {
     AWS_SECRET_ACCESS_KEY = "${data.aws_secretsmanager_secret.platform_env.arn}:AWS_SECRET_ACCESS_KEY::"
     JWT_ACCESS_KEY        = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_KEY::"
     JWT_ACCESS_TIME       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_TIME::"
+    JWT_REFRESH_KEY       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_KEY::"
+    JWT_REFRESH_TIME      = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_TIME::"
     DB_PASS               = "${data.aws_secretsmanager_secret.database_password.arn}:password::"
   }
 
