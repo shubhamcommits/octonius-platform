@@ -1,7 +1,7 @@
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
-import { AuthService } from '../../shared/services/auth.service'
+import { AuthService } from '../../../core/services/auth.service'
 import { CommonModule } from '@angular/common'
-import { Component, OnDestroy } from '@angular/core'
+import { Component, OnDestroy, OnInit } from '@angular/core'
 import { Router } from '@angular/router'
 import { finalize } from 'rxjs/operators'
 import { interval, Subscription } from 'rxjs'
@@ -14,7 +14,7 @@ import { take } from 'rxjs/operators'
     templateUrl: './verify-otp.component.html',
     styleUrls: ['./verify-otp.component.scss']
 })
-export class VerifyOtpComponent implements OnDestroy {
+export class VerifyOtpComponent implements OnInit, OnDestroy {
 
     verifyOtpForm: FormGroup
     isLoading = false
@@ -25,6 +25,7 @@ export class VerifyOtpComponent implements OnDestroy {
     resendTimer = 0
     timerSubscription: Subscription | null = null
     otpSent = false
+    otpError: string = ''
     
     constructor(
         private fb: FormBuilder,
@@ -47,7 +48,6 @@ export class VerifyOtpComponent implements OnDestroy {
     }
     
     ngOnInit() {
-        // Start the timer when component loads
         this.startResendTimer()
     }
     
@@ -104,24 +104,26 @@ export class VerifyOtpComponent implements OnDestroy {
     }
 
     onSubmit() {
-        const email = this.verifyOtpForm.get('email')?.value
-        const otp = this.verifyOtpForm.get('otp')?.value
         if (this.verifyOtpForm.valid) {
             this.isLoading = true
-            this.authService.verifyOtp(email, otp)
-            .pipe(
-                finalize(() => this.isLoading = false)
-            )
-            .subscribe({
+            this.otpError = ''
+
+            const { otp } = this.verifyOtpForm.value
+
+            this.authService.verifyOtp(this.email, otp).subscribe({
                 next: (response: any) => {
+                    // Store tokens if present
+                    if (response.data.access_token && response.data.refresh_token) {
+                        this.authService.setTokens(response.data.access_token, response.data.refresh_token)
+                    }
                     if (response.data.exists == true) {
-                        this.router.navigate(['/auths/select-workplace'], { state: { email, is_new_user: false, user: response.data.user } })
+                        this.router.navigate(['/auths/select-workplace'], { state: { email: this.email, is_new_user: false, user: response.data.user } })
                     } else {
-                        this.router.navigate(['/auths/create-workplace'], { state: { email, is_new_user: true } })
+                        this.router.navigate(['/auths/create-workplace'], { state: { email: this.email, is_new_user: true } })
                     }
                 },
                 error: (error: any) => {
-                    console.error('Error fetching user:', error)
+                    this.otpError = error?.error?.message || 'OTP verification failed. Please try again.'
                 }
             })
         }
