@@ -269,4 +269,33 @@ export class AuthController {
             return sendError(res, error.stack, error.message, error.code)
         }
     }
+
+    /**
+     * Refreshes the access token using the refresh token.
+     * @param req - Express request object containing refresh token in body
+     * @param res - Express response object
+     * @param next - Express next function
+     * @returns New access token or error response
+     */
+    async refresh(req: Request, res: Response, next: NextFunction): Promise<Response> {
+        try {
+            appLogger('Refreshing token', { method: req.method, path: req.path, ip: req.ip });
+            const { refresh_token } = req.body;
+            if (!refresh_token) {
+                return sendValidationError(res, [{ field: 'refresh_token', message: 'Refresh token is required' }]);
+            }
+            const result = await this.auth_service.refresh(refresh_token);
+            if (result.success) {
+                return sendResponse(req as any, res, 200, {
+                    success: true,
+                    message: result.message,
+                    data: result.data
+                });
+            } else {
+                return sendError(res, result.stack, result.message, result.code);
+            }
+        } catch (error: any) {
+            return sendError(res, error.stack, error.message, error.code);
+        }
+    }
 } 

@@ -1,15 +1,10 @@
-import { Component } from '@angular/core'
+import { Component, OnInit } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { RouterModule, Router } from '@angular/router'
-
-interface FileItem {
-  name: string
-  type: 'note' | 'pdf' | 'doc' | 'pptx' | 'xlsx'
-  icon: string
-  lastModified: string
-  owner: string
-  ownerAvatar: string
-}
+import { UserService } from '../../../core/services/user.service'
+import { AuthService } from '../../../core/services/auth.service'
+import { FileService } from '../../../core/services/file.service'
+import { File } from '../../../core/models/file.model'
 
 @Component({
   selector: 'app-files',
@@ -18,95 +13,112 @@ interface FileItem {
   templateUrl: './files.component.html',
   styleUrls: ['./files.component.scss']
 })
-export class FilesComponent {
-  userName = 'Cosmin'
-  
-  files: FileItem[] = [
-    {
-      name: 'Meeting notes',
-      type: 'note',
-      icon: '📄',
-      lastModified: 'May 3, 2025 12:45 PM',
-      owner: 'You',
-      ownerAvatar: '👤'
-    },
-    {
-      name: 'Sales pitch.PDF',
-      type: 'pdf',
-      icon: '📘',
-      lastModified: 'May 3, 2025 10:23 AM',
-      owner: 'You',
-      ownerAvatar: '👤'
-    },
-    {
-      name: 'New article draft',
-      type: 'note',
-      icon: '📄',
-      lastModified: 'May 3, 2025 12:45 PM',
-      owner: 'You',
-      ownerAvatar: '👤'
-    },
-    {
-      name: 'Financial offer ACME.docx',
-      type: 'doc',
-      icon: '📘',
-      lastModified: 'May 3, 2025 10:23 AM',
-      owner: 'You',
-      ownerAvatar: '👤'
-    },
-    {
-      name: 'Sales pitch.pptx',
-      type: 'pptx',
-      icon: '📘',
-      lastModified: 'May 3, 2025 10:23 AM',
-      owner: 'You',
-      ownerAvatar: '👤'
-    },
-    {
-      name: 'Marketing strategy.docx',
-      type: 'doc',
-      icon: '📘',
-      lastModified: 'June 14, 2025 2:45 PM',
-      owner: 'You',
-      ownerAvatar: '👤'
-    },
-    {
-      name: 'Budget report.xlsx',
-      type: 'xlsx',
-      icon: '📘',
-      lastModified: 'July 22, 2025 9:00 AM',
-      owner: 'You',
-      ownerAvatar: '👤'
-    },
-    {
-      name: 'Project timeline.pdf',
-      type: 'pdf',
-      icon: '📘',
-      lastModified: 'August 30, 2025 4:15 PM',
-      owner: 'You',
-      ownerAvatar: '👤'
+export class FilesComponent implements OnInit {
+  userName: string = ''
+  files: File[] = []
+  isLoading: boolean = true
+  error: string | null = null
+
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private fileService: FileService,
+    private userService: UserService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadUserData()
+    this.loadFiles()
+  }
+
+  private loadUserData(): void {
+    const user = this.authService.getCurrentUser()
+    if (user) {
+      this.userName = user.first_name || user.email?.split('@')[0] || 'User'
     }
-  ]
-  
-  constructor(private router: Router) {}
-  
+  }
+
+  private loadFiles(): void {
+    this.isLoading = true
+    this.error = null
+
+    this.fileService.getFiles().subscribe({
+      next: (files: File[]) => {
+        this.files = files
+        this.isLoading = false
+      },
+      error: (err: Error) => {
+        this.error = 'Failed to load files. Please try again.'
+        this.isLoading = false
+        console.error('Error loading files:', err)
+      }
+    })
+  }
+
   onCreateNote(): void {
-    // Navigate to note editor
     this.router.navigate(['/my-space/note-editor'])
   }
-  
+
   onUploadFile(): void {
-    // Handle file upload
-    console.log('Upload file')
+    // Create a hidden file input element
+    const fileInput = document.createElement('input')
+    fileInput.type = 'file'
+    fileInput.style.display = 'none'
+    document.body.appendChild(fileInput)
+
+    // Handle file selection
+    fileInput.onchange = (event: Event) => {
+      const target = event.target as HTMLInputElement
+      if (target.files && target.files.length > 0) {
+        const file = target.files[0]
+        this.uploadFile(file)
+      }
+      // Clean up
+      document.body.removeChild(fileInput)
+    }
+
+    // Trigger file selection
+    fileInput.click()
   }
-  
-  onFileClick(file: FileItem): void {
+
+  private uploadFile(file: globalThis.File): void {
+    this.isLoading = true
+    this.error = null
+
+    this.fileService.uploadFile(file).subscribe({
+      next: (response: File) => {
+        this.files = [...this.files, response]
+        this.isLoading = false
+      },
+      error: (err: Error) => {
+        this.error = 'Failed to upload file. Please try again.'
+        this.isLoading = false
+        console.error('Error uploading file:', err)
+      }
+    })
+  }
+
+  onFileClick(file: File): void {
     if (file.type === 'note') {
-      // Navigate to note editor with file
-      this.router.navigate(['/my-space/note-editor', file.name])
+      this.router.navigate(['/my-space/note-editor', file.id])
     } else {
-      // Open file preview or download
-      console.log('Open file:', file.name)
+      // Handle file download or preview
+      this.fileService.downloadFile(file.id).subscribe({
+        next: (blob: Blob) => {
+          const url = window.URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = file.name
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+        },
+        error: (err: Error) => {
+          this.error = 'Failed to download file. Please try again.'
+          console.error('Error downloading file:', err)
+        }
+      })
     }
   }
 } 

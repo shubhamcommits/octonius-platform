@@ -1,10 +1,14 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { RouterModule, Router } from '@angular/router'
+import { RouterModule, Router, ActivatedRoute } from '@angular/router'
 import { FormsModule } from '@angular/forms'
 import EditorJS from '@editorjs/editorjs'
 import Header from '@editorjs/header'
 import List from '@editorjs/list'
+import { UserService } from '../../../core/services/user.service'
+import { FileService } from '../../../core/services/file.service'
+import { User } from '../../../core/services/auth.service'
+import { File } from '../../../core/models/file.model'
 
 @Component({
   selector: 'app-note-editor',
@@ -15,17 +19,63 @@ import List from '@editorjs/list'
 })
 export class NoteEditorComponent implements OnInit, OnDestroy {
   @ViewChild('editorjs', { static: true }) editorElement!: ElementRef
-  
   editor!: EditorJS
   noteTitle = ''
-  createdBy = 'Cosmin Ciobanu'
-  createdByAvatar = '👤'
-  lastEdited = 'May 12, 2025 12:34 PM'
+  createdBy = ''
+  createdByAvatar = ''
+  lastEdited = ''
+  isLoading = true
+  error = ''
+  noteId: string | null = null
+  user: any = null
+  workplaceId: string | null = null
+  userName = ''
+  userId = ''
+  note: File | null = null
   
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private userService: UserService,
+    private fileService: FileService
+  ) {}
   
   ngOnInit(): void {
-    this.initializeEditor()
+    this.isLoading = true
+    this.userService.getCurrentUser().subscribe({
+      next: (user: User) => {
+        this.userName = user.first_name
+        this.userId = user.uuid
+        this.workplaceId = user.current_workplace_id || ''
+        this.createdBy = user.first_name || user.email?.split('@')[0] || 'User'
+        this.createdByAvatar = user.avatar_url || '👤'
+        if (this.noteId) {
+          this.fileService.getNote(this.noteId).subscribe({
+            next: (note: File) => {
+              this.note = note
+              this.noteTitle = note.title || ''
+              this.lastEdited = note.last_edited || ''
+              this.initializeEditor(note.content)
+              this.isLoading = false
+            },
+            error: (err: Error) => {
+              this.error = 'Failed to load note'
+              this.isLoading = false
+              console.error('Error loading note:', err)
+              this.initializeEditor()
+            }
+          })
+        } else {
+          this.initializeEditor()
+          this.isLoading = false
+        }
+      },
+      error: (err: Error) => {
+        this.error = 'Failed to load user data'
+        this.isLoading = false
+        console.error('Error loading user:', err)
+      }
+    })
   }
   
   ngOnDestroy(): void {
@@ -34,7 +84,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
     }
   }
   
-  initializeEditor(): void {
+  initializeEditor(content: any = { blocks: [] }): void {
     this.editor = new EditorJS({
       holder: 'editorjs',
       placeholder: 'Write something or press / for options',
@@ -55,30 +105,39 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
           }
         }
       },
-      data: {
-        blocks: []
-      }
+      data: content
     })
   }
   
   async saveNote(): Promise<void> {
     try {
       const outputData = await this.editor.save()
-      console.log('Saving note:', this.noteTitle, outputData)
-      // Here you would typically save to your backend
-      // For now, just log the data
+      const note = {
+        id: this.noteId || '',
+        title: this.noteTitle,
+        content: outputData
+      }
+      if (this.user && this.workplaceId) {
+        this.fileService.saveNote(note, this.userId, this.workplaceId).subscribe({
+          next: () => {
+            // Optionally show a success message
+            this.router.navigate(['/my-space/files'])
+          },
+          error: err => {
+            this.error = 'Failed to save note.'
+          }
+        })
+      }
     } catch (error) {
-      console.error('Saving failed:', error)
+      this.error = 'Saving failed.'
     }
   }
   
   shareNote(): void {
-    console.log('Share note')
     // Implement share functionality
   }
   
   showMoreOptions(): void {
-    console.log('Show more options')
     // Implement more options menu
   }
   

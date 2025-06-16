@@ -74,5 +74,10 @@ export class UserRoute {
             .get('/email/:email', (req: Request, res: Response) => {
                 this.user_controller.getUserByEmail(req, res)
             })
+
+        // Get current user route
+        this.router.get('/me', (req: Request, res: Response) => {
+            this.user_controller.getCurrentUser(req, res)
+        })
     }
 } 

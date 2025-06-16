@@ -38,5 +38,10 @@ export class WorkplaceRoute {
         this.router.get('/:workplace_id/users', (req: Request, res: Response) => {
             this.workplace_controller.getWorkplaceUsers(req, res)
         })
+
+        // Select a workplace for a user
+        this.router.post('/:workplace_id/select', (req: Request, res: Response) => {
+            this.workplace_controller.selectWorkplace(req, res)
+        })
     }
 } 

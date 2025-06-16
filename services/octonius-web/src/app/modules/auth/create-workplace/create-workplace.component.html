@@ -1,31 +1,73 @@
 <div class="min-h-screen flex flex-col items-center justify-center bg-base-100 text-base-content">
   <h1 class="text-3xl font-bold text-center mb-8 underline decoration-primary">Turn busy into brilliant.</h1>
   <div class="w-full max-w-sm p-8 bg-base-200 rounded-lg shadow-md flex flex-col items-center">
-    <!-- Workplace Name Input -->
-    <form [formGroup]="createWorkplaceForm" (ngSubmit)="onSubmit()" class="w-full flex flex-col gap-4">
-      <label class="form-control w-full">
-        <span class="label-text mb-1">Workplace Name</span>
-        <input 
-          type="text" 
-          formControlName="workplace_name"
-          placeholder="Enter your workplace name..." 
-          class="input input-bordered w-full"
-          [ngClass]="{'input-error': createWorkplaceForm.get('workplace_name')?.invalid && createWorkplaceForm.get('workplace_name')?.touched}"
-          required />
-        <div class="text-error text-xs mt-1" *ngIf="createWorkplaceForm.get('workplace_name')?.invalid && createWorkplaceForm.get('workplace_name')?.touched">
-          <span *ngIf="createWorkplaceForm.get('workplace_name')?.errors?.['required']">Workplace name is required</span>
-          <span *ngIf="createWorkplaceForm.get('workplace_name')?.errors?.['minlength']">Workplace name must be at least 3 characters</span>
+    <h2 class="text-2xl font-bold mb-2" *ngIf="step === 'create'">Create a new workplace</h2>
+    <h2 class="text-2xl font-bold mb-2" *ngIf="step === 'verify'">Verify your identity</h2>
+    <p class="text-base-content/70 text-sm mb-8" *ngIf="step === 'create'">Enter your email and workplace name to get started.</p>
+    <p class="text-base-content/70 text-sm mb-8" *ngIf="step === 'verify'">We sent an OTP to <span class="text-primary font-medium">{{ createWorkplaceForm.get('email')?.value }}</span>. Enter it below to continue.</p>
+
+    <!-- Step 1: Form for email and workplace name -->
+    <form *ngIf="step === 'create'" [formGroup]="createWorkplaceForm" (ngSubmit)="onSubmitForm()" class="w-full space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Email</label>
+        <input formControlName="email" type="email" class="input input-bordered w-full" [readonly]="true" />
+        <div *ngIf="createWorkplaceForm.get('email')?.invalid && createWorkplaceForm.get('email')?.touched" class="text-error text-xs mt-1">
+          Valid email is required.
         </div>
-      </label>
-      <span class="text-xs text-base-content/70 mb-2">This will be the name of your organization's workspace</span>
-      <button 
-        class="btn btn-primary w-full text-primary-content" 
-        type="submit"
-        [disabled]="createWorkplaceForm.invalid || isLoading">
-        <span *ngIf="!isLoading">Create Workplace</span>
-        <span *ngIf="isLoading" class="loading loading-spinner loading-sm"></span>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Workplace Name</label>
+        <input formControlName="workplace_name" class="input input-bordered w-full" placeholder="Enter your workplace name" />
+        <div *ngIf="createWorkplaceForm.get('workplace_name')?.invalid && createWorkplaceForm.get('workplace_name')?.touched" class="text-error text-xs mt-1">
+          Workplace name is required (min 3 chars).
+        </div>
+        <div *ngIf="createWorkplaceForm.get('workplace_name')?.errors?.['notUnique'] && createWorkplaceForm.get('workplace_name')?.touched" class="text-error text-xs mt-1">
+          Workplace name is already taken.
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary w-full text-primary-content" [disabled]="isLoading || !createWorkplaceForm.valid">
+        <span *ngIf="!isLoading">Send OTP</span>
+        <span *ngIf="isLoading" class="loading loading-spinner"></span>
       </button>
     </form>
+
+    <!-- Step 2: OTP Verification -->
+    <form *ngIf="step === 'verify'" [formGroup]="otpForm" (ngSubmit)="onVerifyOtp()" class="w-full space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Verification Code</label>
+        <input formControlName="otp" maxlength="6" placeholder="Enter 6-digit code" class="input input-bordered w-full text-center text-lg tracking-wider" style="text-transform: uppercase;" [readonly]="showWorkplaceNameEdit" [disabled]="showWorkplaceNameEdit" />
+        <span class="text-xs text-base-content/70 mb-2">We sent a code to {{ createWorkplaceForm.get('email')?.value }}</span>
+        <div *ngIf="otpForm.get('otp')?.invalid && otpForm.get('otp')?.touched" class="text-error text-xs mt-1">
+          <span *ngIf="otpForm.get('otp')?.errors?.['required']">Verification code is required</span>
+          <span *ngIf="otpForm.get('otp')?.errors?.['minlength'] || otpForm.get('otp')?.errors?.['maxlength']">
+            Code must be exactly 6 characters
+          </span>
+        </div>
+      </div>
+      <div class="text-center mb-2">
+        <button type="button" (click)="onResendOtp()" [disabled]="!canResendOtp || isLoading" class="text-sm transition-all duration-300" [ngClass]="{'link link-primary cursor-pointer hover:underline': canResendOtp && !isLoading, 'text-base-content/50 cursor-not-allowed': !canResendOtp || isLoading}">
+          Didn't receive the code? Resend
+          <span *ngIf="!canResendOtp && resendTimer > 0" class="text-base-content/50">
+            ({{resendTimer}}s)
+          </span>
+        </button>
+      </div>
+      <button type="submit" class="btn btn-primary w-full text-primary-content" [disabled]="isLoading || otpForm.get('otp')?.invalid || showWorkplaceNameEdit" *ngIf="!showWorkplaceNameEdit">
+        <span *ngIf="!isLoading">Verify OTP & Create Workplace</span>
+        <span *ngIf="isLoading" class="loading loading-spinner"></span>
+      </button>
+      <div *ngIf="otpError" class="text-error text-xs text-center mt-2">{{ otpError }}</div>
+    </form>
+
+    <div *ngIf="showWorkplaceNameEdit" class="w-full mt-4">
+      <div class="text-error text-xs text-center mb-2">A workplace with the name "<span class='font-bold'>{{ attemptedWorkplaceName }}</span>" already exists.</div>
+      <label class="block text-sm font-medium mb-1">Choose a different workplace name</label>
+      <input type="text" class="input input-bordered w-full mb-2" [value]="createWorkplaceForm.get('workplace_name')?.value" #newNameInput placeholder="Enter a new workplace name" />
+      <button class="btn btn-primary w-full text-primary-content" [disabled]="isLoading" (click)="onEditWorkplaceNameSubmit(newNameInput.value)">
+        Request OTP for new name
+      </button>
+    </div>
+
     <!-- Helper Text -->
     <div class="mt-6 text-xs text-base-content/60 text-center">
       By continuing, you acknowledge that you understand and agree to the

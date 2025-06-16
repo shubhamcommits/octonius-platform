@@ -92,4 +92,36 @@ export class WorkplaceController {
             return sendError(res, error.stack, error.message, error.code)
         }
     }
+
+    /**
+     * Selects a workplace for a user (sets as current workplace)
+     * @param req - Express request object containing user_id in body and workplace_id in params
+     * @param res - Express response object
+     * @returns Success or error response
+     */
+    async selectWorkplace(req: Request, res: Response): Promise<Response> {
+        try {
+            appLogger('Selecting workplace', {
+                method: req.method,
+                path: req.path,
+                params: req.params,
+                body: req.body,
+                ip: req.ip
+            })
+            const { workplace_id } = req.params
+            const { user_id } = req.body
+            const result = await this.workplace_service.selectWorkplace(user_id, workplace_id)
+            if (result.success) {
+                return sendResponse(req as any, res, result.code, {
+                    success: true,
+                    message: result.message,
+                    workplace: result.workplace
+                })
+            } else {
+                return sendError(res, result.stack, result.message, result.code)
+            }
+        } catch (error: any) {
+            return sendError(res, error.stack, error.message, error.code)
+        }
+    }
 } 

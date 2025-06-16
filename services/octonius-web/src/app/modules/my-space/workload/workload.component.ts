@@ -1,5 +1,8 @@
-import { Component } from '@angular/core'
+import { Component, OnInit } from '@angular/core'
 import { CommonModule } from '@angular/common'
+import { UserService } from '../../../core/services/user.service'
+import { User } from '../../../core/services/auth.service'
+import { WorkloadService } from '../../shared/services/workload.service'
 
 interface Task {
   title: string
@@ -16,110 +19,53 @@ interface Task {
   templateUrl: './workload.component.html',
   styleUrls: ['./workload.component.scss']
 })
-export class WorkloadComponent {
-  userName = 'Cosmin'
-  
-  workloadStats = {
-    total: 12,
-    overdue: 3,
-    todo: 5,
-    inProgress: 2,
-    done: 2
+export class WorkloadComponent implements OnInit {
+  userName = ''
+  isLoading = true
+  error: string | null = null
+  workloadStats: any = null
+  todayTasks: any[] = []
+  tomorrowTasks: any[] = []
+  nextWeekTasks: any[] = []
+
+  constructor(
+    private userService: UserService,
+    private workloadService: WorkloadService
+  ) {}
+
+  ngOnInit() {
+    this.isLoading = true
+    this.userService.getCurrentUser().subscribe({
+      next: (user: User) => {
+        this.userName = user.first_name || user.email?.split('@')[0] || 'User'
+        if (user.uuid && user.current_workplace_id) {
+          this.workloadService.getWorkload(user.uuid, user.current_workplace_id).subscribe({
+            next: (data: any) => {
+              this.workloadStats = data.stats
+              this.todayTasks = data.today || []
+              this.tomorrowTasks = data.tomorrow || []
+              this.nextWeekTasks = data.nextWeek || []
+              this.isLoading = false
+            },
+            error: (err: Error) => {
+              this.error = 'Failed to load workload data'
+              this.isLoading = false
+              console.error('Error loading workload:', err)
+            }
+          })
+        } else {
+          this.error = 'No workplace selected'
+          this.isLoading = false
+        }
+      },
+      error: (err: Error) => {
+        this.error = 'Failed to load user data'
+        this.isLoading = false
+        console.error('Error loading user:', err)
+      }
+    })
   }
-  
-  todayTasks: Task[] = [
-    {
-      title: 'Design the main screens for authentication',
-      dueDate: 'Jan 10, 2025',
-      team: 'Development team',
-      status: 'overdue',
-      priority: 'high'
-    },
-    {
-      title: 'Create wireframes for the settings page',
-      dueDate: 'Jan 10, 2025',
-      team: 'Design team',
-      status: 'todo',
-      priority: 'medium'
-    },
-    {
-      title: 'Develop prototypes for user onboarding',
-      dueDate: 'Jan 10, 2025',
-      team: 'UX team',
-      status: 'in-progress',
-      priority: 'medium'
-    },
-    {
-      title: 'Develop prototypes for user onboarding',
-      dueDate: 'Jan 10, 2025',
-      team: 'UX team',
-      status: 'done',
-      priority: 'low'
-    }
-  ]
-  
-  tomorrowTasks: Task[] = [
-    {
-      title: 'Conduct user research for feature validation',
-      dueDate: 'Feb 15, 2025',
-      team: 'Product Management',
-      status: 'todo',
-      priority: 'high'
-    },
-    {
-      title: 'Design wireframes for the mobile app',
-      dueDate: 'Mar 5, 2025',
-      team: 'Mobile Development',
-      status: 'todo',
-      priority: 'high'
-    },
-    {
-      title: 'Implement accessibility improvements',
-      dueDate: 'Apr 20, 2025',
-      team: 'Web Development',
-      status: 'todo',
-      priority: 'high'
-    }
-  ]
-  
-  nextWeekTasks: Task[] = [
-    {
-      title: 'Revise user feedback questionnaires',
-      dueDate: 'May 15, 2025',
-      team: 'User Research',
-      status: 'todo',
-      priority: 'high'
-    },
-    {
-      title: 'Launch beta testing phase',
-      dueDate: 'Jun 10, 2025',
-      team: 'Product Testing',
-      status: 'todo',
-      priority: 'high'
-    },
-    {
-      title: 'Finalize UI design specifications',
-      dueDate: 'Jul 30, 2025',
-      team: 'Design',
-      status: 'todo',
-      priority: 'high'
-    },
-    {
-      title: 'Prepare marketing strategy for launch',
-      dueDate: 'Aug 25, 2025',
-      team: 'Marketing',
-      status: 'todo',
-      priority: 'high'
-    },
-    {
-      title: 'Conduct security audits',
-      dueDate: 'Sep 15, 2025',
-      team: 'Security',
-      status: 'todo',
-      priority: 'high'
-    }
-  ]
-  
+
   getStatusColor(status: string): string {
     switch (status) {
       case 'overdue': return 'bg-error text-error-content'

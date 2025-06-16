@@ -10,6 +10,7 @@ export enum WorkplaceCode {
     WORKPLACE_FOUND = 'Workplace has been successfully retrieved',
     WORKPLACES_FOUND = 'Workplaces have been successfully retrieved',
     USER_WORKPLACES_FOUND = 'User workplaces have been successfully retrieved',
+    WORKPLACE_SELECTED = 'Workplace has been successfully selected',
 
     // Error codes (4xx)
     WORKPLACE_NOT_FOUND = 'The requested workplace could not be found',

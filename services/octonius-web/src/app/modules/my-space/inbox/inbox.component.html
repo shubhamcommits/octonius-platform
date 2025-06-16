@@ -1,124 +1,145 @@
 <div class="space-y-6">
-  <!-- Header with inbox icon -->
-  <div class="text-center mb-8">
-    <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-      <span class="text-white text-3xl">📥</span>
-    </div>
-    <h1 class="text-3xl font-bold">Your Inbox, {{userName}}</h1>
-    <p class="text-base-content opacity-70 mt-2">Check the status of your work and stay updated</p>
+  <!-- Error Banner -->
+  <div *ngIf="error" class="alert alert-error shadow-lg flex items-center justify-between">
+    <span>{{ error }}</span>
+    <button class="btn btn-sm btn-ghost" (click)="ngOnInit()">Retry</button>
   </div>
 
-  <!-- Mission Control Card -->
-  <div class="card bg-base-100 shadow-sm">
-    <div class="card-body">
-      <div class="flex items-start space-x-4">
-        <div class="avatar">
-          <div class="w-12 h-12 rounded-full bg-base-300">
-            <span class="flex items-center justify-center h-full text-lg">👤</span>
+  <!-- Skeleton Loader -->
+  <ng-container *ngIf="isLoading && !error">
+    <div class="animate-pulse space-y-6">
+      <div class="h-8 w-1/3 bg-base-300 rounded mx-auto"></div>
+      <div class="card bg-base-100 shadow-sm h-20"></div>
+      <div class="card bg-base-100 shadow-sm h-16"></div>
+      <div class="card bg-base-100 shadow-sm h-32"></div>
+      <div class="card bg-base-100 shadow-sm h-32"></div>
+      <div class="card bg-base-100 shadow-sm h-32"></div>
+    </div>
+  </ng-container>
+
+  <!-- Main Content -->
+  <ng-container *ngIf="!isLoading && !error">
+    <!-- Header with inbox icon -->
+    <div class="text-center mb-8">
+      <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <span class="text-white text-3xl">📥</span>
+      </div>
+      <h1 class="text-3xl font-bold">Your Inbox, {{userName}}</h1>
+      <p class="text-base-content opacity-70 mt-2">Check the status of your work and stay updated</p>
+    </div>
+
+    <!-- Mission Control Card -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <div class="flex items-start space-x-4">
+          <div class="avatar">
+            <div class="w-12 h-12 rounded-full bg-base-300">
+              <span class="flex items-center justify-center h-full text-lg">👤</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <p class="text-base-content opacity-70">This is your Mission Control. Check the status of your work, access latest updates from your teams and more.</p>
           </div>
         </div>
-        <div class="flex-1">
-          <p class="text-base-content opacity-70">This is your Mission Control. Check the status of your work, access latest updates from your teams and more.</p>
+      </div>
+    </div>
+
+    <!-- My Workload Section -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title text-lg mb-4">My Workload</h2>
+        <div class="flex flex-wrap gap-4 text-sm">
+          <span class="badge badge-ghost">{{workloadStats?.total}} Tasks for today</span>
+          <span class="badge badge-error">{{workloadStats?.overdue}} overdue</span>
+          <span class="badge badge-warning">{{workloadStats?.todo}} to do</span>
+          <span class="badge badge-success">{{workloadStats?.inProgress}} in progress</span>
+          <span class="badge badge-info">{{workloadStats?.done}} done</span>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- My Workload Section -->
-  <div class="card bg-base-100 shadow-sm">
-    <div class="card-body">
-      <h2 class="card-title text-lg mb-4">My Workload</h2>
-      <div class="flex flex-wrap gap-4 text-sm">
-        <span class="badge badge-ghost">{{workloadStats.total}} Tasks for today</span>
-        <span class="badge badge-error">{{workloadStats.overdue}} overdue</span>
-        <span class="badge badge-warning">{{workloadStats.todo}} to do</span>
-        <span class="badge badge-success">{{workloadStats.inProgress}} in progress</span>
-        <span class="badge badge-info">{{workloadStats.done}} done</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Recent Activity Section -->
-  <div class="card bg-base-100 shadow-sm">
-    <div class="card-body">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="card-title text-lg">Recent Activity</h2>
-        <button class="btn btn-ghost btn-sm">Clear all</button>
-      </div>
-      <div class="space-y-4">
-        <div *ngFor="let activity of recentActivity" class="flex items-start justify-between">
-          <div class="flex items-start space-x-3">
-            <div class="avatar">
-              <div class="w-8 h-8 rounded-full bg-base-300">
-                <span class="flex items-center justify-center h-full text-sm">{{activity.avatar}}</span>
+    <!-- Recent Activity Section -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="card-title text-lg">Recent Activity</h2>
+          <button class="btn btn-ghost btn-sm">Clear all</button>
+        </div>
+        <div class="space-y-4">
+          <div *ngFor="let activity of recentActivity" class="flex items-start justify-between">
+            <div class="flex items-start space-x-3">
+              <div class="avatar">
+                <div class="w-8 h-8 rounded-full bg-base-300">
+                  <span class="flex items-center justify-center h-full text-sm">{{activity.avatar}}</span>
+                </div>
+              </div>
+              <div>
+                <p class="text-sm">
+                  <span class="font-semibold">{{activity.user}}</span>
+                  <span class="text-base-content opacity-70"> {{activity.action}} you {{activity.item}}</span>
+                </p>
+                <p class="text-xs text-base-content opacity-50 mt-1">{{activity.time}} in {{activity.team}}</p>
               </div>
             </div>
-            <div>
-              <p class="text-sm">
-                <span class="font-semibold">{{activity.user}}</span>
-                <span class="text-base-content opacity-70"> {{activity.action}} you {{activity.item}}</span>
-              </p>
-              <p class="text-xs text-base-content opacity-50 mt-1">{{activity.time}} in {{activity.team}}</p>
-            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Messages Section -->
-  <div class="card bg-base-100 shadow-sm">
-    <div class="card-body">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="card-title text-lg">Messages</h2>
-        <button class="btn btn-ghost btn-sm">Clear all</button>
-      </div>
-      <div class="space-y-4">
-        <div *ngFor="let msg of messages" class="flex items-start justify-between">
-          <div class="flex items-start space-x-3">
-            <div class="avatar">
-              <div class="w-8 h-8 rounded-full bg-base-300">
-                <span class="flex items-center justify-center h-full text-sm">{{msg.avatar}}</span>
+    <!-- Messages Section -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="card-title text-lg">Messages</h2>
+          <button class="btn btn-ghost btn-sm">Clear all</button>
+        </div>
+        <div class="space-y-4">
+          <div *ngFor="let msg of messages" class="flex items-start justify-between">
+            <div class="flex items-start space-x-3">
+              <div class="avatar">
+                <div class="w-8 h-8 rounded-full bg-base-300">
+                  <span class="flex items-center justify-center h-full text-sm">{{msg.avatar}}</span>
+                </div>
+              </div>
+              <div>
+                <p class="text-sm">
+                  <span class="font-semibold">{{msg.user}}</span>
+                  <span class="text-base-content opacity-70"> {{msg.message}}</span>
+                </p>
+                <p class="text-xs text-base-content opacity-50 mt-1">{{msg.time}} in {{msg.team}}</p>
               </div>
             </div>
-            <div>
-              <p class="text-sm">
-                <span class="font-semibold">{{msg.user}}</span>
-                <span class="text-base-content opacity-70"> {{msg.message}}</span>
-              </p>
-              <p class="text-xs text-base-content opacity-50 mt-1">{{msg.time}} in {{msg.team}}</p>
-            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Lounge News Section -->
-  <div class="card bg-base-100 shadow-sm">
-    <div class="card-body">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="card-title text-lg">Lounge news</h2>
-        <button class="btn btn-ghost btn-sm">Clear all</button>
-      </div>
-      <div class="space-y-4">
-        <div *ngFor="let item of loungeNews" class="flex items-start justify-between">
-          <div class="flex items-start space-x-3">
-            <div class="avatar">
-              <div class="w-8 h-8 rounded-full bg-base-300">
-                <span class="flex items-center justify-center h-full text-sm">{{item.avatar}}</span>
+    <!-- Lounge News Section -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="card-title text-lg">Lounge news</h2>
+          <button class="btn btn-ghost btn-sm">Clear all</button>
+        </div>
+        <div class="space-y-4">
+          <div *ngFor="let item of loungeNews" class="flex items-start justify-between">
+            <div class="flex items-start space-x-3">
+              <div class="avatar">
+                <div class="w-8 h-8 rounded-full bg-base-300">
+                  <span class="flex items-center justify-center h-full text-sm">{{item.avatar}}</span>
+                </div>
+              </div>
+              <div>
+                <p class="text-sm">
+                  <span class="font-semibold">{{item.user}}</span>
+                  <span class="text-base-content opacity-70"> {{item.news}}</span>
+                </p>
+                <p class="text-xs text-base-content opacity-50 mt-1">{{item.time}}</p>
               </div>
             </div>
-            <div>
-              <p class="text-sm">
-                <span class="font-semibold">{{item.user}}</span>
-                <span class="text-base-content opacity-70"> {{item.news}}</span>
-              </p>
-              <p class="text-xs text-base-content opacity-50 mt-1">{{item.time}}</p>
-            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </ng-container>
 </div> 

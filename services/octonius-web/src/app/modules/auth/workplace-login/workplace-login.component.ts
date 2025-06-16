@@ -2,7 +2,7 @@ import { Component, OnDestroy } from '@angular/core'
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
-import { AuthService } from '../../shared/services/auth.service'
+import { AuthService } from '../../../core/services/auth.service'
 import { WorkplaceService } from '../../shared/services/workplace.service'
 import { finalize } from 'rxjs/operators'
 import { interval, Subscription } from 'rxjs'
@@ -143,6 +143,10 @@ export class WorkplaceLoginComponent implements OnDestroy {
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: (response) => {
+          // Store tokens if present
+          if (response.data && response.data.access_token && response.data.refresh_token) {
+            this.authService.setTokens(response.data.access_token, response.data.refresh_token)
+          }
           if (response.data.exists) {
             // User exists, now select the workplace
             this.selectWorkplace()
@@ -165,10 +169,10 @@ export class WorkplaceLoginComponent implements OnDestroy {
   }
   
   selectWorkplace(): void {
-    if (!this.selectedWorkplace) return
+    if (!this.selectedWorkplace || !this.user) return
     
     this.isLoading = true
-    this.workplaceService.selectWorkplace(this.selectedWorkplace.uuid)
+    this.workplaceService.selectWorkplace(this.selectedWorkplace.uuid, this.user.uuid)
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: () => {

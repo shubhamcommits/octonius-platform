@@ -28,6 +28,12 @@ import logger from '../logger'
 // Import NotificationService
 import { NotificationService } from '../notifications'
 
+// Import TokenService
+import { TokenService } from './token.service'
+
+// Import jwt
+import jwt, { SignOptions } from 'jsonwebtoken'
+
 /**
  * Service class for handling authentication operations (OTP-based, passwordless)
  */
@@ -155,19 +161,16 @@ export class AuthService {
     /**
      * Verifies OTP and logs in the user
      * @param email - User's email address
-     * @param otp_code - The OTP code to verify
+     * @param otp - The OTP code to verify
      * @returns AuthResponse or AuthError
      */
-    async verify_otp(email: string, otp: string): Promise<AuthResponse<{ exists: boolean, user: any }> | AuthError> {
+    async verify_otp(email: string, otp: string): Promise<AuthResponse<{ exists: boolean, user: any, access_token?: string, refresh_token?: string }> | AuthError> {
         try {
-
             // Check if user exists
             const user = await User.findOne({ where: { email } })
 
             // Fetch OTP from Redis
             const redis: any = global_connection_map.get('redis')
-
-            // Fetch OTP from Redis
             const stored_otp = await redis.get(`otp:${email}`)
 
             // Return error if OTP is invalid or expired
@@ -183,7 +186,7 @@ export class AuthService {
             // Delete OTP from Redis
             await redis.del(`otp:${email}`)
 
-            // Log the OTP
+            // Log OTP verification
             logger.info(`OTP verified and deleted from Redis for ${email}`)
 
             // Mark user as logged in (update Auth record)
@@ -195,17 +198,50 @@ export class AuthService {
                     last_login: new Date(),
                     logged_in: true
                 })
+
+                // Generate access and refresh tokens
+                const { access_token, refresh_token } = TokenService.generate_tokens(user)
+
+                // Decode expiry from tokens
+                const access_decoded: any = TokenService.verify_access_token(access_token)
+                const refresh_decoded: any = TokenService.verify_refresh_token(refresh_token)
+                const access_expires_at = new Date(access_decoded.exp * 1000)
+                const refresh_expires_at = new Date(refresh_decoded.exp * 1000)
+
+                // Save tokens in DB
+                await TokenService.save_tokens(
+                    user.uuid,
+                    access_token,
+                    refresh_token,
+                    access_expires_at,
+                    refresh_expires_at
+                )
+
+                // Return success response with tokens
+                return {
+                    success: true,
+                    message: AuthCode.AUTH_OTP_VERIFIED,
+                    code: 200,
+                    data: {
+                        exists: true,
+                        user: user,
+                        access_token: access_token,
+                        refresh_token: refresh_token
+                    }
+                }
             }
 
-            // Return success response
+            // Return success response (user not found)
             return {
                 success: true,
                 message: AuthCode.AUTH_OTP_VERIFIED,
                 code: 200,
-                data: { exists: user ? true : false, user: user }
+                data: {
+                    exists: false,
+                    user: null
+                }
             }
         } catch (error) {
-
             // Return error response
             return {
                 success: false,
@@ -287,8 +323,16 @@ export class AuthService {
                 code: 201,
                 data: { user, workplace }
             }
-        } catch (error) {
-
+        } catch (error: any) {
+            // Handle unique constraint error for workplace name
+            if (error.name === 'SequelizeUniqueConstraintError' && error.errors && error.errors[0]?.path === 'name') {
+                return {
+                    success: false,
+                    message: AuthCode.AUTH_WORKPLACE_NAME_EXISTS,
+                    code: 409,
+                    stack: error
+                }
+            }
             // Return error response
             return {
                 success: false,
@@ -296,6 +340,42 @@ export class AuthService {
                 code: 500,
                 stack: error instanceof Error ? error : new Error('Database error')
             }
+        }
+    }
+
+    /**
+     * Refreshes the access token using the provided refresh token.
+     * @param refresh_token - The refresh token
+     * @returns Object containing success status, message, and new access token data
+     */
+    async refresh(refresh_token: string): Promise<{ success: boolean; message: string; data?: any; code?: number; stack?: string }> {
+        try {
+            const refreshSecret = process.env.JWT_REFRESH_SECRET as string;
+            const accessSecret = process.env.JWT_ACCESS_SECRET as string;
+            const accessExpiresIn = process.env.JWT_ACCESS_EXPIRES_IN as string;
+
+            if (!refreshSecret || !accessSecret || !accessExpiresIn) {
+                return { success: false, message: 'JWT secrets not configured', code: 500 };
+            }
+
+            const decoded = jwt.verify(refresh_token, refreshSecret) as { uuid: string; email: string };
+            if (!decoded) {
+                return { success: false, message: 'Invalid refresh token', code: 401 };
+            }
+
+            const access_token = jwt.sign(
+                { uuid: decoded.uuid, email: decoded.email },
+                accessSecret,
+                { expiresIn: accessExpiresIn } as SignOptions
+            )
+
+            return {
+                success: true,
+                message: 'Token refreshed successfully',
+                data: { access_token }
+            };
+        } catch (error: any) {
+            return { success: false, message: error.message, code: 401, stack: error.stack };
         }
     }
 }

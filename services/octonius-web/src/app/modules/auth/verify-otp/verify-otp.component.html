@@ -44,6 +44,8 @@
                 </div>
             </label>
             
+            <div *ngIf="otpError" class="text-error text-xs text-center mt-2">{{ otpError }}</div>
+            
             <!-- Resend OTP Link -->
             <div class="text-center mb-2">
                 <button type="button"

@@ -9,6 +9,8 @@ export function getJWTConfig(): JWTConfig {
   
   return {
     accessKey: env.JWT_ACCESS_KEY,
-    accessTime: env.JWT_ACCESS_TIME
+    accessTime: env.JWT_ACCESS_TIME,
+    refreshKey: env.JWT_REFRESH_KEY,
+    refreshTime: env.JWT_REFRESH_TIME
   }
 } 

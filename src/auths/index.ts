@@ -3,6 +3,7 @@ export * from './auth.code'
 
 // Export Auth Model
 export * from './auth.model'
+export * from './token.model'
 
 // Export Auth Service
 export * from './auth.service'

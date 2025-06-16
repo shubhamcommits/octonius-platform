@@ -272,7 +272,6 @@ class AWSService {
 // Export a singleton instance
 export const awsService = new AWSService()
 
-// Update the setEnvironmentVariables function to use awsService
 export async function setEnvironmentVariables(secretName: string): Promise<void> {
     try {
         const secrets = await awsService.getSecrets(secretName)
