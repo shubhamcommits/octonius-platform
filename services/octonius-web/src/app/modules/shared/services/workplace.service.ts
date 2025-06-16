@@ -26,8 +26,8 @@ export class WorkplaceService {
     ]);
   }
 
-  selectWorkplace(workplaceId: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/${workplaceId}/select`, {});
+  selectWorkplace(workplaceId: string, userId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${workplaceId}/select`, { user_id: userId });
   }
 
   createWorkplace(name: string): Observable<Workplace> {
