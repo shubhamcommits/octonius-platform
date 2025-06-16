@@ -15,6 +15,7 @@ export enum AuthCode {
     AUTH_EMAIL_EXISTS = 'A user with this email already exists',
     AUTH_EMAIL_REQUIRED = 'Email is required',
     AUTH_PASSWORD_REQUIRED = 'Password is required',
+    AUTH_WORKPLACE_NAME_EXISTS = 'A workplace with this name already exists',
 
     // Server error codes (5xx)
     AUTH_DATABASE_ERROR = 'An error occurred while processing the database operation',
