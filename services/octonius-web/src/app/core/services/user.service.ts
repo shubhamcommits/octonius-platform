@@ -8,15 +8,15 @@ import { User } from './auth.service';
   providedIn: 'root'
 })
 export class UserService {
-  private apiUrl = `${environment.apiUrl}/users`;
+  private apiUrl = `${environment.apiUrl}/users`
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getUserByEmail(email: string): Observable<User> {
-    return this.http.get<User>(`${this.apiUrl}/email/${encodeURIComponent(email)}`);
+    return this.http.get<User>(`${this.apiUrl}/email/${encodeURIComponent(email)}`)
   }
 
   getCurrentUser(): Observable<User> {
-    return this.http.get<User>(`${this.apiUrl}/me`);
+    return this.http.get<User>(`${this.apiUrl}/me`)
   }
 } 

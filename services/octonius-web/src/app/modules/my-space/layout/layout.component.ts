@@ -1,13 +1,15 @@
 import { Component } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { RouterModule } from '@angular/router'
+import { RouterModule, Router } from '@angular/router'
 import { NavbarComponent } from '../navbar/navbar.component'
 import { SharedModule } from '../../shared/shared.module'
+import { AuthService } from '../../../core/services/auth.service'
+import { LucideAngularModule, Sun, Moon, LogOut } from 'lucide-angular'
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, NavbarComponent, SharedModule],
+  imports: [CommonModule, RouterModule, NavbarComponent, SharedModule, LucideAngularModule],
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss']
 })
@@ -18,7 +20,10 @@ export class LayoutComponent {
      */
   currentTheme = 'light'
 
-  constructor() {
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       this.currentTheme = savedTheme;
@@ -47,5 +52,13 @@ export class LayoutComponent {
     document.documentElement.setAttribute('data-theme', newTheme)
     this.currentTheme = newTheme
     localStorage.setItem('theme', newTheme)
+  }
+
+  /**
+   * Logs out the user and navigates to login page
+   */
+  logout() {
+    this.authService.logout();
+    this.router.navigate(['/auths/login']);
   }
 } 

@@ -1,17 +1,39 @@
 // Import express
 import { Request, Response, NextFunction } from 'express'
 
-// Import AuthService
+// Import Auth Service
 import { AuthService } from './auth.service'
+
+// Import Auth Code
+import { AuthCode } from './auth.code'
+
+// Import response helpers
+import { sendResponse } from '../shared/handle-response'
+import { sendError, sendValidationError } from '../shared/handle-error'
 
 // Import logger
 import { appLogger } from '../logger'
 
-// Import response utils
-import { sendResponse, sendError, sendValidationError } from '../shared/response.utils'
-
-// Import validators
+// Import validation helpers
 import { validateParameters, validateJSON } from '../shared/validators'
+
+// Extend Express Request type to include user
+declare global {
+    namespace Express {
+        interface Request {
+            user?: {
+                uuid: string;
+                email: string;
+                first_name?: string;
+                last_name?: string;
+                current_workplace_id?: string;
+                avatar_url?: string;
+                iat?: number;
+                exp?: number;
+            }
+        }
+    }
+}
 
 /**
  * Controller class for handling authentication-related HTTP requests
@@ -296,6 +318,44 @@ export class AuthController {
             }
         } catch (error: any) {
             return sendError(res, error.stack, error.message, error.code);
+        }
+    }
+
+    /**
+     * Logs out a user by invalidating their session
+     * @param req - Express request object
+     * @param res - Express response object
+     * @param next - Express next function
+     * @returns Success or error response
+     */
+    async logout(req: Request, res: Response, next: NextFunction): Promise<Response> {
+        try {
+            // Log the request
+            appLogger('Logging out user', { method: req.method, path: req.path, ip: req.ip })
+
+            // Get user_id and token from request
+            const user_id = req.user?.uuid
+            const token = req.headers.authorization?.split(' ')[1]
+
+            if (!user_id || !token) {
+                return sendError(res, '', AuthCode.AUTH_TOKEN_MISSING, 401)
+            }
+
+            // Call logout service
+            const result = await this.auth_service.logout(user_id, token)
+
+            // Return the result
+            if (result.success) {
+                return sendResponse(req as any, res, 200, {
+                    success: true,
+                    message: result.message,
+                    data: result.data
+                })
+            } else {
+                return sendError(res, result.stack, result.message, result.code)
+            }
+        } catch (error: any) {
+            return sendError(res, error.stack, error.message, error.code)
         }
     }
 } 

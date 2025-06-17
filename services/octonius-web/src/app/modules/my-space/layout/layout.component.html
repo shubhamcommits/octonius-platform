@@ -1,24 +1,37 @@
 <div class="min-h-screen bg-base-100 text-base-content">
   <div class="max-w-7xl mx-auto">
-    <!-- Header with logo and navigation -->
-    <header class="px-8 py-6">
+    <!-- Header with logo, navigation, and actions -->
+    <header class="px-8 py-6 border-b border-base-300">
+      <!-- Main header row -->
       <div class="flex items-center justify-between">
         <!-- Logo Left -->
         <div class="flex items-center gap-2">
           <img [src]="logoSrc" alt="Octonius Logo" class="w-12 h-12 object-contain" />
         </div>
-        <!-- Theme Switcher Right -->
-        <div class="relative">
-          <button class="btn btn-ghost btn-circle" (click)="toggleTheme()">
-            <lucide-icon [name]="currentTheme === 'night' ? 'SunMoon' : 'SunMoon'" class="w-8 h-8"></lucide-icon>
+        
+        <!-- Navbar in Center -->
+        <div class="flex-1 flex justify-center">
+          <app-navbar activeTab="my-space"></app-navbar>
+        </div>
+        
+        <!-- Actions Right -->
+        <div class="flex items-center gap-2">
+          <!-- Theme Switcher -->
+          <button class="btn btn-ghost btn-circle btn-sm" (click)="toggleTheme()">
+            <lucide-icon [name]="currentTheme === 'night' ? 'SunMoon' : 'SunMoon'" class="w-5 h-5"></lucide-icon>
+          </button>
+          
+          <!-- Logout Button -->
+          <button class="btn btn-ghost btn-sm gap-2" (click)="logout()">
+            <lucide-icon name="LogOut" class="w-4 h-4"></lucide-icon>
+            <span class="hidden sm:inline">Logout</span>
           </button>
         </div>
       </div>
-      <app-navbar activeTab="my-space"></app-navbar>
     </header>
     
     <!-- Main content area -->
-    <main class="px-8 pb-8">
+    <main class="px-8 py-8">
       <div class="bg-base-200 rounded-lg shadow-md p-8">
         <router-outlet></router-outlet>
       </div>

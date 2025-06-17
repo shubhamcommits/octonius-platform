@@ -34,7 +34,7 @@ export class FileService {
     return this.http.get<File>(`${this.apiUrl}/note/${noteId}`);
   }
 
-  saveNote(note: Partial<File>, userId: string, workplaceId: string): Observable<File> {
-    return this.http.post<File>(`${this.apiUrl}/note`, { ...note, user_id: userId, workplace_id: workplaceId });
+  saveNote(note: Partial<File>): Observable<File> {
+    return this.http.post<File>(`${this.apiUrl}/note`, note);
   }
 } 

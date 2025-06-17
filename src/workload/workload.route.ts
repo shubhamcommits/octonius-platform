@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { WorkloadController } from './workload.controller';
+import { verifyAccessToken, isLoggedIn, requireWorkplace } from '../middleware';
 
 export class WorkloadRoute {
     public router: Router;
@@ -12,8 +13,14 @@ export class WorkloadRoute {
     }
 
     private configureRoutes(): void {
-        this.router.get('/', (req: Request, res: Response) => {
-            this.workload_controller.getWorkload(req, res);
-        });
+        // Get workload (requires auth and workplace)
+        this.router.get('/', 
+            verifyAccessToken,
+            isLoggedIn,
+            requireWorkplace,
+            (req: Request, res: Response) => {
+                this.workload_controller.getWorkload(req, res);
+            }
+        );
     }
 } 

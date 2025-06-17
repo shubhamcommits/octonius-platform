@@ -117,9 +117,24 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    this.clearCurrentUser();
-    this.router.navigate(['/auths/login']);
+    // Call backend logout API first
+    this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
+      next: () => {
+        // Clear local storage and state
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        this.clearCurrentUser();
+        // Navigate to login page
+        this.router.navigate(['/auths/login']);
+      },
+      error: (error) => {
+        console.error('Logout failed:', error);
+        // Even if the API call fails, we should still clear local storage and redirect
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        this.clearCurrentUser();
+        this.router.navigate(['/auths/login']);
+      }
+    });
   }
 } 

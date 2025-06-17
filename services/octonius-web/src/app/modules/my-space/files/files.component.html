@@ -1,12 +1,6 @@
 <div class="space-y-6">
-  <!-- Error Banner -->
-  <div *ngIf="error" class="alert alert-error shadow-lg flex items-center justify-between">
-    <span>{{ error }}</span>
-    <button class="btn btn-sm btn-ghost" (click)="ngOnInit()">Retry</button>
-  </div>
-
   <!-- Skeleton Loader -->
-  <ng-container *ngIf="isLoading && !error">
+  <ng-container *ngIf="isLoading">
     <div class="animate-pulse space-y-6">
       <div class="h-8 w-1/3 bg-base-300 rounded mx-auto"></div>
       <div class="flex gap-4">
@@ -19,7 +13,7 @@
   </ng-container>
 
   <!-- Main Content -->
-  <ng-container *ngIf="!isLoading && !error">
+  <ng-container *ngIf="!isLoading">
     <!-- Header -->
     <div class="text-center mb-8">
       <h1 class="text-3xl font-bold">{{userName}}, these are your Files and Notes.</h1>

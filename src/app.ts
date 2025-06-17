@@ -37,6 +37,9 @@ import { WorkplaceRoute } from './workplaces'
 // Import File Route
 import { FileRoute } from './files/file.route'
 
+// Import Workload Route
+import { WorkloadRoute } from './workload/workload.route'
+
 // Define the express application
 const app = express()
 
@@ -149,6 +152,7 @@ app.use('/v1/notifications', new NotificationRoute().router)
 app.use('/v1/users', new UserRoute().router)
 app.use('/v1/workplaces', new WorkplaceRoute().router)
 app.use('/v1/files', new FileRoute().router)
+app.use('/v1/workload', new WorkloadRoute().router)
 
 // Invalid routes handling middleware
 app.all('*', (req: Request, res: Response, next: NextFunction) => {

@@ -5,6 +5,7 @@ import { UserService } from '../../../core/services/user.service'
 import { AuthService } from '../../../core/services/auth.service'
 import { FileService } from '../../../core/services/file.service'
 import { File } from '../../../core/models/file.model'
+import { ToastService } from '../../../core/services/toast.service'
 
 @Component({
   selector: 'app-files',
@@ -14,7 +15,7 @@ import { File } from '../../../core/models/file.model'
   styleUrls: ['./files.component.scss']
 })
 export class FilesComponent implements OnInit {
-  userName: string = ''
+  userName: string = 'User'
   files: File[] = []
   isLoading: boolean = true
   error: string | null = null
@@ -23,7 +24,8 @@ export class FilesComponent implements OnInit {
     private router: Router,
     private authService: AuthService,
     private fileService: FileService,
-    private userService: UserService
+    private userService: UserService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -50,16 +52,19 @@ export class FilesComponent implements OnInit {
       error: (err: Error) => {
         this.error = 'Failed to load files. Please try again.'
         this.isLoading = false
+        this.toastService.error('Failed to load files. Please try again.')
         console.error('Error loading files:', err)
       }
     })
   }
 
   onCreateNote(): void {
+    this.toastService.info('Creating a new note...')
     this.router.navigate(['/my-space/note-editor'])
   }
 
   onUploadFile(): void {
+    this.toastService.info('Opening file upload dialog...')
     // Create a hidden file input element
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
@@ -93,6 +98,7 @@ export class FilesComponent implements OnInit {
       error: (err: Error) => {
         this.error = 'Failed to upload file. Please try again.'
         this.isLoading = false
+        this.toastService.error('Failed to upload file. Please try again.')
         console.error('Error uploading file:', err)
       }
     })
@@ -116,6 +122,7 @@ export class FilesComponent implements OnInit {
         },
         error: (err: Error) => {
           this.error = 'Failed to download file. Please try again.'
+          this.toastService.error('Failed to download file. Please try again.')
           console.error('Error downloading file:', err)
         }
       })

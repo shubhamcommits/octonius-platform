@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common'
 import { UserService } from '../../../core/services/user.service'
 import { User } from '../../../core/services/auth.service'
 import { WorkloadService } from '../../shared/services/workload.service'
+import { ToastService } from '../../../core/services/toast.service'
 
 interface Task {
   title: string
@@ -20,21 +21,34 @@ interface Task {
   styleUrls: ['./workload.component.scss']
 })
 export class WorkloadComponent implements OnInit {
-  userName = ''
-  isLoading = true
+  userName = 'User'
+  isLoading = false
   error: string | null = null
-  workloadStats: any = null
+  workloadStats = {
+    total: 0,
+    overdue: 0,
+    todo: 0,
+    inProgress: 0,
+    done: 0
+  }
   todayTasks: any[] = []
   tomorrowTasks: any[] = []
   nextWeekTasks: any[] = []
 
   constructor(
     private userService: UserService,
-    private workloadService: WorkloadService
+    private workloadService: WorkloadService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit() {
+    this.loadData()
+  }
+
+  loadData(): void {
     this.isLoading = true
+    this.error = null
+
     this.userService.getCurrentUser().subscribe({
       next: (user: User) => {
         this.userName = user.first_name || user.email?.split('@')[0] || 'User'
@@ -50,7 +64,7 @@ export class WorkloadComponent implements OnInit {
             error: (err: Error) => {
               this.error = 'Failed to load workload data'
               this.isLoading = false
-              console.error('Error loading workload:', err)
+              this.toastService.error('Failed to load workload data. Please try again.')
             }
           })
         } else {
@@ -61,7 +75,7 @@ export class WorkloadComponent implements OnInit {
       error: (err: Error) => {
         this.error = 'Failed to load user data'
         this.isLoading = false
-        console.error('Error loading user:', err)
+        this.toastService.error('Failed to load user data. Please try again.')
       }
     })
   }

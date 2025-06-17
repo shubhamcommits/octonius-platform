@@ -34,6 +34,9 @@ import { TokenService } from './token.service'
 // Import jwt
 import jwt, { SignOptions } from 'jsonwebtoken'
 
+// Import Token model
+import { Token } from './token.model'
+
 /**
  * Service class for handling authentication operations (OTP-based, passwordless)
  */
@@ -191,14 +194,6 @@ export class AuthService {
 
             // Mark user as logged in (update Auth record)
             if (user) {
-                await Auth.upsert({
-                    user_id: user.uuid,
-                    token: '',
-                    refresh_token: '',
-                    last_login: new Date(),
-                    logged_in: true
-                })
-
                 // Generate access and refresh tokens
                 const { access_token, refresh_token } = TokenService.generate_tokens(user)
 
@@ -208,7 +203,16 @@ export class AuthService {
                 const access_expires_at = new Date(access_decoded.exp * 1000)
                 const refresh_expires_at = new Date(refresh_decoded.exp * 1000)
 
-                // Save tokens in DB
+                // Update Auth record with tokens
+                await Auth.upsert({
+                    user_id: user.uuid,
+                    token: access_token,
+                    refresh_token: refresh_token,
+                    last_login: new Date(),
+                    logged_in: true
+                })
+
+                // Save tokens in Token table
                 await TokenService.save_tokens(
                     user.uuid,
                     access_token,
@@ -376,6 +380,60 @@ export class AuthService {
             };
         } catch (error: any) {
             return { success: false, message: error.message, code: 401, stack: error.stack };
+        }
+    }
+
+    /**
+     * Logs out a user by invalidating their session
+     * @param user_id - The UUID of the user to logout
+     * @param token - The access token to invalidate
+     * @returns AuthResponse or AuthError
+     */
+    async logout(user_id: string, token: string): Promise<AuthResponse<null> | AuthError> {
+        try {
+            // Find the auth session
+            const auth = await Auth.findOne({
+                where: {
+                    user_id,
+                    token,
+                    logged_in: true
+                }
+            })
+
+            if (!auth) {
+                return {
+                    success: false,
+                    message: AuthCode.AUTH_USER_SESSION_INVALID,
+                    code: 401,
+                    stack: new Error('Invalid session')
+                }
+            }
+
+            // Update auth record
+            await auth.update({
+                logged_in: false,
+                last_logout: new Date()
+            })
+
+            // Blacklist the token
+            await Token.update(
+                { blacklisted: true },
+                { where: { access_token: token } }
+            )
+
+            return {
+                success: true,
+                message: AuthCode.AUTH_LOGOUT_SUCCESS,
+                code: 200,
+                data: null
+            }
+        } catch (error: any) {
+            return {
+                success: false,
+                message: AuthCode.AUTH_DATABASE_ERROR,
+                code: 500,
+                stack: error.stack
+            }
         }
     }
 }
