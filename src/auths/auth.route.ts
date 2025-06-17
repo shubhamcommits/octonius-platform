@@ -7,6 +7,9 @@ import { AuthController } from './auth.controller'
 // Import Auth Service
 import { AuthService } from './auth.service'
 
+// Import Auth Middleware
+import { verifyAccessToken, isLoggedIn } from '../middleware'
+
 /**
  * AuthRoute class for configuring authentication-related routes
  */
@@ -65,5 +68,14 @@ export class AuthRoute {
         this.router.post('/refresh', (req: Request, res: Response, next: NextFunction) => {
             this.auth_controller.refresh(req, res, next)
         })
+
+        // Logout route (requires auth)
+        this.router.post('/logout', 
+            verifyAccessToken,
+            isLoggedIn,
+            (req: Request, res: Response, next: NextFunction) => {
+                this.auth_controller.logout(req, res, next)
+            }
+        )
     }
 } 

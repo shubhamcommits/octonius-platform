@@ -4,9 +4,11 @@ import { Observable, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 export interface Workplace {
-  id: string;
+  uuid: string;
   name: string;
-  logo?: string;
+  logo_url?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 @Injectable({
@@ -19,11 +21,7 @@ export class WorkplaceService {
 
   // TODO: Replace mock with actual API call
   getWorkplaces(): Observable<Workplace[]> {
-    // Mock data for now
-    return of([
-      { id: '1', name: 'Organization 1' },
-      { id: '2', name: 'Organization 2' }
-    ]);
+    return this.http.get<Workplace[]>(this.apiUrl);
   }
 
   selectWorkplace(workplaceId: string, userId: string): Observable<void> {

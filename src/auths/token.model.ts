@@ -10,6 +10,7 @@ export class Token extends Model {
     public refresh_token!: string
     public access_expires_at!: Date
     public refresh_expires_at!: Date
+    public blacklisted!: boolean
     public created_at!: Date
     public updated_at!: Date
 
@@ -44,6 +45,11 @@ Token.init({
     refresh_expires_at: {
         type: DataTypes.DATE,
         allowNull: false
+    },
+    blacklisted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
     },
     created_at: {
         type: DataTypes.DATE,

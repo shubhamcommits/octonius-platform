@@ -118,7 +118,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
         content: outputData
       }
       if (this.user && this.workplaceId) {
-        this.fileService.saveNote(note, this.userId, this.workplaceId).subscribe({
+        this.fileService.saveNote(note).subscribe({
           next: () => {
             // Optionally show a success message
             this.router.navigate(['/my-space/files'])

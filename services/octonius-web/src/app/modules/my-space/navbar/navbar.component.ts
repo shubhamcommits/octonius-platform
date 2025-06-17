@@ -13,14 +13,10 @@ export class NavbarComponent {
   @Input() activeTab: string = 'my-space'
   
   mainTabs = [
-    { id: 'my-space', label: 'My Space', route: '/dashboard/my-space' },
+    { id: 'inbox', label: 'Inbox', route: '/dashboard/inbox' },
+    { id: 'workload', label: 'Workload', route: '/dashboard/workload' },
+    { id: 'files', label: 'Files', route: '/dashboard/files' },
     { id: 'workplace', label: 'Workplace', route: '/dashboard/workplace' },
     { id: 'account', label: 'Account', route: '/dashboard/account' }
-  ]
-  
-  mySpaceTabs = [
-    { id: 'inbox', label: 'Inbox', route: '/dashboard/my-space/inbox' },
-    { id: 'workload', label: 'Workload', route: '/dashboard/my-space/workload' },
-    { id: 'files', label: 'Files', route: '/dashboard/my-space/files' }
   ]
 } 

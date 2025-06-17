@@ -124,4 +124,81 @@ export class WorkplaceController {
             return sendError(res, error.stack, error.message, error.code)
         }
     }
+
+    /**
+     * Gets all workplaces
+     * @param req - Express request object
+     * @param res - Express response object
+     * @returns Array of all workplaces or error response
+     */
+    async getAllWorkplaces(req: Request, res: Response): Promise<Response> {
+        try {
+            // Log the request
+            appLogger('Getting all workplaces', { 
+                method: req.method, 
+                path: req.path,
+                ip: req.ip 
+            })
+
+            // Get all workplaces using service
+            const result = await this.workplace_service.getAllWorkplaces()
+
+            // Return the result
+            if (result.success) {
+                return sendResponse(req as any, res, result.code, {
+                    success: true,
+                    message: result.message,
+                    workplaces: result.workplaces
+                })
+            } else {
+                return sendError(res, result.stack, result.message, result.code)
+            }
+        } catch (error: any) {
+            // Return error response
+            return sendError(res, error.stack, error.message, error.code)
+        }
+    }
+
+    /**
+     * Creates a new workplace
+     * @param req - Express request object containing workplace data in body
+     * @param res - Express response object
+     * @returns Created workplace or error response
+     */
+    async createWorkplace(req: Request, res: Response): Promise<Response> {
+        try {
+            // Log the request
+            appLogger('Creating workplace', {
+                method: req.method,
+                path: req.path,
+                body: req.body,
+                ip: req.ip
+            })
+
+            // Extract data from request body
+            const { name, logo_url, created_by } = req.body
+
+            // Validate required fields
+            if (!name || !created_by) {
+                return sendError(res, new Error('Missing required fields'), 'Name and created_by are required', 400)
+            }
+
+            // Create workplace using service
+            const result = await this.workplace_service.createWorkplace(name, created_by, logo_url)
+
+            // Return the result
+            if (result.success) {
+                return sendResponse(req as any, res, result.code, {
+                    success: true,
+                    message: result.message,
+                    workplace: result.workplace
+                })
+            } else {
+                return sendError(res, result.stack, result.message, result.code)
+            }
+        } catch (error: any) {
+            // Return error response
+            return sendError(res, error.stack, error.message, error.code)
+        }
+    }
 } 

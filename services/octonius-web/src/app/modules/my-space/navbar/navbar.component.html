@@ -1,25 +1,10 @@
-<div>
-    <!-- Main Navigation -->
-    <nav class="flex items-center justify-center space-x-8 pb-4 mb-4 border-b border-base-300">
-      <a *ngFor="let tab of mainTabs" 
-         [routerLink]="tab.route"
-         [class.text-primary]="activeTab === tab.id"
-         [class.text-base-content]="activeTab !== tab.id"
-         [class.opacity-60]="activeTab !== tab.id"
-         [class.font-bold]="activeTab === tab.id"
-         class="text-sm transition-all duration-200 hover:text-primary">
-        {{tab.label}}
-      </a>
-    </nav>
-    
-    <!-- My Space Sub-navigation -->
-    <nav class="flex items-center space-x-6" *ngIf="activeTab === 'my-space'">
-      <a *ngFor="let tab of mySpaceTabs" 
-         [routerLink]="tab.route"
-         routerLinkActive="text-primary font-semibold"
-         [routerLinkActiveOptions]="{exact: true}"
-         class="text-sm text-base-content opacity-70 transition-all duration-200 hover:text-primary hover:opacity-100">
-        {{tab.label}}
-      </a>
-    </nav>
-  </div>
+<!-- Main Navigation -->
+<nav class="flex items-center space-x-8">
+  <a *ngFor="let tab of mainTabs" 
+     [routerLink]="tab.route"
+     routerLinkActive="text-primary font-bold"
+     [routerLinkActiveOptions]="{exact: true}"
+     class="text-sm text-base-content opacity-60 transition-all duration-200 hover:text-primary hover:opacity-100">
+    {{tab.label}}
+  </a>
+</nav>

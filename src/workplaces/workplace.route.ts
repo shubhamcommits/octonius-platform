@@ -4,6 +4,9 @@ import { Router, Request, Response } from 'express'
 // Import workplace controller
 import { WorkplaceController } from './workplace.controller'
 
+// Import Auth Middleware
+import { verifyAccessToken, isLoggedIn } from '../middleware'
+
 export class WorkplaceRoute {
 
     // Router
@@ -29,19 +32,49 @@ export class WorkplaceRoute {
      */
     private configureRoutes(): void {
 
-        // Get user's workplaces
-        this.router.get('/users/:user_id', (req: Request, res: Response) => {
-            this.workplace_controller.getUserWorkplaces(req, res)
-        })
+        // Get all workplaces (requires auth)
+        this.router.get('/', 
+            verifyAccessToken,
+            isLoggedIn,
+            (req: Request, res: Response) => {
+                this.workplace_controller.getAllWorkplaces(req, res)
+            }
+        )
 
-        // Get all users in a workplace
-        this.router.get('/:workplace_id/users', (req: Request, res: Response) => {
-            this.workplace_controller.getWorkplaceUsers(req, res)
-        })
+        // Create a new workplace (requires auth)
+        this.router.post('/', 
+            verifyAccessToken,
+            isLoggedIn,
+            (req: Request, res: Response) => {
+                this.workplace_controller.createWorkplace(req, res)
+            }
+        )
 
-        // Select a workplace for a user
-        this.router.post('/:workplace_id/select', (req: Request, res: Response) => {
-            this.workplace_controller.selectWorkplace(req, res)
-        })
+        // Get user's workplaces (requires auth)
+        this.router.get('/users/:user_id', 
+            verifyAccessToken,
+            isLoggedIn,
+            (req: Request, res: Response) => {
+                this.workplace_controller.getUserWorkplaces(req, res)
+            }
+        )
+
+        // Get all users in a workplace (requires auth)
+        this.router.get('/:workplace_id/users', 
+            verifyAccessToken,
+            isLoggedIn,
+            (req: Request, res: Response) => {
+                this.workplace_controller.getWorkplaceUsers(req, res)
+            }
+        )
+
+        // Select a workplace for a user (requires auth)
+        this.router.post('/:workplace_id/select', 
+            verifyAccessToken,
+            isLoggedIn,
+            (req: Request, res: Response) => {
+                this.workplace_controller.selectWorkplace(req, res)
+            }
+        )
     }
 } 

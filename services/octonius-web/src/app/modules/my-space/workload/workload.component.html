@@ -1,12 +1,6 @@
 <div class="space-y-6">
-  <!-- Error Banner -->
-  <div *ngIf="error" class="alert alert-error shadow-lg flex items-center justify-between">
-    <span>{{ error }}</span>
-    <button class="btn btn-sm btn-ghost" (click)="ngOnInit()">Retry</button>
-  </div>
-
   <!-- Skeleton Loader -->
-  <ng-container *ngIf="isLoading && !error">
+  <ng-container *ngIf="isLoading">
     <div class="animate-pulse space-y-6">
       <div class="h-8 w-1/3 bg-base-300 rounded mx-auto"></div>
       <div class="card bg-base-100 shadow-sm h-20"></div>
@@ -22,7 +16,7 @@
   </ng-container>
 
   <!-- Main Content -->
-  <ng-container *ngIf="!isLoading && !error">
+  <ng-container *ngIf="!isLoading">
     <!-- Header -->
     <div class="text-center mb-8">
       <h1 class="text-3xl font-bold">{{userName}}, this is your Workload</h1>
@@ -45,11 +39,11 @@
 
     <!-- Workload Stats -->
     <div class="flex flex-wrap gap-4 justify-center mb-8">
-      <span class="badge badge-lg badge-ghost">{{workloadStats?.total}} Tasks for today</span>
-      <span class="badge badge-lg badge-error">{{workloadStats?.overdue}} overdue</span>
-      <span class="badge badge-lg badge-warning">{{workloadStats?.todo}} to do</span>
-      <span class="badge badge-lg badge-success">{{workloadStats?.inProgress}} in progress</span>
-      <span class="badge badge-lg badge-info">{{workloadStats?.done}} done</span>
+      <span class="badge badge-lg badge-ghost">{{workloadStats.total}} Tasks for today</span>
+      <span class="badge badge-lg badge-error">{{workloadStats.overdue}} overdue</span>
+      <span class="badge badge-lg badge-warning">{{workloadStats.todo}} to do</span>
+      <span class="badge badge-lg badge-success">{{workloadStats.inProgress}} in progress</span>
+      <span class="badge badge-lg badge-info">{{workloadStats.done}} done</span>
     </div>
 
     <!-- Today Section -->

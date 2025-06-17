@@ -233,14 +233,103 @@ export class WorkplaceService {
                 code: 200,
                 workplace: { user_id, workplace_id, user }
             }
-        } catch (error) {
-            // Log error
-            logger.error('Failed to select workplace', { error, user_id, workplace_id })
+        } catch (error: any) {
+            // Return an error response
+            return { 
+                success: false, 
+                code: error.code || 500, 
+                message: error.message || 'Failed to select workplace',
+                stack: error.stack || ''
+            }
+        }
+    }
+
+    /**
+     * Gets all workplaces
+     * @returns All workplaces or error
+     */
+    async getAllWorkplaces(): Promise<WorkplacesResponse<Workplace[]> | WorkplaceError> {
+        try {
+            // Find all workplaces
+            const workplaces = await Workplace.findAll({
+                attributes: ['uuid', 'name', 'logo_url', 'createdAt', 'updatedAt'],
+                order: [['createdAt', 'DESC']]
+            })
+
+            // Return success response
+            return {
+                success: true,
+                code: 200,
+                message: 'Workplaces retrieved successfully',
+                workplaces: workplaces.map(wp => wp.toJSON())
+            }
+        } catch (error: any) {
+            // Return error response
             return {
                 success: false,
-                message: WorkplaceCode.DATABASE_ERROR,
-                code: 500,
-                stack: error instanceof Error ? error : new Error('Database error')
+                code: error.code || 500,
+                message: error.message || 'Failed to retrieve workplaces',
+                stack: error instanceof Error ? error : new Error(error.message || 'Unknown error')
+            }
+        }
+    }
+
+    /**
+     * Creates a new workplace
+     * @param name - Name of the workplace
+     * @param logo_url - Optional logo URL
+     * @param created_by - UUID of the user creating the workplace
+     * @returns Created workplace or error
+     */
+    async createWorkplace(name: string, created_by: string, logo_url?: string): Promise<WorkplaceResponse<Workplace> | WorkplaceError> {
+        try {
+            // Validate name
+            if (!name || name.trim().length === 0) {
+                return {
+                    success: false,
+                    code: 400,
+                    message: 'Workplace name is required',
+                    stack: new Error('Workplace name is required')
+                }
+            }
+
+            // Check if workplace with same name already exists
+            const existingWorkplace = await Workplace.findOne({
+                where: { name: name.trim() }
+            })
+
+            if (existingWorkplace) {
+                return {
+                    success: false,
+                    code: 409,
+                    message: 'Workplace with this name already exists',
+                    stack: new Error('Workplace with this name already exists')
+                }
+            }
+
+            // Create new workplace
+            const workplace = await Workplace.create({
+                name: name.trim(),
+                logo_url: logo_url || null,
+                created_by,
+                timezone: 'UTC',
+                active: true
+            })
+
+            // Return success response
+            return {
+                success: true,
+                code: 201,
+                message: 'Workplace created successfully',
+                workplace: workplace.toJSON()
+            }
+        } catch (error: any) {
+            // Return error response
+            return {
+                success: false,
+                code: error.code || 500,
+                message: error.message || 'Failed to create workplace',
+                stack: error instanceof Error ? error : new Error(error.message || 'Unknown error')
             }
         }
     }

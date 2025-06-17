@@ -663,9 +663,9 @@ export class UserController {
                 method: req.method,
                 path: req.path,
                 ip: req.ip
-            });
+            })
 
-            // Assume req.user.uuid is set by authentication middleware
+            
             const uuid = (req as any).user.uuid
             if (!uuid) {
                 return res.status(401).json({
