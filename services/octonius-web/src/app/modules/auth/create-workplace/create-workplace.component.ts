@@ -155,7 +155,7 @@ export class CreateWorkplaceComponent implements OnInit {
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: (workplace) => {
-          this.router.navigate(['/dashboard'])
+          this.router.navigate(['/myspace'])
         },
         error: (error) => {
           if (error?.error?.message === 'A workplace with this name already exists' || error?.error?.message === 'AUTH_WORKPLACE_NAME_EXISTS' || error?.error?.message?.includes('already exists')) {
