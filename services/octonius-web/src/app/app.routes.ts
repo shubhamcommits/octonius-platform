@@ -12,7 +12,7 @@ export const routes: Routes = [
     loadChildren: () => import('./modules/auth/auth.module').then(m => m.AuthModule)
   },
   {
-    path: 'dashboard',
+    path: 'myspace',
     loadChildren: () => import('./modules/my-space/my-space.module').then(m => m.MySpaceModule),
     canActivate: [AuthGuard]
   },

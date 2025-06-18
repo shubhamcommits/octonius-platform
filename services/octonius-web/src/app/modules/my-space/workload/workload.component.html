@@ -19,31 +19,42 @@
   <ng-container *ngIf="!isLoading">
     <!-- Header -->
     <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold">{{userName}}, this is your Workload</h1>
-      <p class="text-base-content opacity-70 mt-2">Manage your tasks and stay productive</p>
+      <div class="w-20 h-20 bg-gradient-to-br from-white to-white rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <img src="https://media.octonius.com/assets/icon_projects.svg" alt="Workload" class="w-16 h-16">
+      </div>
+      <h1 class="text-3xl font-bold">{{userName | capitalize}}, this is your Workload</h1>
+      <p class="text-base-content mt-2">Manage your tasks and stay productive</p>
     </div>
 
     <!-- Info Card -->
     <div class="card bg-base-100 shadow-sm mb-6">
       <div class="card-body">
-        <div class="flex items-start space-x-4">
-          <div class="w-14 h-14 bg-gradient-to-br from-green-400 to-blue-500 rounded-2xl flex items-center justify-center">
-            <span class="text-white text-2xl">🎯</span>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-white to-white rounded-2xl">
+            <img src="https://media.octonius.com/assets/icon_projects.svg" alt="Workload" class="w-16 h-16">
           </div>
           <div class="flex-1">
-            <p class="text-base-content opacity-70">The Workload shows your Tasks from everywhere: your private space and Groups from your organization.</p>
+            <p class="text-base-content leading-normal">The Workload shows your Tasks from everywhere: your private space and Groups from your organization.</p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Workload Stats -->
-    <div class="flex flex-wrap gap-4 justify-center mb-8">
-      <span class="badge badge-lg badge-ghost">{{workloadStats.total}} Tasks for today</span>
-      <span class="badge badge-lg badge-error">{{workloadStats.overdue}} overdue</span>
-      <span class="badge badge-lg badge-warning">{{workloadStats.todo}} to do</span>
-      <span class="badge badge-lg badge-success">{{workloadStats.inProgress}} in progress</span>
-      <span class="badge badge-lg badge-info">{{workloadStats.done}} done</span>
+    <div class="card bg-base-100 shadow-sm mb-6">
+      <div class="card-body">
+        <div class="flex justify-between items-center">
+          <div class="flex-1">
+            <span class="badge badge-ghost text-base">{{workloadStats.total}} Tasks for today</span>
+          </div>
+          <div class="flex gap-4">
+            <span class="badge badge-error">{{workloadStats.overdue}} overdue</span>
+            <span class="badge badge-warning">{{workloadStats.todo}} to do</span>
+            <span class="badge badge-success">{{workloadStats.inProgress}} in progress</span>
+            <span class="badge badge-info">{{workloadStats.done}} done</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Today Section -->

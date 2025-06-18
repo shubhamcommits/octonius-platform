@@ -2,9 +2,9 @@ import { Component, OnInit } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { RouterModule } from '@angular/router'
 import { UserService } from '../../../core/services/user.service'
-import { User } from '../../../core/services/auth.service'
 import { WorkloadService } from '../../shared/services/workload.service'
 import { ToastService } from '../../../core/services/toast.service'
+import { CapitalizePipe } from '../../../core/pipes/capitalize.pipe'
 
 interface Activity {
   user: string
@@ -34,7 +34,7 @@ interface News {
 @Component({
   selector: 'app-inbox',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, CapitalizePipe],
   templateUrl: './inbox.component.html',
   styleUrls: ['./inbox.component.scss']
 })
@@ -61,7 +61,6 @@ export class InboxComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.toastService.error('Failed to load user data. Please try again.')
     this.loadData()
   }
 
@@ -70,18 +69,23 @@ export class InboxComponent implements OnInit {
     this.error = null
 
     this.userService.getCurrentUser().subscribe({
-      next: (user: User) => {
+      next: (response: any) => {
+        const user = response.data.user
         this.userName = user.first_name || user.email?.split('@')[0] || 'User'
         // Fetch workload/activity/messages/news for this user and workplace
         const userId = user.uuid
         const workplaceId = user.current_workplace_id
         if (userId && workplaceId) {
           this.workloadService.getWorkload(userId, workplaceId).subscribe({
-            next: (data: any) => {
-              this.workloadStats = data.stats
-              this.recentActivity = data.activity
-              this.messages = data.messages
-              this.loungeNews = data.news
+            next: (response: any) => {
+
+              if(response.data.workload) {
+                this.workloadStats = response.data.workload.stats
+                this.recentActivity = response.data.workload.activity
+                this.messages = response.data.workload.messages
+                this.loungeNews = response.data.workload.news
+              }
+
               this.isLoading = false
             },
             error: (err: Error) => {

@@ -4,7 +4,6 @@ import { ReactiveFormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
 import { AuthService } from '../../../core/services/auth.service'
 import { Router } from '@angular/router'
-import { environment } from '../../../../environments/environment'
 import { finalize } from 'rxjs/operators'
 
 @Component({

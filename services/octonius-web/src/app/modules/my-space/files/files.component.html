@@ -1,46 +1,104 @@
-<div class="space-y-6">
-  <!-- Skeleton Loader -->
-  <ng-container *ngIf="isLoading">
-    <div class="animate-pulse space-y-6">
-      <div class="h-8 w-1/3 bg-base-300 rounded mx-auto"></div>
-      <div class="flex gap-4">
-        <div class="card bg-base-100 shadow-sm h-24 w-1/3"></div>
-        <div class="card bg-base-100 shadow-sm h-24 w-1/3"></div>
-      </div>
-      <div class="card bg-base-100 shadow-sm h-32"></div>
-      <div class="card bg-base-100 shadow-sm h-32"></div>
-    </div>
-  </ng-container>
+<div class="p-6">
 
   <!-- Main Content -->
   <ng-container *ngIf="!isLoading">
     <!-- Header -->
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold">{{userName}}, these are your Files and Notes.</h1>
-      <p class="text-base-content opacity-70 mt-2">Access and manage your files and notes</p>
+    <div class="mb-8">
+      <h1 class="text-2xl font-semibold">{{userName | capitalize}}, these are your Files and Notes.</h1>
     </div>
 
-    <!-- Actions -->
-    <div class="flex justify-center gap-4 mb-6">
-      <button class="btn btn-primary" (click)="onCreateNote()">Create Note</button>
-      <button class="btn btn-secondary" (click)="onUploadFile()">Upload File</button>
+    <!-- Action Cards -->
+    <div class="grid grid-cols-2 gap-6 mb-8">
+      <!-- Create Note Card -->
+      <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="card-body flex flex-row items-center gap-4">
+          <div class="text-3xl text-error">
+            <img src="https://media.octonius.com/assets/icon_mynotes.svg" alt="Note" class="w-16 h-16">
+          </div>
+          <div>
+            <h3 class="font-medium mb-1">Make note, write an idea...</h3>
+            <p class="text-sm text-base-content/70">No one has access to your private notes.</p>
+          </div>
+          <div class="ml-auto flex items-center gap-2">
+            <button class="btn btn-ghost btn-circle" (click)="onCreateNote()">  
+              <lucide-icon name="Plus" class="w-6 h-6"></lucide-icon> 
+            </button>
+            <button class="btn btn-ghost btn-circle" (click)="onUploadFile()">
+              <lucide-icon name="Upload" class="w-6 h-6"></lucide-icon> 
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload File Card -->
+      <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="card-body flex flex-row items-center gap-4">
+          <div class="text-3xl text-primary">
+            <img src="https://media.octonius.com/assets/icon_files.svg" alt="Files" class="w-16 h-16">
+          </div>
+          <div>
+            <h3 class="font-medium mb-1">Upload files to your Pod.</h3>
+            <p class="text-sm text-base-content/70">No one has access to your private files.</p>
+          </div>
+          <div class="ml-auto flex items-center gap-2">
+            <button class="btn btn-ghost btn-circle" (click)="onUploadFile()">
+              <lucide-icon name="UploadCloud" class="w-6 h-6"></lucide-icon> 
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search and Filter Bar -->
+    <div class="flex items-center gap-4 mb-6">
+      <lucide-icon name="ListFilter" class="w-5 h-5 cursor-pointer"></lucide-icon>
+      <lucide-icon name="ArrowUpDown" class="w-5 h-5 cursor-pointer"></lucide-icon>
+      <lucide-icon name="Search" class="w-5 h-5 cursor-pointer"></lucide-icon>
+
+      <div class="flex-1 relative flex items-center">
+        <input 
+          type="text" 
+          placeholder="Search files..." 
+          class="input input-bordered w-full pl-10 h-10 text-sm" 
+          [(ngModel)]="searchQuery" 
+          (input)="onSearch()"
+        >
+      </div>
     </div>
 
     <!-- Files List -->
-    <div class="card bg-base-100 shadow-sm">
-      <div class="card-body">
-        <div class="space-y-3">
-          <div *ngFor="let file of files" class="flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors cursor-pointer" (click)="onFileClick(file)">
-            <div class="flex items-center space-x-3">
-              <span class="text-2xl">{{file.icon}}</span>
-              <span class="text-sm font-medium">{{file.name}}</span>
-            </div>
-            <div class="flex items-center space-x-4">
-              <span class="text-xs text-base-content opacity-50">{{file.lastModified}}</span>
-              <span class="avatar w-8 h-8 rounded-full bg-base-300 flex items-center justify-center">{{file.ownerAvatar}}</span>
+    <div class="space-y-2">
+      <div *ngFor="let file of filteredFiles" 
+           class="flex items-center justify-between p-4 hover:bg-base-200 rounded-lg transition-colors cursor-pointer" 
+           (click)="onFileClick(file)">
+        <div class="flex items-center gap-4">
+          <span class="text-2xl" [innerHTML]="getFileIcon(file.type)"></span>
+          <span class="font-medium">{{file.name}}</span>
+        </div>
+        <div class="flex items-center gap-6">
+          <span class="text-sm text-base-content/70">{{file.lastModified | date:'MMM d, yyyy h:mm a'}}</span>
+          <div class="avatar">
+            <div class="w-8 h-8 rounded-full bg-base-300 flex items-center justify-center text-sm">
+              {{file.ownerAvatar}}
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Skeleton Loader -->
+  <ng-container *ngIf="isLoading">
+    <div class="animate-pulse space-y-6">
+      <div class="h-8 w-1/3 bg-base-300 rounded"></div>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="h-32 bg-base-300 rounded"></div>
+        <div class="h-32 bg-base-300 rounded"></div>
+      </div>
+      <div class="space-y-4">
+        <div class="h-16 bg-base-300 rounded"></div>
+        <div class="h-16 bg-base-300 rounded"></div>
+        <div class="h-16 bg-base-300 rounded"></div>
       </div>
     </div>
   </ng-container>
