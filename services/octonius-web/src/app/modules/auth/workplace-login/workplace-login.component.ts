@@ -177,7 +177,7 @@ export class WorkplaceLoginComponent implements OnDestroy {
       .subscribe({
         next: () => {
           // Navigate to dashboard after successful workplace selection
-          this.router.navigate(['/dashboard'])
+          this.router.navigate(['/myspace'])
         },
         error: (error) => {
           console.error('Error selecting workplace:', error)
