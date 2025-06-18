@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core'
+import { Component, OnInit, OnDestroy } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { RouterModule } from '@angular/router'
 import { UserService } from '../../../core/services/user.service'
 import { WorkloadService } from '../../shared/services/workload.service'
 import { ToastService } from '../../../core/services/toast.service'
 import { CapitalizePipe } from '../../../core/pipes/capitalize.pipe'
+import { ThemeService } from '../../../core/services/theme.service'
+import { Subscription } from 'rxjs'
 
 interface Activity {
   user: string
@@ -38,11 +40,10 @@ interface News {
   templateUrl: './inbox.component.html',
   styleUrls: ['./inbox.component.scss']
 })
-export class InboxComponent implements OnInit {
-  userName = 'User'
-  isLoading = false
+export class InboxComponent implements OnInit, OnDestroy {
+  userName: string = 'User'
+  isLoading: boolean = true
   error: string | null = null
-
   workloadStats = {
     total: 0,
     overdue: 0,
@@ -53,15 +54,47 @@ export class InboxComponent implements OnInit {
   recentActivity: any[] = []
   messages: any[] = []
   loungeNews: any[] = []
+  currentTheme: string = 'light'
+  private themeSubscription: Subscription;
 
   constructor(
     private userService: UserService,
     private workloadService: WorkloadService,
-    private toastService: ToastService
-  ) {}
+    private toastService: ToastService,
+    private themeService: ThemeService
+  ) {
+    this.currentTheme = this.themeService.getCurrentTheme();
+    this.themeSubscription = this.themeService.currentTheme$.subscribe(theme => {
+      this.currentTheme = theme;
+    });
+  }
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadData()
+  }
+
+  ngOnDestroy(): void {
+    if (this.themeSubscription) {
+      this.themeSubscription.unsubscribe();
+    }
+  }
+
+  getRecentActivityEmptyStateImage(): string {
+    return this.currentTheme === 'night' 
+      ? 'https://media.octonius.com/assets/no-activity-light.svg'
+      : 'https://media.octonius.com/assets/no-activity-dark.svg'
+  }
+
+  getMessagesEmptyStateImage(): string {
+    return this.currentTheme === 'night' 
+      ? 'https://media.octonius.com/assets/no-messages-light.svg'
+      : 'https://media.octonius.com/assets/no-messages-dark.svg'
+  }
+
+  getLoungeNewsEmptyStateImage(): string {
+    return this.currentTheme === 'night' 
+      ? 'https://media.octonius.com/assets/no-lounge-light.svg'
+      : 'https://media.octonius.com/assets/no-lounge-dark.svg'
   }
 
   loadData(): void {

@@ -42,7 +42,7 @@
         <h2 class="card-title text-lg mb-4">My Workload</h2>
         <div class="flex justify-between items-center">
           <div class="flex-1">
-            <span class="badge badge-ghost text-base">{{workloadStats.total}} Tasks for today</span>
+            <span class="badge badge-ghost text-base-content opacity-50">{{workloadStats.total}} Tasks for today</span>
           </div>
           <div class="flex gap-4 text-sm">
             <span class="badge badge-error">{{workloadStats.overdue}} overdue</span>
@@ -59,9 +59,14 @@
       <div class="card-body">
         <div class="flex justify-between items-center mb-4">
           <h2 class="card-title text-lg">Recent Activity</h2>
-          <button class="btn btn-ghost btn-sm">Clear all</button>
+          <button class="btn btn-ghost btn-sm text-base-content opacity-50">Clear all</button>
         </div>
         <div class="space-y-4">
+          <div *ngIf="recentActivity.length === 0">
+            <div class="flex justify-center py-8">
+              <img [src]="getRecentActivityEmptyStateImage()" alt="No activity" class="w-64">
+            </div>
+          </div>
           <div *ngFor="let activity of recentActivity" class="flex items-start justify-between">
             <div class="flex items-start space-x-3">
               <div class="avatar">
@@ -87,9 +92,14 @@
       <div class="card-body">
         <div class="flex justify-between items-center mb-4">
           <h2 class="card-title text-lg">Messages</h2>
-          <button class="btn btn-ghost btn-sm">Clear all</button>
+          <button class="btn btn-ghost btn-sm text-base-content opacity-50">Clear all</button>
         </div>
         <div class="space-y-4">
+          <div *ngIf="messages.length === 0" class="text-center py-8">
+            <div class="flex justify-center">
+              <img [src]="getMessagesEmptyStateImage()" alt="No messages" class="w-64">
+            </div>
+          </div>
           <div *ngFor="let msg of messages" class="flex items-start justify-between">
             <div class="flex items-start space-x-3">
               <div class="avatar">
@@ -115,9 +125,14 @@
       <div class="card-body">
         <div class="flex justify-between items-center mb-4">
           <h2 class="card-title text-lg">Lounge news</h2>
-          <button class="btn btn-ghost btn-sm">Clear all</button>
+          <button class="btn btn-ghost btn-sm text-base-content opacity-50">Clear all</button>
         </div>
         <div class="space-y-4">
+          <div *ngIf="loungeNews.length === 0">
+            <div class="flex justify-center py-8">
+              <img [src]="getLoungeNewsEmptyStateImage()" alt="No news" class="w-64">
+            </div>
+          </div>
           <div *ngFor="let item of loungeNews" class="flex items-start justify-between">
             <div class="flex items-start space-x-3">
               <div class="avatar">
