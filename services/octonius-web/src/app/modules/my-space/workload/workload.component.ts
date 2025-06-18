@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { UserService } from '../../../core/services/user.service'
-import { User } from '../../../core/services/auth.service'
 import { WorkloadService } from '../../shared/services/workload.service'
 import { ToastService } from '../../../core/services/toast.service'
+import { CapitalizePipe } from '../../../core/pipes/capitalize.pipe'
 
 interface Task {
   title: string
@@ -16,7 +16,7 @@ interface Task {
 @Component({
   selector: 'app-workload',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, CapitalizePipe],
   templateUrl: './workload.component.html',
   styleUrls: ['./workload.component.scss']
 })
@@ -50,15 +50,18 @@ export class WorkloadComponent implements OnInit {
     this.error = null
 
     this.userService.getCurrentUser().subscribe({
-      next: (user: User) => {
+      next: (response: any) => {
+        const user = response.data.user
         this.userName = user.first_name || user.email?.split('@')[0] || 'User'
         if (user.uuid && user.current_workplace_id) {
           this.workloadService.getWorkload(user.uuid, user.current_workplace_id).subscribe({
-            next: (data: any) => {
-              this.workloadStats = data.stats
-              this.todayTasks = data.today || []
-              this.tomorrowTasks = data.tomorrow || []
-              this.nextWeekTasks = data.nextWeek || []
+            next: (response: any) => {
+              if(response.data.workload) {
+                this.workloadStats = response.data.workload.stats
+                this.todayTasks = response.data.workload.today || []
+                this.tomorrowTasks = response.data.workload.tomorrow || []
+                this.nextWeekTasks = response.data.workload.nextWeek || []
+              }
               this.isLoading = false
             },
             error: (err: Error) => {

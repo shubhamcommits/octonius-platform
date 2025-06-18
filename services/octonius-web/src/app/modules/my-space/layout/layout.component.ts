@@ -4,12 +4,11 @@ import { RouterModule, Router } from '@angular/router'
 import { NavbarComponent } from '../navbar/navbar.component'
 import { SharedModule } from '../../shared/shared.module'
 import { AuthService } from '../../../core/services/auth.service'
-import { LucideAngularModule, Sun, Moon, LogOut } from 'lucide-angular'
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, NavbarComponent, SharedModule, LucideAngularModule],
+  imports: [CommonModule, RouterModule, NavbarComponent, SharedModule],
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss']
 })

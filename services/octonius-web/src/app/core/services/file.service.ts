@@ -13,8 +13,13 @@ export class FileService {
   constructor(private http: HttpClient) {}
 
   // File Operations
-  getFiles(): Observable<File[]> {
-    return this.http.get<File[]>(this.apiUrl);
+  getFiles(owner_id: string, workplace_id: string): Observable<File[]> {
+    return this.http.get<File[]>(this.apiUrl, {
+      params: {
+        owner_id: owner_id,
+        workplace_id: workplace_id
+      }
+    })
   }
 
   uploadFile(file: globalThis.File): Observable<File> {
