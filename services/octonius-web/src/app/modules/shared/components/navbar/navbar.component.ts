@@ -1,7 +1,7 @@
 import { Component, Input, ElementRef, HostListener } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { RouterModule, Router } from '@angular/router'
-import { SharedModule } from '../../shared/shared.module'
+import { SharedModule } from '../../shared.module'
 
 @Component({
   selector: 'app-navbar',
@@ -39,5 +39,10 @@ export class NavbarComponent {
     if (section === 'inbox') this.router.navigate(['/myspace/inbox']);
     if (section === 'tasks') this.router.navigate(['/myspace/workload']);
     if (section === 'files') this.router.navigate(['/myspace/files']);
+  }
+
+  goToWorkplace(section: string) {
+    this.openDropdown = null;
+    this.router.navigate(['/workplace', section]);
   }
 } 

@@ -1,25 +1,22 @@
-import { Component } from '@angular/core'
-import { CommonModule } from '@angular/common'
-import { RouterModule, Router, ActivatedRoute, NavigationEnd } from '@angular/router'
-import { SharedModule } from '../../shared/shared.module'
-import { AuthService } from '../../../core/services/auth.service'
-import { ThemeService } from '../../../core/services/theme.service'
-import { filter, map } from 'rxjs/operators'
+import { Component } from '@angular/core';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { filter, map } from 'rxjs/operators';
+import { AuthService } from '../../../core/services/auth.service';
+import { ThemeService } from '../../../core/services/theme.service';
 
 @Component({
   selector: 'app-layout',
-  standalone: true,
-  imports: [CommonModule, RouterModule, SharedModule],
+  standalone: false,
   templateUrl: './layout.component.html',
-  styleUrls: ['./layout.component.scss']
+  styleUrl: './layout.component.scss'
 })
 export class LayoutComponent {
-  breadcrumb: string = 'inbox';
+  breadcrumb: string = 'apps';
 
   constructor(
-    private authService: AuthService,
-    private router: Router,
+    private router: Router, 
     private activatedRoute: ActivatedRoute,
+    private authService: AuthService,
     private themeService: ThemeService
   ) {
     this.router.events.pipe(
@@ -30,7 +27,7 @@ export class LayoutComponent {
           child = child.firstChild;
         }
         // Get the route segment and remove query parameters
-        return child?.snapshot.url[0]?.path.split('?')[0] || 'inbox';
+        return child?.snapshot.url[0]?.path.split('?')[0] || 'apps';
       })
     ).subscribe(path => {
       this.breadcrumb = path;
@@ -67,4 +64,4 @@ export class LayoutComponent {
     this.authService.logout();
     this.router.navigate(['/auths/login']);
   }
-} 
+}

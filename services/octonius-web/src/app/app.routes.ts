@@ -1,19 +1,27 @@
 import { Routes } from '@angular/router'
 import { AuthGuard } from './modules/shared/services/auth.guard'
+import { NonAuthGuard } from './modules/shared/services/non-auth.guard'
 
 export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'auths/login'
+    redirectTo: 'myspace',
+    canActivate: [AuthGuard]
   },
   {
     path: 'auths',
-    loadChildren: () => import('./modules/auth/auth.module').then(m => m.AuthModule)
+    loadChildren: () => import('./modules/auth/auth.module').then(m => m.AuthModule),
+    canActivate: [NonAuthGuard]
   },
   {
     path: 'myspace',
     loadChildren: () => import('./modules/my-space/my-space.module').then(m => m.MySpaceModule),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'workplace',
+    loadChildren: () => import('./modules/workplace/workplace.module').then(m => m.WorkplaceModule),
     canActivate: [AuthGuard]
   },
   {

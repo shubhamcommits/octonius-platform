@@ -1,0 +1,58 @@
+<div class="bg-base-200 rounded-lg shadow-md p-8">
+  <div class="text-center mb-8">
+    <img src="https://media.octonius.com/assets/icon_workmanagement.svg" alt="Work Management" class="w-20 h-20 mx-auto mb-4">
+    <h1 class="text-3xl font-bold">Work Management</h1>
+    <p class="text-base-content/70 mt-2 max-w-2xl mx-auto">
+      All your work groups are visible here. Groups are the main element to organize work in Octonius. They can be: a department, a team, a business unit... you get it.
+    </p>
+  </div>
+
+  <div class="mb-8 flex justify-between items-center">
+    <button class="btn btn-primary" (click)="onAddGroup()">
+      <lucide-icon name="Plus" class="w-4 h-4 mr-2"></lucide-icon>
+      Add Group
+    </button>
+    <div class="flex gap-2 items-center">
+      <button class="btn btn-ghost btn-circle" (click)="onFilter()">
+        <lucide-icon name="ListFilter" class="w-5 h-5"></lucide-icon>
+      </button>
+      <button class="btn btn-ghost btn-circle" (click)="onSort()">
+        <lucide-icon name="ArrowUpDown" class="w-5 h-5"></lucide-icon>
+      </button>
+      <button class="btn btn-ghost btn-circle" (click)="onAddGroup()">
+        <lucide-icon name="Plus" class="w-5 h-5"></lucide-icon>
+      </button>
+      <div class="form-control">
+        <input 
+          type="text" 
+          placeholder="Search..." 
+          class="input input-bordered w-full max-w-xs"
+          (input)="onSearch($event)"
+          [value]="searchTerm" />
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+    <div
+      *ngFor="let group of displayGroups"
+      class="card bg-base-100 shadow-md rounded-lg overflow-hidden border border-base-200 cursor-pointer hover:shadow-xl transition-shadow duration-300"
+      (click)="onGroupClick(group)">
+      <figure><img [src]="'https://media.octonius.com/assets/icon_projects.svg'" [alt]="group.name" class="h-32 w-full object-cover" /></figure>
+      <div class="card-body p-4 items-center text-center">
+        <h2 class="card-title text-base font-semibold">{{ group.name }}</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="flex justify-center items-center py-12">
+    <span class="loading loading-spinner loading-lg"></span>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!isLoading && displayGroups.length === 0" class="text-center py-12">
+    <img src="https://media.octonius.com/assets/no-groups.svg" alt="No groups" class="w-64 mx-auto mb-4">
+    <p class="text-base-content/70">No work groups found. Create your first group to get started.</p>
+  </div>
+</div>

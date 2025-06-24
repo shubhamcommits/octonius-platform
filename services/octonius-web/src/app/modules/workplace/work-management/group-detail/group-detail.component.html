@@ -1,0 +1,43 @@
+<div class="max-w-7xl mx-auto p-8">
+  <!-- Header with Breadcrumbs -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-2 text-sm text-base-content/70">
+      <a routerLink="/workplace/work-management" class="hover:text-primary cursor-pointer">Groups</a>
+      <span>/</span>
+      <span class="font-semibold text-base-content">{{ group?.name || 'Loading...' }}</span>
+    </div>
+  </div>
+
+  <!-- Centered Dropdown Navigation -->
+  <ng-container *ngIf="!isTaskDetailRoute()">
+    <div class="flex justify-center my-4">
+      <details #details class="dropdown dropdown-center">
+        <summary class="btn btn-lg btn-ghost text-2xl font-bold cursor-pointer list-none">
+          {{ activeView | titlecase }}
+          <lucide-icon name="ChevronDown" class="w-6 h-6"></lucide-icon>
+        </summary>
+        <div class="dropdown-content mt-3 w-[650px] bg-base-300/80 backdrop-blur-md rounded-xl shadow-2xl p-6 z-50 border border-base-content/10">
+          <div class="grid grid-cols-2 gap-4">
+            <a *ngFor="let item of menuItems"
+              [routerLink]="item.route"
+              routerLinkActive="bg-base-content/10"
+              [routerLinkActiveOptions]="{exact: true}"
+              (click)="details.open = false"
+              class="p-4 rounded-lg hover:bg-base-content/10 flex items-center gap-4 transition-colors cursor-pointer">
+              <lucide-icon [name]="item.icon" class="w-8 h-8 text-primary"></lucide-icon>
+              <div>
+                <p class="font-bold text-lg">{{ item.label }}</p>
+                <p class="text-sm text-base-content/70">{{ item.description }}</p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </details>
+    </div>
+  </ng-container>
+
+  <!-- Child Route Content -->
+  <div class="mt-6">
+    <router-outlet></router-outlet>
+  </div>
+</div>

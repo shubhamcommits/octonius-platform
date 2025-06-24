@@ -1,0 +1,75 @@
+<div class="flex flex-col gap-6">
+    <!-- Info Banner -->
+    <div class="bg-base-200 border border-base-300 rounded-lg p-4 flex items-center gap-4">
+      <div class="bg-primary/20 p-2 rounded-full">
+        <lucide-icon name="Bell" class="text-primary"></lucide-icon>
+      </div>
+      <p class="text-base-content/80">
+        The activity is the main communication channel for the group members. No more emails, no more texts...
+      </p>
+    </div>
+  
+    <!-- Post Creation Card -->
+    <div class="card bg-base-100 shadow-lg border border-base-200">
+      <div class="card-body">
+        <div class="flex items-start gap-4">
+          <div class="avatar">
+            <div class="w-12 rounded-full">
+              <img [src]="'https://i.pravatar.cc/150?u=a042581f4e29026704d'" alt="User Avatar" />
+            </div>
+          </div>
+          <div class="flex-1">
+            <textarea class="textarea textarea-bordered w-full" placeholder="What's on your mind, User?"></textarea>
+            <div class="flex justify-between items-center mt-2">
+              <div class="flex gap-2">
+                <button class="btn btn-ghost btn-sm btn-circle"><lucide-icon name="Paperclip" class="w-5 h-5"></lucide-icon></button>
+                <button class="btn btn-ghost btn-sm btn-circle"><lucide-icon name="AtSign" class="w-5 h-5"></lucide-icon></button>
+              </div>
+              <button class="btn btn-primary btn-sm">Post</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Feed -->
+    <div class="flex flex-col gap-4">
+      <!-- Sample Post -->
+      <div *ngFor="let post of posts" class="card bg-base-100 shadow-lg border border-base-200">
+        <div class="card-body">
+          <!-- Post Header -->
+          <div class="flex items-center gap-3">
+            <div class="avatar">
+              <div class="w-10 rounded-full">
+                <img [src]="post.author.avatar_url" [alt]="post.author.name" />
+              </div>
+            </div>
+            <div>
+              <p class="font-semibold">{{ post.author.name }}</p>
+              <p class="text-xs text-base-content/60">{{ post.timestamp | date:'medium' }}</p>
+            </div>
+          </div>
+          <!-- Post Content -->
+          <div class="py-4">
+            <h3 class="font-bold text-lg mb-2">{{ post.title }}</h3>
+            <p [class.truncate]="!post.expanded" class="text-base-content/90" style="white-space: pre-wrap;">{{ post.content }}</p>
+            <button *ngIf="!post.expanded" (click)="post.expanded = true" class="text-primary text-sm mt-2">Expand</button>
+          </div>
+          <!-- Post Actions -->
+          <div class="card-actions justify-start items-center border-t border-base-200 pt-2">
+            <button class="btn btn-ghost btn-sm gap-2">
+              <lucide-icon name="Heart" class="w-4 h-4"></lucide-icon> {{ post.likes }}
+            </button>
+            <button class="btn btn-ghost btn-sm gap-2">
+              <lucide-icon name="MessageSquare" class="w-4 h-4"></lucide-icon> {{ post.comments }}
+            </button>
+            <div class="flex-grow"></div>
+            <button class="btn btn-ghost btn-sm btn-circle">
+              <lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  

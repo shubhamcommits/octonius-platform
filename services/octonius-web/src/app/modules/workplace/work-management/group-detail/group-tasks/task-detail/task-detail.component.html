@@ -1,0 +1,110 @@
+<div *ngIf="task" class="max-w-6xl mx-auto py-10 px-4">
+    <!-- Header: Breadcrumbs and Close -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-2 text-sm">
+            <a routerLink="../" class="text-primary hover:underline">Tasks</a>
+            <span>/</span>
+            <span class="font-semibold">{{ task.title }}</span>
+        </div>
+    </div>
+    <!-- Main Content: Two Columns -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Left/Main Column -->
+        <div class="md:col-span-2 flex flex-col gap-6">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">{{ task.title }}</h2>
+                <p class="text-base-content/80">
+                    This task involves creating a comprehensive layout that enhances user interaction and simplifies navigation. Focus on integrating features that allow seamless collaboration among team members.
+                </p>
+            </div>
+            <div class="flex items-center gap-4 text-sm border-y border-base-200 py-2">
+                <button class="btn btn-ghost btn-sm gap-2"><lucide-icon name="Heart" class="w-4 h-4"></lucide-icon> 3</button>
+                <button class="btn btn-ghost btn-sm gap-2"><lucide-icon name="MessageSquare" class="w-4 h-4"></lucide-icon> 3</button>
+                <span>Add a comment</span>
+                <div class="flex-grow"></div>
+                <button class="btn btn-ghost btn-sm btn-circle"><lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon></button>
+            </div>
+            <!-- Activity Section -->
+            <div class="flex flex-col gap-4">
+                <div class="tabs">
+                    <a class="tab tab-bordered tab-active">Activity</a>
+                    <a class="tab tab-bordered">Subtasks</a>
+                    <a class="tab tab-bordered">Files</a>
+                </div>
+                <div *ngFor="let activity of activities" class="flex items-start gap-3">
+                    <lucide-icon name="MessageSquareText" class="w-5 h-5 mt-1 text-base-content/50"></lucide-icon>
+                    <div class="flex-grow">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="avatar w-6 h-6">
+                                    <img [src]="activity.author.avatarUrl" [alt]="activity.author.name" class="rounded-full" />
+                                </div>
+                                <p class="font-semibold text-sm">{{ activity.author.name }}</p>
+                            </div>
+                            <p class="text-xs text-base-content/60">{{ activity.timestamp | date:'medium' }}</p>
+                        </div>
+                        <div class="bg-base-200/50 rounded-lg p-3 mt-2">
+                            <h4 class="font-semibold mb-1">{{ activity.title }}</h4>
+                            <p class="text-sm text-base-content/80">{{ activity.content }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Right/Sidebar Column -->
+        <div class="flex flex-col gap-6 pt-2">
+            <div>
+                <h4 class="font-semibold text-sm mb-2 text-base-content/70">ASSIGNEE</h4>
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="badge badge-lg gap-2 pl-1 pr-3 py-4">
+                        <div class="avatar"><div class="w-6 rounded-full"><img [src]="task.assignee.avatar" [alt]="task.assignee.name"/></div></div>
+                        {{ task.assignee.name }}
+                        <lucide-icon name="X" class="w-3 h-3 cursor-pointer"></lucide-icon>
+                    </div>
+                    <button class="btn btn-sm btn-ghost btn-circle"><lucide-icon name="Plus" class="w-4 h-4"></lucide-icon></button>
+                </div>
+            </div>
+            <div>
+                <h4 class="font-semibold text-sm mb-2 text-base-content/70">DUE DATE</h4>
+                <div class="flex items-center gap-2 text-primary cursor-pointer">
+                    <lucide-icon name="Calendar" class="w-5 h-5"></lucide-icon>
+                    <span>{{ task.dueDate | date:'mediumDate' }}</span>
+                </div>
+            </div>
+            <div>
+                <h4 class="font-semibold text-sm mb-2 text-base-content/70">TASK STATUS</h4>
+                <div class="dropdown">
+                    <label tabindex="0" class="btn btn-outline btn-sm btn-warning gap-2">
+                        <lucide-icon name="CheckCircle" class="w-4 h-4"></lucide-icon> In progress
+                    </label>
+                </div>
+            </div>
+            <div>
+                <h4 class="font-semibold text-sm mb-2 text-base-content/70">CUSTOM FIELDS</h4>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded-sm" style="background-color: #FB8C00"></div>
+                            <span class="text-sm">Stage</span>
+                        </div>
+                        <span class="badge badge-ghost badge-sm">pipeline</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded-sm" style="background-color: #E53935"></div>
+                            <span class="text-sm">Priority</span>
+                        </div>
+                        <span class="badge badge-ghost badge-sm">HIGH</span>
+                    </div>
+                    <button class="btn btn-ghost btn-sm justify-start pl-0 mt-1">
+                        <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon> Add Custom field
+                    </button>
+                </div>
+            </div>
+            <div>
+                <h4 class="font-semibold text-sm mb-2 text-base-content/70">TIME TRACKING</h4>
+                <p class="text-sm text-base-content/60">No time tracked yet</p>
+            </div>
+        </div>
+    </div>
+</div>

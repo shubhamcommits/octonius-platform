@@ -1,17 +1,109 @@
 import { NgModule } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { LucideAngularModule, Home, User, LogIn, LogOut, SunMoon, Plus, Upload, UploadCloud, Menu, Search, ListFilter, ArrowUpDown } from 'lucide-angular'
+import { LucideAngularModule, 
+  Home, 
+  User, 
+  LogIn, 
+  LogOut, 
+  SunMoon, 
+  Plus, 
+  Upload, 
+  UploadCloud, 
+  Menu, 
+  Search, 
+  ListFilter, 
+  ArrowUpDown, 
+  FilePlus, 
+  FileText, 
+  File, 
+  Folder, 
+  FileSpreadsheet as FileKeynote, 
+  Paperclip, 
+  MessageSquare, 
+  MoreHorizontal, 
+  Heart,
+  Calendar,
+  Clock,
+  Check,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  AtSign,
+  Bell,
+  Settings,
+  LayoutDashboard,
+  CheckSquare,
+  List,
+  LayoutGrid,
+  BarChart3,
+  Zap,
+  Filter,
+  X,
+  MessageSquareText,
+  MapPin,
+  Users
+} from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
+import { NonAuthGuard } from './services/non-auth.guard'
+import { NavbarComponent } from './components/navbar/navbar.component'
 
 @NgModule({
   imports: [
     CommonModule,
-    LucideAngularModule.pick({ Home, User, LogIn, LogOut, SunMoon, Plus, Upload, UploadCloud, Menu, Search, ListFilter, ArrowUpDown })
+    NavbarComponent,
+    LucideAngularModule.pick({ 
+      Home, 
+      User, 
+      LogIn, 
+      LogOut, 
+      SunMoon, 
+      Plus, 
+      Upload, 
+      UploadCloud, 
+      Menu, 
+      Search, 
+      ListFilter, 
+      ArrowUpDown, 
+      FilePlus, 
+      FileText, 
+      File, 
+      Folder, 
+      FileKeynote, 
+      Paperclip, 
+      MessageSquare, 
+      MoreHorizontal, 
+      Heart,
+      Calendar,
+      Clock,
+      Check,
+      CheckCircle,
+      ChevronLeft,
+      ChevronRight,
+      ChevronUp,
+      ChevronDown,
+      AtSign,
+      Bell,
+      Settings,
+      LayoutDashboard,
+      CheckSquare,
+      List,
+      LayoutGrid,
+      BarChart3,
+      Zap,
+      Filter,
+      X,
+      MessageSquareText,
+      MapPin,
+      Users
+    })
   ],
   exports: [
     CommonModule,
-    LucideAngularModule
+    LucideAngularModule,
+    NavbarComponent
   ],
-  providers: [AuthGuard]
+  providers: [AuthGuard, NonAuthGuard]
 })
 export class SharedModule { }
