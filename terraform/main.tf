@@ -241,7 +241,7 @@ module "app_runner" {
     JWT_ACCESS_TIME       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_TIME::"
     JWT_REFRESH_KEY       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_KEY::"
     JWT_REFRESH_TIME      = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_TIME::"
-    DB_PASS               = "${data.aws_secretsmanager_secret.platform_env.arn}:password::"
+    DB_PASS               = "${module.rds.secret_arn}:password::"
   }
 
   force_new_deployment = false
