@@ -99,8 +99,8 @@ module "vpc" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
-  enable_nat_gateway = false
-  single_nat_gateway = false
+  enable_nat_gateway = true
+  single_nat_gateway = true
 
   tags = local.common_tags
 }
@@ -111,14 +111,21 @@ resource "aws_security_group" "app_runner" {
   description = "Security group for App Runner service"
   vpc_id      = module.vpc.vpc_id
 
+  # Allow all outbound traffic for internet access and AWS services
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
   }
 
-  tags = local.common_tags
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-app-runner"
+    }
+  )
 }
 
 module "rds" {
@@ -185,17 +192,20 @@ module "ecr" {
 module "app_runner" {
   source = "./modules/app_runner"
 
-  environment         = var.environment
-  project_name        = local.project_name
-  region              = local.aws_region
-  vpc_id              = module.vpc.vpc_id
-  subnet_ids          = module.vpc.private_subnet_ids
-  secret_name_pattern = "${var.environment}-${local.project_name}-platform-service-env-${local.aws_region}"
+  environment                  = var.environment
+  project_name                 = local.project_name
+  region                       = local.aws_region
+  vpc_id                       = module.vpc.vpc_id
+  subnet_ids                   = module.vpc.private_subnet_ids
+  secret_name_pattern          = "${var.environment}-${local.project_name}-platform-service-env-${local.aws_region}"
+  app_runner_security_group_id = aws_security_group.app_runner.id
 
   # Container configuration
-  container_port    = 3000
-  health_check_path = "/api/health"
-  image_identifier  = "${module.ecr.repository_url}:latest-${local.environment}"
+  container_port     = 3000
+  health_check_path  = "/api/health"
+  image_tag          = "latest-${local.environment}"
+  ecr_repository_url = module.ecr.repository_url
+  image_identifier   = "${module.ecr.repository_url}:latest-${local.environment}"
 
   # Auto-scaling configuration
   cpu      = local.environment == "prod" ? 1024 : 512
@@ -213,8 +223,8 @@ module "app_runner" {
     DOMAIN             = "${var.environment}.api.octonius.com"
     AWS_ACCOUNT_NUMBER = local.account_id
     AWS_DEFAULT_REGION = local.aws_region
-    DB_WRITER_HOST     = module.rds.endpoint
-    DB_READER_HOST     = module.rds.endpoint
+    DB_WRITER_HOST     = module.rds.address
+    DB_READER_HOST     = module.rds.address
     DB_PORT            = module.rds.port
     DB_NAME            = module.rds.database_name
     DB_USER            = var.database_username
@@ -222,20 +232,23 @@ module "app_runner" {
     MIN_POOL           = var.environment == "prod" ? "5" : "1"
     REDIS_HOST         = module.elasticache.endpoint
     REDIS_PORT         = module.elasticache.port
+    REDIS_PASS         = module.elasticache.auth_token
   }
 
   # Secrets from Secrets Manager
   environment_secrets = {
     AWS_ACCESS_KEY_ID     = "${data.aws_secretsmanager_secret.platform_env.arn}:AWS_ACCESS_KEY_ID::"
+    RESEND_API_KEY        = "${data.aws_secretsmanager_secret.platform_env.arn}:RESEND_API_KEY::"
+    SUPPORT_EMAIL         = "${data.aws_secretsmanager_secret.platform_env.arn}:SUPPORT_EMAIL::"
+    RESEND_FROM_EMAIL     = "${data.aws_secretsmanager_secret.platform_env.arn}:RESEND_FROM_EMAIL::"
     AWS_SECRET_ACCESS_KEY = "${data.aws_secretsmanager_secret.platform_env.arn}:AWS_SECRET_ACCESS_KEY::"
     JWT_ACCESS_KEY        = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_KEY::"
     JWT_ACCESS_TIME       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_TIME::"
+    JWT_REFRESH_KEY       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_KEY::"
+    JWT_REFRESH_TIME      = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_TIME::"
     DB_PASS               = "${data.aws_secretsmanager_secret.database_password.arn}:password::"
   }
 
-  # Force new deployment when secrets change
-  # Set to true when you need to force App Runner to redeploy (e.g., after updating secret values)
-  # Set back to false after deployment to avoid unnecessary redeployments
   force_new_deployment = false
 
   tags = local.common_tags

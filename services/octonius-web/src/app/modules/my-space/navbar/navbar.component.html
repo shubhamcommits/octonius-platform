@@ -1,0 +1,42 @@
+<!-- Main Navigation -->
+<nav class="flex gap-8 items-center">
+  <div *ngFor="let tab of mainTabs" class="relative">
+    <button class="btn btn-ghost text-lg font-semibold capitalize" [class.text-primary]="activeTab === tab.id"
+            (click)="onTabClick(tab.id)">
+      {{ tab.label }}
+    </button>
+    <!-- My Space Dropdown -->
+    <div *ngIf="openDropdown === 'myspace' && tab.id === 'myspace'"
+         class="absolute left-0 mt-2 w-[500px] bg-base-100 rounded-xl shadow-lg p-8 flex justify-between z-50"
+         style="min-width: 500px;">
+      <div class="flex flex-col items-center cursor-pointer hover:bg-base-200 rounded-lg p-4 transition" (click)="goTo('inbox')">
+        <img src="https://media.octonius.com/assets/icon_myinbox.svg" alt="Inbox" class="w-10 h-10" />
+        <span class="font-bold text-base mt-2">Inbox</span>
+      </div>
+      <div class="flex flex-col items-center cursor-pointer hover:bg-base-200 rounded-lg p-4 transition" (click)="goTo('tasks')">
+        <img src="https://media.octonius.com/assets/icon_projects.svg" alt="My Tasks" class="w-10 h-10" />
+        <span class="font-bold text-base mt-2">My Tasks</span>
+      </div>
+      <div class="flex flex-col items-center cursor-pointer hover:bg-base-200 rounded-lg p-4 transition" (click)="goTo('files')">
+        <img src="https://media.octonius.com/assets/icon_mynotes.svg" alt="My Files" class="w-10 h-10" />
+        <span class="font-bold text-base mt-2">My Files</span>
+      </div>
+    </div>
+    <!-- Workplace Dropdown Placeholder -->
+    <div *ngIf="openDropdown === 'workplace' && tab.id === 'workplace'"
+         class="absolute left-0 mt-2 w-[400px] bg-base-200 rounded-xl shadow-lg p-8 flex flex-col gap-4 z-50">
+      <div class="font-bold text-lg">Workplace Options</div>
+      <div class="cursor-pointer hover:bg-base-200 rounded-lg p-3 transition">Workplace Home</div>
+      <div class="cursor-pointer hover:bg-base-200 rounded-lg p-3 transition">Members</div>
+      <div class="cursor-pointer hover:bg-base-200 rounded-lg p-3 transition">Settings</div>
+    </div>
+    <!-- Account Dropdown Placeholder -->
+    <div *ngIf="openDropdown === 'account' && tab.id === 'account'"
+         class="absolute left-0 mt-2 w-[300px] bg-base-100 rounded-xl shadow-lg p-6 flex flex-col gap-3 z-50">
+      <div class="font-bold text-lg">Account</div>
+      <div class="cursor-pointer hover:bg-base-200 rounded-lg p-3 transition">Profile</div>
+      <div class="cursor-pointer hover:bg-base-200 rounded-lg p-3 transition">Settings</div>
+      <div class="cursor-pointer hover:bg-base-200 rounded-lg p-3 transition">Logout</div>
+    </div>
+  </div>
+</nav>

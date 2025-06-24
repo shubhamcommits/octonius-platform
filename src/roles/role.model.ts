@@ -65,7 +65,7 @@ export class Role extends Model<RoleAttributes, RoleCreationAttributes> implemen
             through: models.RolePermission,
             foreignKey: 'role_id',
             otherKey: 'permission_id',
-            as: 'permissions'
+            as: 'permission_records'
         })
 
         // Role has many role permissions
@@ -100,7 +100,11 @@ Role.init({
         allowNull: false,
         defaultValue: [],
         validate: {
-            isArray: true
+            isValidPermissions(value: any) {
+                if (!Array.isArray(value)) {
+                    throw new Error('Permissions must be an array')
+                }
+            }
         }
     },
     is_system: {

@@ -1,6 +1,7 @@
 import winston from 'winston'
+import { isLocal, isDevelopment } from './config'
 
-// Define log levels and colors
+// Define log levels
 const levels = {
     error: 0,
     warn: 1,
@@ -9,16 +10,85 @@ const levels = {
     debug: 4,
 }
 
-const colors = {
-    error: 'red',
-    warn: 'yellow',
-    info: 'green',
-    http: 'magenta',
-    debug: 'cyan',
-}
+// Helper to pretty-print JSON with color for console
+const prettyJsonFormat = winston.format.printf((info) => {
 
-// Add colors to winston
-winston.addColors(colors)
+    // Prepare the log object
+    const logObject: Record<string, any> = {
+        timestamp: info.timestamp,
+        message: info.message,
+        level: info.level,
+        service: info.service,
+    }
+
+    // Attach context if present
+    if (info.context) {
+        logObject.context = info.context
+    }
+
+    // Attach all other metadata
+    const metadata: Record<string, any> = { ...info }
+    delete metadata.timestamp
+    delete metadata.level
+    delete metadata.message
+    delete metadata.service
+    delete metadata.context
+
+    // Attach metadata if present
+    if (Object.keys(metadata).length > 0) {
+        logObject.metadata = metadata
+    }
+
+    // Colorize the level
+    let colorized = JSON.stringify(logObject, null, 2)
+
+    // Colorize the whole output based on level
+    switch (info.level) {
+        case 'error':
+            colorized = `\x1b[31m${colorized}\x1b[0m`
+            break
+        case 'warn':
+            colorized = `\x1b[33m${colorized}\x1b[0m`
+            break
+        case 'info':
+            colorized = `\x1b[32m${colorized}\x1b[0m`
+            break
+        case 'http':
+            colorized = `\x1b[35m${colorized}\x1b[0m`
+            break
+        case 'debug':
+            colorized = `\x1b[36m${colorized}\x1b[0m`
+            break
+        default:
+            break
+    }
+
+    // Return the colorized log
+    return colorized
+})
+
+// Compact JSON for files
+const compactJsonFormat = winston.format.printf((info) => {
+    const logObject: Record<string, any> = {
+        timestamp: info.timestamp,
+        message: info.message,
+        level: info.level,
+        service: info.service,
+    }
+    if (info.context) {
+        logObject.context = info.context
+    }
+    const metadata: Record<string, any> = { ...info }
+    delete metadata.timestamp
+    delete metadata.level
+    delete metadata.message
+    delete metadata.service
+    delete metadata.context
+    if (Object.keys(metadata).length > 0) {
+        logObject.metadata = metadata
+    }
+    return JSON.stringify(logObject)
+})
 
 // Create the logger
 const logger = winston.createLogger({
@@ -28,45 +98,56 @@ const logger = winston.createLogger({
         service: 'octonius-platform'
     },
     format: winston.format.combine(
-        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
-        winston.format.colorize({ all: true }),
+        winston.format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ss.SSSZ' }),
         winston.format.printf((info) => {
-            // Format the message with consistent spacing
-            const message = info.message || '';
-            const metadata: Record<string, any> = { ...info };
-            delete metadata.timestamp;
-            delete metadata.level;
-            delete metadata.message;
-            delete metadata.service;
-
-            // Get context from metadata
-            const context = metadata.context ? `[${metadata.context}]` : '';
-            delete metadata.context;
-
-            // Format message with label alignment if it contains a colon
-            let formattedMessage = message;
-            if (typeof message === 'string' && message.includes(':')) {
-                const [label, content] = message.split(':').map((s: string) => s.trim());
-                formattedMessage = `${label.padEnd(15)}: ${content}`;
+            // Prepare the log object
+            const logObject: Record<string, any> = {
+                timestamp: info.timestamp,
+                message: info.message,
+                level: info.level,
+                service: info.service,
             }
-
-            // If there's metadata, format it with consistent spacing
+            // Attach context if present
+            if (info.context) {
+                logObject.context = info.context
+            }
+            // Attach all other metadata
+            const metadata: Record<string, any> = { ...info }
+            delete metadata.timestamp
+            delete metadata.level
+            delete metadata.message
+            delete metadata.service
+            delete metadata.context
             if (Object.keys(metadata).length > 0) {
-                const formattedMetadata = Object.entries(metadata)
-                    .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-                    .join(' | ');
-                return `${info.timestamp} | ${context} | ${info.level} | ${formattedMessage} | ${formattedMetadata}`;
+                logObject.metadata = metadata
             }
-            return `${info.timestamp} | ${context} | ${info.level} | ${formattedMessage}`;
+            return JSON.stringify(logObject)
         })
     ),
     transports: [
-        new winston.transports.Console(),
+        new winston.transports.Console({
+            format: winston.format.combine(
+                winston.format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ss.SSSZ' }),
+                (isLocal())
+                    ? prettyJsonFormat
+                    : compactJsonFormat
+            )
+        }),
         new winston.transports.File({
             filename: 'logs/error.log',
             level: 'error',
+            format: winston.format.combine(
+                winston.format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ss.SSSZ' }),
+                compactJsonFormat
+            )
         }),
-        new winston.transports.File({ filename: 'logs/all.log' }),
+        new winston.transports.File({
+            filename: 'logs/all.log',
+            format: winston.format.combine(
+                winston.format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ss.SSSZ' }),
+                compactJsonFormat
+            )
+        }),
     ],
 })
 

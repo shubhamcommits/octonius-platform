@@ -114,4 +114,30 @@ variable "force_destroy_secret" {
   description = "Whether to allow the secret to be deleted when destroying infrastructure"
   type        = bool
   default     = false
+}
+
+variable "whitelisted_ips" {
+  description = "Map of whitelisted IP addresses for RDS access with descriptions"
+  type = map(object({
+    cidr        = string
+    description = string
+  }))
+  default = {
+    "private-class-a" = {
+      cidr        = "10.0.0.0/8"
+      description = "Private network - Class A"
+    }
+    "private-class-b" = {
+      cidr        = "172.16.0.0/12"
+      description = "Private network - Class B"
+    }
+    "private-class-c" = {
+      cidr        = "192.168.0.0/16"
+      description = "Private network - Class C"
+    }
+    "shubham-ip" = {
+      cidr        = "183.83.159.109/32"
+      description = "Shubham IP"
+    }
+  }
 } 

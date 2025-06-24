@@ -29,7 +29,7 @@ if (process.env.NODE_ENV === 'local') {
     updateLoggerLevel()
 
     // Log the environment
-    logger.info('Environment \t: Local environment configured')
+    appLogger('Environment', { environment: 'Local' })
 } else {
     // Validate environment variables (App Runner has already loaded them)
     validateEnv()
@@ -38,10 +38,7 @@ if (process.env.NODE_ENV === 'local') {
     updateLoggerLevel()
 
     // Log that we're using App Runner managed environment
-    logger.info('Environment \t: App Runner managed environment', {
-        environment: process.env.NODE_ENV,
-        region: process.env.AWS_DEFAULT_REGION
-    })
+    appLogger('Environment', { environment: process.env.NODE_ENV, region: process.env.AWS_DEFAULT_REGION })
 }
 
 // Express App
@@ -115,17 +112,30 @@ async function setUpExpressApplication() {
     // Creating Microservice Server
     const server = http.createServer(app)
 
-    // // Connect Database
-    // const dbStatus = await initiliazeDatabase()
-    // if (!dbStatus.connected) {
-    //     logger.warn('Database credentials unavailable, running in degraded mode')
-    // }
+    // Connect Database
+    const dbStatus = await initiliazeDatabase()
+    if (!dbStatus.connected) {
+        logger.warn('Database credentials unavailable, running in degraded mode')
+    }
 
-    // // Connect Redis
-    // const redisStatus = await connectRedis()
-    // if (!redisStatus) {
-    //     logger.warn('Redis is unavailable, running in degraded mode')
-    // }
+    // Connect Redis
+    await connectRedis()
+        .then((data: any) => {
+
+            // Set redis client
+            global_connection_map.set('redis', data.connection)
+
+            // Remove cache if redis was connected successfully
+            deleteRedisKeysByPrefix('')
+        })
+        .catch((error) => {
+
+            // Disconnect Redis 
+            disconnectRedis()
+
+            // Console Error
+            logger.warn('Redis is unavailable, running in degraded mode', error)
+        })
 
     // Catch unhandled promise rejections globally
     process.on('unhandledRejection', (reason, promise) => {
@@ -140,10 +150,7 @@ async function setUpExpressApplication() {
 
     // Exposing the server to the desired port
     server.listen(Number(PORT), HOST, () => {
-        appLogger(APP_NAME + ' server is working')
-        appLogger(HOST + ':' + PORT)
-        appLogger(NODE_ENV + ' environment')
-        appLogger(process.pid + ' is listening to all incoming requests')
+        appLogger('Server is working', { host: HOST, port: PORT, environment: NODE_ENV, pid: process.pid })
     })
 }
 
@@ -152,7 +159,7 @@ if (isClusterRequired == 'true' && cluster.isMaster) {
 
     // Setup worker processes
     setupWorkerProcesses()
-    
+
 } else {
 
     // To setup server configurations and share port address for incoming requests

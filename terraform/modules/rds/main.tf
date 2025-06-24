@@ -45,12 +45,24 @@ resource "aws_security_group" "rds" {
   description = "Security group for RDS PostgreSQL"
   vpc_id      = var.vpc_id
 
-  # Allow PostgreSQL traffic from ECS tasks only
+  # Allow PostgreSQL traffic from the current App Runner security group only
   ingress {
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [var.ecs_security_group_id]
+  }
+
+  # Allow PostgreSQL traffic from whitelisted IPs
+  dynamic "ingress" {
+    for_each = var.whitelisted_ips != null ? var.whitelisted_ips : {}
+    content {
+      from_port   = 5432
+      to_port     = 5432
+      protocol    = "tcp"
+      cidr_blocks = [ingress.value.cidr]
+      description = ingress.value.description
+    }
   }
 
   # Allow all outbound traffic
@@ -61,7 +73,12 @@ resource "aws_security_group" "rds" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = var.tags
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.environment}-${var.project_name}-db-${var.region}"
+    }
+  )
 }
 
 # RDS PostgreSQL Instance

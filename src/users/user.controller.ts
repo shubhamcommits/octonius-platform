@@ -251,24 +251,25 @@ export class UserController {
                     responseTime: `${responseTime}ms`
                 }
             })
-        } catch (error) {
+        } catch (error: any) {
+
             // Calculate response time
             const responseTime = Date.now() - startTime
 
             // Logs the error for debugging
             logger.error('Error in getUserByEmail controller', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-                stack: error instanceof Error ? error.stack : undefined,
+                stack: error,
+                error: error.stack instanceof Error ? error.stack.message : 'Unknown error',
                 responseTime: `${responseTime}ms`,
                 statusCode: 500,
                 params: req.params
             })
 
             // Returns error response
-            return res.status(500).json({
+            return res.status(error.code).json({
                 success: false,
-                message: 'Failed to fetch user',
-                error: error instanceof Error ? error.message : 'Unknown error',
+                message: error.message,
+                error: error.stack instanceof Error ? error.stack.message : 'Unknown error',
                 meta: {
                     responseTime: `${responseTime}ms`
                 }
@@ -646,6 +647,75 @@ export class UserController {
                     responseTime: `${responseTime}ms`
                 }
             })
+        }
+    }
+
+    /**
+     * Retrieves the current user based on the authenticated user's UUID.
+     * @param req - Express request object (assumes user UUID is available in req.user.uuid)
+     * @param res - Express response object
+     * @returns Current user data or error response
+     */
+    async getCurrentUser(req: Request, res: Response): Promise<Response> {
+        const startTime = Date.now();
+        try {
+            logger.info('Fetching current user', {
+                method: req.method,
+                path: req.path,
+                ip: req.ip
+            })
+
+            
+            const uuid = (req as any).user.uuid
+            if (!uuid) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated',
+                    meta: { responseTime: '0ms' }
+                });
+            }
+
+            const user = await this.userService.getById(uuid);
+            const responseTime = Date.now() - startTime;
+
+            if (!user) {
+                logger.warn('Current user not found', {
+                    uuid,
+                    responseTime: `${responseTime}ms`,
+                    statusCode: 404
+                });
+                return res.status(404).json({
+                    success: false,
+                    message: 'Current user not found',
+                    meta: { responseTime: `${responseTime}ms` }
+                });
+            }
+
+            logger.info('Current user retrieved successfully', {
+                userId: user.user.uuid,
+                responseTime: `${responseTime}ms`,
+                statusCode: 200
+            });
+
+            return res.status(200).json({
+                success: true,
+                data: user,
+                meta: { responseTime: `${responseTime}ms` }
+            });
+        } catch (error) {
+            const responseTime = Date.now() - startTime;
+            logger.error('Error in getCurrentUser controller', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+                responseTime: `${responseTime}ms`,
+                statusCode: 500
+            });
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to fetch current user',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                meta: { responseTime: `${responseTime}ms` }
+            });
         }
     }
 }

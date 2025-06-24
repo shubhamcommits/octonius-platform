@@ -9,7 +9,7 @@ resource "aws_apprunner_service" "main" {
         runtime_environment_variables = var.environment_variables
         runtime_environment_secrets   = var.environment_secrets
       }
-      image_identifier      = var.image_identifier
+      image_identifier      = "${var.ecr_repository_url}:${var.image_tag}"
       image_repository_type = "ECR"
     }
     auto_deployments_enabled = var.auto_deployments_enabled
@@ -62,9 +62,9 @@ resource "aws_apprunner_service" "main" {
 
 # VPC Connector
 resource "aws_apprunner_vpc_connector" "main" {
-  vpc_connector_name = "${var.environment}-${var.project_name}-vpc-connector"
+  vpc_connector_name = "${var.environment}-${var.project_name}-${var.region}-vpc-connector"
   subnets            = var.subnet_ids
-  security_groups    = [aws_security_group.app_runner.id]
+  security_groups    = [var.app_runner_security_group_id]
 }
 
 # Auto Scaling Configuration
@@ -74,22 +74,6 @@ resource "aws_apprunner_auto_scaling_configuration_version" "main" {
   max_concurrency = var.max_concurrency
   max_size        = var.max_size
   min_size        = var.min_size
-
-  tags = var.tags
-}
-
-# Security Group for App Runner
-resource "aws_security_group" "app_runner" {
-  name        = "${var.environment}-${var.project_name}-app-runner-security-group"
-  description = "Security group for App Runner service"
-  vpc_id      = var.vpc_id
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   tags = var.tags
 }

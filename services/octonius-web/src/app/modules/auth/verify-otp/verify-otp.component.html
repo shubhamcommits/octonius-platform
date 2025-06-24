@@ -1,0 +1,79 @@
+<div class="min-h-screen flex flex-col items-center justify-center bg-base-100 text-base-content">
+    <h1 class="text-3xl font-bold text-center mb-8 underline decoration-primary">Turn busy into brilliant.</h1>
+    <div class="w-full max-w-sm p-8 bg-base-200 rounded-lg shadow-md flex flex-col items-center">
+        <h2 class="text-2xl font-bold mb-2">Verify your email</h2>
+        <p class="text-base-content/70 text-sm mb-8">Enter the verification code we sent to your email.</p>
+        
+        <!-- Email Input -->
+        <form [formGroup]="verifyOtpForm" (ngSubmit)="onSubmit()" class="w-full flex flex-col gap-4">
+            <label class="form-control w-full">
+                <span class="label-text mb-1">Email</span>
+                <input type="email" formControlName="email" placeholder="Enter your email address..."
+                    class="input input-bordered w-full"
+                    [ngClass]="{'input-error': verifyOtpForm.get('email')?.invalid && verifyOtpForm.get('email')?.touched}"
+                    readonly
+                    required />
+                <span class="text-xs text-base-content/70 mb-2">Use an organization email to easily collaborate with
+                    teammates</span>
+                <div class="text-error text-xs mt-1"
+                    *ngIf="verifyOtpForm.get('email')?.invalid && verifyOtpForm.get('email')?.touched">
+                    <span *ngIf="verifyOtpForm.get('email')?.errors?.['required']">Email is required</span>
+                    <span *ngIf="verifyOtpForm.get('email')?.errors?.['email']">Please enter a valid email
+                        address</span>
+                </div>
+            </label>
+            
+            <label class="form-control w-full">
+                <span class="label-text mb-1">Verification Code</span>
+                <input type="text" 
+                       formControlName="otp" 
+                       placeholder="Enter 6-digit code"
+                       class="input input-bordered w-full text-center text-lg tracking-wider"
+                       [ngClass]="{'input-error': verifyOtpForm.get('otp')?.invalid && verifyOtpForm.get('otp')?.touched}"
+                       maxlength="6"
+                       pattern="[A-Z0-9]{6}"
+                       style="text-transform: uppercase;"
+                       required />
+                <span class="text-xs text-base-content/70 mb-2">We sent a code to {{email}}</span>
+                <div class="text-error text-xs mt-1"
+                    *ngIf="verifyOtpForm.get('otp')?.invalid && verifyOtpForm.get('otp')?.touched">
+                    <span *ngIf="verifyOtpForm.get('otp')?.errors?.['required']">Verification code is required</span>
+                    <span *ngIf="verifyOtpForm.get('otp')?.errors?.['minlength'] || verifyOtpForm.get('otp')?.errors?.['maxlength']">
+                        Code must be exactly 6 characters
+                    </span>
+                </div>
+            </label>
+            
+            <div *ngIf="otpError" class="text-error text-xs text-center mt-2">{{ otpError }}</div>
+            
+            <!-- Resend OTP Link -->
+            <div class="text-center mb-2">
+                <button type="button"
+                        (click)="onResendOtp()"
+                        [disabled]="!canResendOtp || isLoading"
+                        class="text-sm transition-all duration-300"
+                        [ngClass]="{
+                            'link link-primary cursor-pointer hover:underline': canResendOtp && !isLoading,
+                            'text-base-content/50 cursor-not-allowed': !canResendOtp || isLoading
+                        }">
+                    Didn't receive the code? Resend
+                    <span *ngIf="!canResendOtp && resendTimer > 0" class="text-base-content/50">
+                        ({{resendTimer}}s)
+                    </span>
+                </button>
+            </div>
+            
+            <button class="btn btn-primary w-full text-primary-content" type="submit"
+                [disabled]="verifyOtpForm.invalid || isLoading">
+                <span *ngIf="!isLoading">Continue</span>
+                <span *ngIf="isLoading" class="loading loading-spinner"></span>
+            </button>
+        </form>
+        <!-- Helper Text -->
+        <div class="mt-6 text-xs text-base-content/60 text-center">
+            By continuing, you acknowledge that you understand and agree to the
+            <a href="#" class="link link-hover text-primary">Terms & Conditions</a> and
+            <a href="#" class="link link-hover text-primary">Privacy Policy</a>
+        </div>
+    </div>
+</div>

@@ -25,11 +25,32 @@ import { db } from './sequelize'
 // Import User Route
 import { UserRoute } from './users'
 
+// Import Notification Route
+import { NotificationRoute } from './notifications'
+
+// Import Auth Route
+import { AuthRoute } from './auths'
+
+// Import Workplace Route
+import { WorkplaceRoute } from './workplaces'
+
+// Import File Route
+import { FileRoute } from './files/file.route'
+
+// Import Workload Route
+import { WorkloadRoute } from './workload/workload.route'
+
 // Define the express application
 const app = express()
 
-// Import Global Connection Map
-import { global_connection_map } from '../server'
+// Import Redis function
+import { isRedisAvailable } from './redis'
+
+// Import path
+import path from 'path'
+
+// Import request timer middleware
+import { requestTimer } from './middleware/request-timer.middleware'
 
 // Cors middleware for origin and Headers
 app.use(cors())
@@ -60,6 +81,9 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
     res.status(200).json({ message: `${APP_NAME} server is working!` })
 })
 
+// Static files route
+app.use('/public', express.static(path.join(__dirname, 'public/')))
+
 // Health check Route
 app.get('/api/health', async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -69,13 +93,8 @@ app.get('/api/health', async (req: Request, res: Response, next: NextFunction) =
             .then(() => 'available')
             .catch(() => 'unavailable')
 
-        // Fetch Redis Client
-        let redis_client: any = global_connection_map.get('redis')
-
         // Check Redis connection
-        const redis_status_promise = redis_client.ping()
-            .then(() => 'available')
-            .catch(() => 'unavailable')
+        const redis_status_promise = isRedisAvailable() ? 'available' : 'unavailable'
 
         // Wait for both statuses
         const [db_status, redis_status] = await Promise.all([db_status_promise, redis_status_promise])
@@ -124,8 +143,16 @@ app.get('/api/health', async (req: Request, res: Response, next: NextFunction) =
 // Logging middleware, after initial setup and before route definitions
 // app.use(createWebRequestLogTransaction)
 
+// Add request timer middleware
+app.use(requestTimer)
+
 // Correct REST naming
+app.use('/v1/auths', new AuthRoute().router)
+app.use('/v1/notifications', new NotificationRoute().router)
 app.use('/v1/users', new UserRoute().router)
+app.use('/v1/workplaces', new WorkplaceRoute().router)
+app.use('/v1/files', new FileRoute().router)
+app.use('/v1/workload', new WorkloadRoute().router)
 
 // Invalid routes handling middleware
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
@@ -144,7 +171,17 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         stack: err.stack,
         environment: NODE_ENV,
     })
-    res.status(500).json({ error: 'Internal Server Error' })
+    
+    // Return a more detailed error response
+    return res.status(500).json({
+        success: false,
+        error: {
+            code: 500,
+            timestamp: new Date().toISOString(),
+            message: err.message || 'Internal server error',
+            details: err.stack || 'No stack trace available'
+        }
+    })
 })
 
 // Compressing the application

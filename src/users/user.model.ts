@@ -27,6 +27,7 @@ interface UserAttributes {
     role: string | null
     created_at: Date
     updated_at: Date
+    current_workplace_id: string | null
 }
 
 // Define user creation attributes
@@ -55,6 +56,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     public role!: string | null
     public readonly created_at!: Date
     public readonly updated_at!: Date
+    public current_workplace_id!: string | null
 
     // Define associations
     static associate(models: any) {
@@ -172,7 +174,7 @@ User.init({
         defaultValue: null
     },
     source: {
-        type: DataTypes.CHAR(50),
+        type: DataTypes.STRING(50),
         defaultValue: 'email',
         allowNull: false,
         validate: {
@@ -186,6 +188,11 @@ User.init({
             model: 'roles',
             key: 'uuid'
         }
+    },
+    current_workplace_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        defaultValue: null
     },
     created_at: {
         type: DataTypes.DATE,

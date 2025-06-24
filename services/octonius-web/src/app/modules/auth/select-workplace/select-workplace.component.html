@@ -1,0 +1,80 @@
+<div class="min-h-screen flex justify-center bg-base-100 text-base-content pt-12 px-4">
+    <div class="w-full max-w-sm">
+      <h1
+        class="text-xl sm:text-2xl md:text-3xl font-bold mt-6 mb-6 underline decoration-primary break-words text-center">
+        Turn busy into brilliant.
+      </h1>
+      <div
+        class="bg-base-200 rounded-lg shadow-md p-8 flex flex-col items-center"
+        style="max-height: 80vh;"
+      >
+        <h2 class="text-2xl font-bold mb-2">
+          Welcome, <span class="text-primary">{{ userName }}!</span>
+        </h2>
+        <p class="text-base-content/70 text-sm mb-8">
+          Please select a workplace to join, or create a new one.
+        </p>
+        <div class="w-full space-y-4 mb-8 flex-1 overflow-y-auto">
+          <div
+            *ngFor="let workplace of workplaces"
+            (click)="onWorkplaceSelect(workplace.uuid)"
+            class="flex items-center p-4 bg-base-100 rounded-lg cursor-pointer transition-colors"
+            [class.border-2]="selectedWorkplaceId === workplace.uuid"
+            [class.border-primary]="selectedWorkplaceId === workplace.uuid"
+            [class.border]="selectedWorkplaceId !== workplace.uuid"
+            [class.border-base-300]="selectedWorkplaceId !== workplace.uuid"
+          >
+            <!-- Logo -->
+            <div class="w-12 h-12 bg-base-300 rounded-lg flex items-center justify-center mr-4">
+              <img
+                [src]="workplace.logo_url || defaultLogoUrl"
+                [alt]="workplace.name"
+                class="w-8 h-8 object-contain"
+              />
+            </div>
+            <!-- Name & description -->
+            <div class="flex-grow">
+              <span class="font-medium">{{ workplace.name }}</span>
+              <p
+                *ngIf="workplace.description"
+                class="text-sm text-base-content/70 mt-1"
+              >
+                {{ workplace.description }}
+              </p>
+            </div>
+            <!-- Check icon -->
+            <div *ngIf="selectedWorkplaceId === workplace.uuid" class="text-primary">
+              <i class="fas fa-check"></i>
+            </div>
+          </div>
+        </div>
+  
+        <!-- Create New Workplace -->
+        <button
+          (click)="onCreateWorkplace()"
+          class="btn btn-ghost w-full mb-4 justify-start text-primary hover:bg-base-300"
+        >
+          + Create a new workplace
+        </button>
+  
+        <!-- Continue -->
+        <button
+          (click)="onContinue()"
+          [disabled]="!selectedWorkplaceId || isLoading"
+          class="btn btn-primary w-full text-primary-content"
+        >
+          <span *ngIf="!isLoading">Continue</span>
+          <span *ngIf="isLoading" class="loading loading-spinner"></span>
+        </button>
+  
+        <!-- Footer -->
+        <div class="mt-6 text-xs text-base-content/60 text-center">
+          By continuing, you acknowledge that you understand and agree to the
+          <a href="#" class="link link-hover text-primary">Terms & Conditions</a>
+          and
+          <a href="#" class="link link-hover text-primary">Privacy Policy</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  

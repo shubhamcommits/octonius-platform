@@ -20,23 +20,6 @@ export function validateEnv(): EnvConfig {
       totalVariables: Object.keys(validatedConfig).length
     })
 
-    // Log present variables (with masked secrets)
-    Object.entries(validatedConfig).forEach(([name, value]) => {
-      const isSecret = name.toLowerCase().includes('key') || 
-                      name.toLowerCase().includes('pass') || 
-                      name.toLowerCase().includes('secret')
-      
-      const maskedValue = isSecret 
-        ? String(value).substring(0, 4) + '****' + String(value).substring(String(value).length - 4)
-        : value
-
-      appLogger(`ENV`, {
-        name: name,
-        value: maskedValue,
-        level: 'debug'
-      })
-    })
-
     return validatedConfig
   } catch (error) {
     appLogger('ENV validation failed', {
@@ -70,4 +53,11 @@ export function isProduction(): boolean {
  */
 export function isDevelopment(): boolean {
   return process.env.NODE_ENV === 'dev'
+}
+
+/**
+ * Checks if running in local
+ */
+export function isLocal(): boolean {
+    return process.env.NODE_ENV === 'local'
 } 

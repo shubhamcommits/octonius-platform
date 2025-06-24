@@ -137,41 +137,29 @@ export class UserService {
      * @throws UserError if the account retrieval process fails
      */
     async getByEmail(email: string, include: string[] = []): Promise<UserResponse<User>> {
-        try {
-            // Searches for a user with the specified email address
-            const user = await User.findOne({
-                where: { email },
-                include: this.getIncludeOptions(include)
-            })
 
-            // Checks if user exists
-            if (!user) {
-                throw {
-                    success: false,
-                    message: UserCode.USER_NOT_FOUND,
-                    code: 404,
-                    stack: new Error('User account not found in the database')
-                }
-            }
+        // Searches for a user with the specified email address
+        const user = await User.findOne({
+            where: { email },
+            include: this.getIncludeOptions(include)
+        })
 
-            // Returns success response
-            return {
-                success: true,
-                message: UserCode.USER_FOUND,
-                code: 200,
-                user: user
-            }
-        } catch (error) {
-            // Logs error
-            logger.error('User account retrieval by email failed', { error, email })
-
-            // Throws formatted error
+        // Checks if user exists
+        if (!user) {
             throw {
                 success: false,
-                message: UserCode.DATABASE_ERROR,
-                code: 400,
-                stack: error instanceof Error ? error : new Error('Database operation failed')
+                message: UserCode.USER_NOT_FOUND,
+                code: 404,
+                stack: new Error(UserCode.USER_NOT_FOUND)
             }
+        }
+
+        // Returns success response
+        return {
+            success: true,
+            message: UserCode.USER_FOUND,
+            code: 200,
+            user: user
         }
     }
 

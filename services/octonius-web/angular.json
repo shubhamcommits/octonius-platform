@@ -38,6 +38,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -50,13 +56,28 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "optimization": true,
+              "aot": true,
+              "extractLicenses": true,
+              "namedChunks": false,
+              "sourceMap": false
             },
             "development": {
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": true
-            }
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.dev.ts"
+                }
+              ],
+              "outputHashing": "all",
+              "optimization": true,
+              "aot": true,
+              "extractLicenses": true,
+              "namedChunks": false,
+              "sourceMap": false
+            },
+            "local": {}
           },
           "defaultConfiguration": "production"
         },
@@ -68,9 +89,12 @@
             },
             "development": {
               "buildTarget": "octonius-web:build:development"
+            },
+            "local": {
+              "buildTarget": "octonius-web:build:local"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "local"
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n"

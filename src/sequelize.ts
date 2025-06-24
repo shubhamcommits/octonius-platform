@@ -5,13 +5,13 @@ import { Sequelize } from 'sequelize'
 import logger from './logger'
 
 // Import environment configuration
-import { getDatabaseConfig, isDevelopment } from './config'
+import { getDatabaseConfig, isDevelopment, isLocal } from './config'
 
 // Get database configuration
 const dbConfig = getDatabaseConfig()
 
-// Create a new Sequelize instance with replication
-const db = new Sequelize(dbConfig.writer.database, dbConfig.writer.username, dbConfig.writer.password, {
+// Build Sequelize options
+const sequelizeOptions: any = {
     dialect: 'postgres',
     port: dbConfig.writer.port,
     replication: {
@@ -36,17 +36,27 @@ const db = new Sequelize(dbConfig.writer.database, dbConfig.writer.username, dbC
         acquire: 60000,
         idle: 5000
     },
-    logging: (msg) => {
-        if (isDevelopment()) {
-            logger.info(`Database \t: ${msg}`)
-        }
-    },
+    logging: false,
+    benchmark: true,
     define: {
         timestamps: true,
         underscored: true,
         freezeTableName: true
     }
-})
+}
+
+// Only use SSL in non-local environments
+if (!isLocal()) {
+    sequelizeOptions.dialectOptions = {
+        ssl: {
+            require: true,
+            rejectUnauthorized: false
+        }
+    }
+}
+
+// Create a new Sequelize instance with replication
+const db = new Sequelize(dbConfig.writer.database, dbConfig.writer.username, dbConfig.writer.password, sequelizeOptions)
 
 // Export the Sequelize instance
 export { db }

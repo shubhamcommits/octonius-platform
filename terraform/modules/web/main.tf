@@ -1,3 +1,9 @@
+# Provider configuration for us-east-1 (required for ACM certificates used with CloudFront)
+provider "aws" {
+  alias  = "us-east-1"
+  region = "us-east-1"
+}
+
 # S3 bucket for web assets
 resource "aws_s3_bucket" "web" {
   bucket = "${var.environment}-${var.project_name}-web-deployment-bucket-${var.aws_region}"
@@ -39,15 +45,15 @@ resource "aws_s3_bucket_public_access_block" "web" {
   restrict_public_buckets = true
 }
 
-# S3 bucket policy for CloudFront access
+# S3 bucket policy for CloudFront OAC access
 resource "aws_s3_bucket_policy" "web" {
   bucket = aws_s3_bucket.web.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowCloudFrontServicePrincipal"
-        Effect    = "Allow"
+        Sid    = "AllowCloudFrontServicePrincipalOAC"
+        Effect = "Allow"
         Principal = {
           Service = "cloudfront.amazonaws.com"
         }
@@ -63,24 +69,96 @@ resource "aws_s3_bucket_policy" "web" {
   })
 }
 
-# CloudFront Origin Access Identity
-resource "aws_cloudfront_origin_access_identity" "web" {
-  comment = "OAI for ${var.environment}-${var.project_name}-web"
+# S3 bucket lifecycle configuration
+resource "aws_s3_bucket_lifecycle_configuration" "web" {
+  bucket = aws_s3_bucket.web.id
+
+  # Rule to abort incomplete multipart uploads
+  rule {
+    id     = "abort-incomplete-multipart-uploads"
+    status = "Enabled"
+
+    filter {}
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  # Rule to expire non-current versions
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
+    }
+  }
+
+  # Rule to transition objects to cheaper storage classes
+  rule {
+    id     = "transition-to-cheaper-storage"
+    status = "Enabled"
+
+    filter {}
+
+    transition {
+      days          = 30
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = 90
+      storage_class = "GLACIER"
+    }
+
+    transition {
+      days          = 180
+      storage_class = "DEEP_ARCHIVE"
+    }
+  }
+
+  # Rule to expire old objects
+  rule {
+    id     = "expire-old-objects"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      days = 365
+    }
+  }
 }
 
-# CloudFront distribution
+# CloudFront Origin Access Control (OAC)
+resource "aws_cloudfront_origin_access_control" "web" {
+  name                              = "${var.environment}-${var.project_name}-web-oac"
+  description                       = "OAC for ${var.environment}-${var.project_name}-web"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+# CloudFront distribution (with OAC)
 resource "aws_cloudfront_distribution" "web" {
   enabled             = true
   is_ipv6_enabled     = true
+  aliases             = ["${var.environment == "prod" ? "app.octonius.com" : "dev.app.octonius.com"}"]
+  comment             = "CloudFront distribution for ${var.environment}-${var.project_name}-web"
   default_root_object = "index.html"
   price_class         = var.environment == "prod" ? "PriceClass_All" : "PriceClass_100"
-  
-  origin {
-    domain_name = aws_s3_bucket.web.bucket_regional_domain_name
-    origin_id   = "S3-${aws_s3_bucket.web.bucket}"
 
-    s3_origin_config {
-      origin_access_identity = aws_cloudfront_origin_access_identity.web.cloudfront_access_identity_path
+  origin {
+    domain_name              = aws_s3_bucket.web.bucket_regional_domain_name
+    origin_id                = "S3-${aws_s3_bucket.web.bucket}"
+    origin_access_control_id = aws_cloudfront_origin_access_control.web.id
+    origin_path              = "/latest/browser"
+    origin_shield {
+      enabled              = true
+      origin_shield_region = var.aws_region
     }
   }
 
@@ -107,9 +185,18 @@ resource "aws_cloudfront_distribution" "web" {
 
   # Custom error responses
   custom_error_response {
-    error_code         = 404
-    response_code      = 200
-    response_page_path = "/index.html"
+    error_code            = 404
+    error_caching_min_ttl = 10
+    response_code         = 200
+    response_page_path    = "/index.html"
+  }
+
+  # Custom error response for 403
+  custom_error_response {
+    error_code            = 403
+    error_caching_min_ttl = 10
+    response_code         = 200
+    response_page_path    = "/index.html"
   }
 
   # Restrictions
@@ -121,7 +208,10 @@ resource "aws_cloudfront_distribution" "web" {
 
   # SSL certificate
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = false
+    ssl_support_method             = "sni-only"
+    minimum_protocol_version       = "TLSv1.2_2021"
+    acm_certificate_arn            = data.aws_acm_certificate.web.arn
   }
 
   # Tags
@@ -179,7 +269,7 @@ resource "aws_cloudfront_cache_policy" "html_files" {
 resource "aws_cloudfront_cache_policy" "assets" {
   name        = "${var.environment}-${var.project_name}-assets"
   comment     = "Cache policy for assets"
-  default_ttl = 3600 # 1 hour
+  default_ttl = 3600  # 1 hour
   max_ttl     = 86400 # 1 day
   min_ttl     = 0
 
@@ -194,4 +284,11 @@ resource "aws_cloudfront_cache_policy" "assets" {
       query_string_behavior = "none"
     }
   }
-} 
+}
+
+# Get the existing ACM certificate
+data "aws_acm_certificate" "web" {
+  domain   = var.environment == "prod" ? "app.octonius.com" : "dev.app.octonius.com"
+  statuses = ["ISSUED"]
+  provider = aws.us-east-1
+}
