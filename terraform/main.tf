@@ -14,11 +14,6 @@ data "aws_secretsmanager_secret" "platform_env" {
   name = "${var.environment}-${local.project_name}-platform-service-env-${var.aws_region}"
 }
 
-# Data source to get the actual secret ARN with suffix
-data "aws_secretsmanager_secret" "database_password" {
-  name = "${var.environment}-${local.project_name}-db-password-${var.aws_region}"
-}
-
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "rds_audit" {
   name              = "/aws/rds/audit/${local.name_prefix}"
@@ -150,7 +145,7 @@ module "rds" {
   storage_encrypted                     = true
   enable_cloudwatch_logs_exports        = ["postgresql", "upgrade"]
   performance_insights_enabled          = true
-  performance_insights_retention_period = var.environment == "prod" ? 30 : 7
+  performance_insights_retention_period = var.environment == "prod" ? 7 : 7
   deletion_protection                   = var.environment == "prod"
 
   tags = local.common_tags
@@ -246,7 +241,7 @@ module "app_runner" {
     JWT_ACCESS_TIME       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_TIME::"
     JWT_REFRESH_KEY       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_KEY::"
     JWT_REFRESH_TIME      = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_TIME::"
-    DB_PASS               = "${data.aws_secretsmanager_secret.database_password.arn}:password::"
+    DB_PASS               = "${data.aws_secretsmanager_secret.platform_env.arn}:password::"
   }
 
   force_new_deployment = false
