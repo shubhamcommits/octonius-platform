@@ -65,7 +65,6 @@ export class AuthService {
             // Create the user with required fields and sensible defaults
             const user = await User.create({
                 email,
-                phone: '0000000000',
                 timezone: 'UTC',
                 language: 'en',
                 notification_preferences: { email: true, push: true, in_app: true },
@@ -274,7 +273,6 @@ export class AuthService {
                 // Create the user with required fields and sensible defaults
                 user = await User.create({
                     email,
-                    phone: '0000000000',
                     timezone: 'UTC',
                     language: 'en',
                     notification_preferences: { email: true, push: true, in_app: true },
@@ -319,6 +317,9 @@ export class AuthService {
                 status: 'active',
                 joined_at: new Date()
             })
+
+            // Update user's current workplace
+            await user.update({ current_workplace_id: workplace.uuid })
 
             // Return success response
             return {
