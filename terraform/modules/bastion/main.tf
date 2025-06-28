@@ -63,10 +63,10 @@ resource "aws_instance" "bastion" {
 
   # Install PostgreSQL client and AWS CLI
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    rds_endpoint     = var.rds_endpoint != null ? var.rds_endpoint : "placeholder"
+    rds_endpoint     = var.rds_endpoint
     database_name    = var.database_name
     database_username = var.database_username
-    rds_secret_arn   = var.rds_secret_arn != null ? var.rds_secret_arn : "placeholder"
+    rds_secret_arn   = var.rds_secret_arn
   }))
 
   tags = merge(

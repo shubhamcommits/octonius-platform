@@ -52,7 +52,6 @@ variable "enable_elastic_ip" {
 variable "rds_endpoint" {
   description = "RDS endpoint for database connection"
   type        = string
-  default     = null
 }
 
 variable "database_name" {
@@ -68,7 +67,6 @@ variable "database_username" {
 variable "rds_secret_arn" {
   description = "ARN of the RDS secret in AWS Secrets Manager"
   type        = string
-  default     = null
 }
 
 variable "tags" {
