@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { LoungeService, LoungeStory } from '../services/lounge.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -18,7 +19,6 @@ export class LoungeComponent implements OnInit, OnDestroy {
   error: string | null = null;
   showCreateModal = false;
   isSubmitting = false;
-  feedback: string | null = null;
   currentTheme: string = 'light';
   private themeSubscription: Subscription;
 
@@ -26,7 +26,8 @@ export class LoungeComponent implements OnInit, OnDestroy {
     private router: Router, 
     private loungeService: LoungeService,
     private authService: AuthService,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private toastService: ToastService
   ) {
     this.currentTheme = this.themeService.getCurrentTheme();
     this.themeSubscription = this.themeService.currentTheme$.subscribe(theme => {
@@ -90,14 +91,13 @@ export class LoungeComponent implements OnInit, OnDestroy {
 
   handleModalClose() {
     this.showCreateModal = false;
-    this.feedback = null;
   }
 
   handleStoryCreated(data: Partial<LoungeStory>) {
     this.isSubmitting = true;
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
-      this.feedback = 'User not authenticated.';
+      this.toastService.error('User not authenticated.');
       this.isSubmitting = false;
       return;
     }
@@ -107,16 +107,20 @@ export class LoungeComponent implements OnInit, OnDestroy {
       user_id: currentUser.uuid
     };
     
+    // Show loading toast
+    this.toastService.info('Creating story...', 0);
     this.loungeService.createStory(storyData).subscribe({
       next: () => {
         this.isSubmitting = false;
         this.showCreateModal = false;
-        this.feedback = 'Story created!';
+        this.toastService.clear();
+        this.toastService.success('Story created!');
         this.fetchStories();
       },
       error: () => {
         this.isSubmitting = false;
-        this.feedback = 'Failed to create story.';
+        this.toastService.clear();
+        this.toastService.error('Failed to create story.');
       }
     });
   }
