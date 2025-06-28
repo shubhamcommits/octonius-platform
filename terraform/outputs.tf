@@ -96,6 +96,17 @@ output "rds_secret_arn" {
   sensitive   = true
 }
 
+# RDS Connection Helper
+output "rds_connection_command" {
+  description = "PostgreSQL connection command (requires AWS CLI to get password from Secrets Manager)"
+  value = "psql -h ${module.rds.endpoint} -p ${module.rds.port} -U ${var.database_username} -d octoniusdb"
+}
+
+output "rds_password_retrieval_command" {
+  description = "AWS CLI command to retrieve the database password"
+  value = "aws secretsmanager get-secret-value --secret-id '${module.rds.secret_arn}' --query SecretString --output text | jq -r .password"
+}
+
 # ElastiCache Outputs
 output "redis_endpoint" {
   description = "The address of the endpoint for the ElastiCache Redis cluster"

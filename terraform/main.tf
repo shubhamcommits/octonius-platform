@@ -148,6 +148,9 @@ module "rds" {
   performance_insights_retention_period = var.environment == "prod" ? 7 : 7
   deletion_protection                   = var.environment == "prod"
 
+  # IP whitelist for database access
+  whitelisted_ips = var.whitelisted_ips
+
   tags = local.common_tags
 }
 
