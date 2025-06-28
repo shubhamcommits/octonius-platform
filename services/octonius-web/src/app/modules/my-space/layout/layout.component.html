@@ -32,6 +32,17 @@
     
     <!-- Main content area -->
     <main class="px-8 py-8">
+      <!-- Breadcrumbs -->
+      <div class="flex items-center gap-2 text-sm text-base-content/70 mb-4">
+        <a routerLink="/" class="hover:text-primary cursor-pointer flex items-center">
+          <lucide-icon name="Home" class="w-4 h-4"></lucide-icon>
+        </a>
+        <span>/</span>
+        <a routerLink="/myspace" class="font-semibold text-primary hover:underline cursor-pointer">My Space</a>
+        <span>/</span>
+        <span class="capitalize text-base-content">{{ breadcrumb }}</span>
+      </div>
+      
       <div class="bg-base-200 rounded-lg shadow-md p-8">
         <router-outlet></router-outlet>
       </div>

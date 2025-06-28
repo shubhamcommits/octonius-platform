@@ -11,7 +11,7 @@ interface UserAttributes {
     first_name: string | null
     last_name: string | null
     email: string
-    phone: string
+    phone: string | null
     avatar_url: string | null
     job_title: string | null
     department: string | null
@@ -40,7 +40,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     public first_name!: string | null
     public last_name!: string | null
     public email!: string
-    public phone!: string
+    public phone: string | null
     public avatar_url!: string | null
     public job_title!: string | null
     public department!: string | null
@@ -116,7 +116,7 @@ User.init({
     phone: {
         type: DataTypes.STRING(20),
         unique: 'phone',
-        allowNull: false,
+        allowNull: true,
         validate: {
             is: {
                 args: /^[0-9]+$/,

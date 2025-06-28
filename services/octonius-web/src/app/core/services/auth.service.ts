@@ -21,6 +21,7 @@ export class AuthService {
   private apiUrl = `${environment.apiUrl}/auths`;
   private currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
+  private isLoggingOut = false;
 
   constructor(private http: HttpClient, private router: Router) {
     this.currentUserSubject = new BehaviorSubject<User | null>(
@@ -33,8 +34,18 @@ export class AuthService {
     const userStr = localStorage.getItem('currentUser');
     if (userStr) {
       try {
-        return JSON.parse(userStr);
-      } catch {
+        const user = JSON.parse(userStr);
+        // Validate that the user object has required fields
+        if (user && user.uuid && user.email) {
+          return user;
+        }
+        // If invalid, clear the corrupted data
+        localStorage.removeItem('currentUser');
+        return null;
+      } catch (e) {
+        // If parsing fails, clear the corrupted data
+        console.error('Failed to parse user from storage:', e);
+        localStorage.removeItem('currentUser');
         return null;
       }
     }
@@ -82,12 +93,34 @@ export class AuthService {
   isTokenValid(): boolean {
     const token = this.getAccessToken();
     if (!token) return false;
+    
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      // Check if token has the correct format (3 parts separated by dots)
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.error('Invalid token format');
+        this.clearAllAuthData();
+        return false;
+      }
+      
+      const payload = JSON.parse(atob(parts[1]));
       const exp = payload.exp;
-      if (!exp) return false;
-      return Date.now() < exp * 1000;
+      if (!exp) {
+        console.error('Token missing expiration');
+        this.clearAllAuthData();
+        return false;
+      }
+      
+      const isValid = Date.now() < exp * 1000;
+      if (!isValid) {
+        console.log('Token expired');
+        this.clearAllAuthData();
+      }
+      
+      return isValid;
     } catch (e) {
+      console.error('Error validating token:', e);
+      this.clearAllAuthData();
       return false;
     }
   }
@@ -117,24 +150,43 @@ export class AuthService {
   }
 
   logout(): void {
+    // Prevent multiple logout calls
+    if (this.isLoggingOut) {
+      return;
+    }
+    
+    this.isLoggingOut = true;
+    
     // Call backend logout API first
     this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
       next: () => {
         // Clear local storage and state
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        this.clearCurrentUser();
-        // Navigate to login page
-        this.router.navigate(['/auths/login']);
+        this.clearAuthData();
       },
       error: (error) => {
         console.error('Logout failed:', error);
         // Even if the API call fails, we should still clear local storage and redirect
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        this.clearCurrentUser();
-        this.router.navigate(['/auths/login']);
+        this.clearAuthData();
       }
     });
+  }
+
+  // Helper method to clear auth data
+  private clearAuthData(): void {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    this.clearCurrentUser();
+    this.isLoggingOut = false;
+    // Navigate to login page
+    this.router.navigate(['/auths/login']);
+  }
+
+  // Method to clear all auth data (useful for debugging)
+  clearAllAuthData(): void {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('currentUser');
+    this.currentUserSubject.next(null);
+    this.isLoggingOut = false;
   }
 } 

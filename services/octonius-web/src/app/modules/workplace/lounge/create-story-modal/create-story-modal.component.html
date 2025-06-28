@@ -1,0 +1,52 @@
+<div *ngIf="open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+  <div class="bg-base-100 rounded-xl shadow-xl w-full max-w-lg p-8 relative">
+    <button class="absolute top-4 right-4 btn btn-ghost btn-sm" (click)="onClose()">
+      ✕
+    </button>
+    <h2 class="text-2xl font-bold mb-6">Create Story</h2>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+      <div>
+        <label class="block font-medium mb-1">Title</label>
+        <input formControlName="title" class="input input-bordered w-full" placeholder="Story title" />
+        <div *ngIf="form.get('title')?.invalid && form.get('title')?.touched" class="text-error text-xs mt-1">Title is required.</div>
+      </div>
+      <div>
+        <label class="block font-medium mb-1">Description</label>
+        <textarea formControlName="description" class="textarea textarea-bordered w-full" rows="3" placeholder="Story description"></textarea>
+        <div *ngIf="form.get('description')?.invalid && form.get('description')?.touched" class="text-error text-xs mt-1">Description is required.</div>
+      </div>
+      <div class="flex gap-4">
+        <div class="flex-1">
+          <label class="block font-medium mb-1">Type</label>
+          <select formControlName="type" class="select select-bordered w-full">
+            <option value="news">News</option>
+            <option value="event">Event</option>
+            <option value="update">Update</option>
+          </select>
+        </div>
+        <div class="flex-1">
+          <label class="block font-medium mb-1">Date</label>
+          <input type="date" formControlName="date" class="input input-bordered w-full" />
+        </div>
+      </div>
+      <div>
+        <label class="block font-medium mb-1">Image URL</label>
+        <input formControlName="image" class="input input-bordered w-full" placeholder="https://..." />
+      </div>
+      <div *ngIf="form.get('type')?.value === 'event'" class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block font-medium mb-1">Event Date & Time</label>
+          <input type="datetime-local" formControlName="eventDate" class="input input-bordered w-full" />
+        </div>
+        <div>
+          <label class="block font-medium mb-1">Location</label>
+          <input formControlName="location" class="input input-bordered w-full" placeholder="Event location" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-6">
+        <button type="button" class="btn btn-ghost" (click)="onClose()">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="form.invalid">Create</button>
+      </div>
+    </form>
+  </div>
+</div> 

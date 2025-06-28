@@ -10,6 +10,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const authService = inject(AuthService);
     const router = inject(Router);
     
+    // Skip interceptor for logout requests to prevent infinite loops
+    if (req.url.includes('/auths/logout')) {
+        return next(req);
+    }
+    
     // Get the auth token from the service
     const authToken = authService.getAccessToken();
     
@@ -31,9 +36,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         catchError((error: HttpErrorResponse) => {
             if (error.status === 401) {
                 console.log('Auth Interceptor - 401 Unauthorized, logging out');
-                // Auto logout if 401 response returned from api
-                authService.logout();
-                router.navigate(['/auths/login']);
+                // Clear local storage and redirect without making logout API call
+                // Only if not already logging out
+                if (!authService['isLoggingOut']) {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    authService.clearCurrentUser();
+                    router.navigate(['/auths/login']);
+                }
             }
             return throwError(() => error);
         })
@@ -49,6 +59,11 @@ export class AuthInterceptor implements HttpInterceptor {
     ) { }
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+        // Skip interceptor for logout requests to prevent infinite loops
+        if (req.url.includes('/auths/logout')) {
+            return next.handle(req);
+        }
+        
         // Get the auth token from the service
         const authToken = this.authService.getAccessToken()
 
@@ -65,9 +80,14 @@ export class AuthInterceptor implements HttpInterceptor {
         return next.handle(req).pipe(
             catchError((error: HttpErrorResponse) => {
                 if (error.status === 401) {
-                    // Auto logout if 401 response returned from api
-                    this.authService.logout()
-                    this.router.navigate(['/auths/login'])
+                    // Clear local storage and redirect without making logout API call
+                    // Only if not already logging out
+                    if (!this.authService['isLoggingOut']) {
+                        localStorage.removeItem('access_token');
+                        localStorage.removeItem('refresh_token');
+                        this.authService.clearCurrentUser();
+                        this.router.navigate(['/auths/login']);
+                    }
                 }
                 return throwError(() => error)
             })

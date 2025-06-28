@@ -1,11 +1,12 @@
 import { Routes } from '@angular/router'
 import { AuthGuard } from './modules/shared/services/auth.guard'
+import { WorkplaceGuard } from './modules/shared/services/workplace.guard'
 
 export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'auths/login'
+    redirectTo: 'myspace'
   },
   {
     path: 'auths',
@@ -14,7 +15,12 @@ export const routes: Routes = [
   {
     path: 'myspace',
     loadChildren: () => import('./modules/my-space/my-space.module').then(m => m.MySpaceModule),
-    canActivate: [AuthGuard]
+    canActivate: [AuthGuard, WorkplaceGuard]
+  },
+  {
+    path: 'workplace',
+    loadChildren: () => import('./modules/workplace/workplace.module').then(m => m.WorkplaceModule),
+    canActivate: [AuthGuard, WorkplaceGuard]
   },
   {
     path: '**',
