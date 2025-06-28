@@ -26,6 +26,7 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
     timerSubscription: Subscription | null = null
     otpSent = false
     otpError: string = ''
+    private otpValueChangesSub: Subscription | null = null
     
     constructor(
         private fb: FormBuilder,
@@ -45,6 +46,15 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
         if (!this.email) {
             this.router.navigate(['/auths/login'])
         }
+
+        this.otpValueChangesSub = this.verifyOtpForm.get('otp')?.valueChanges.subscribe(val => {
+            if (val !== undefined && val !== null) {
+                const formatted = val.toUpperCase();
+                if (val !== formatted) {
+                    this.verifyOtpForm.get('otp')?.setValue(formatted, { emitEvent: false });
+                }
+            }
+        }) || null;
     }
     
     ngOnInit() {
@@ -55,6 +65,11 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
         // Clean up timer subscription
         if (this.timerSubscription) {
             this.timerSubscription.unsubscribe()
+        }
+
+        // Clean up valueChanges subscription
+        if (this.otpValueChangesSub) {
+            this.otpValueChangesSub.unsubscribe()
         }
     }
     
@@ -116,6 +131,12 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
                     if (response.data.access_token && response.data.refresh_token) {
                         this.authService.setTokens(response.data.access_token, response.data.refresh_token)
                     }
+                    
+                    // Store user data if present
+                    if (response.data.user) {
+                        this.authService.setCurrentUser(response.data.user);
+                    }
+                    
                     if (response.data.exists == true) {
                         this.router.navigate(['/auths/select-workplace'], { state: { email: this.email, is_new_user: false, user: response.data.user } })
                     } else {
@@ -124,6 +145,7 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
                 },
                 error: (error: any) => {
                     this.otpError = error?.error?.message || 'OTP verification failed. Please try again.'
+                    this.isLoading = false
                 }
             })
         }

@@ -32,7 +32,6 @@
                        [ngClass]="{'input-error': verifyOtpForm.get('otp')?.invalid && verifyOtpForm.get('otp')?.touched}"
                        maxlength="6"
                        pattern="[A-Z0-9]{6}"
-                       style="text-transform: uppercase;"
                        required />
                 <span class="text-xs text-base-content/70 mb-2">We sent a code to {{email}}</span>
                 <div class="text-error text-xs mt-1"

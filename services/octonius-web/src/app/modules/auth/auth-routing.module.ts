@@ -8,6 +8,7 @@ import { VerifyOtpComponent } from './verify-otp/verify-otp.component'
 import { SelectWorkplaceComponent } from './select-workplace/select-workplace.component'
 import { CreateWorkplaceComponent } from './create-workplace/create-workplace.component'
 import { WorkplaceLoginComponent } from './workplace-login/workplace-login.component'
+import { NonAuthGuard } from '../shared/services/non-auth.guard'
 
 const routes: Routes = [
   {
@@ -15,10 +16,10 @@ const routes: Routes = [
     component: LayoutComponent,
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'welcome' },
-      { path: 'welcome', component: WelcomeComponent },
-      { path: 'login', component: LoginComponent },
-      { path: 'register', component: RegisterComponent },
-      { path: 'verify-otp', component: VerifyOtpComponent },
+      { path: 'welcome', component: WelcomeComponent, canActivate: [NonAuthGuard] },
+      { path: 'login', component: LoginComponent, canActivate: [NonAuthGuard] },
+      { path: 'register', component: RegisterComponent, canActivate: [NonAuthGuard] },
+      { path: 'verify-otp', component: VerifyOtpComponent, canActivate: [NonAuthGuard] },
       { path: 'select-workplace', component: SelectWorkplaceComponent },
       { path: 'create-workplace', component: CreateWorkplaceComponent },
       { path: 'workplace-login', component: WorkplaceLoginComponent }
