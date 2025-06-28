@@ -134,9 +134,11 @@ module "bastion" {
   whitelisted_ips  = var.whitelisted_ips
   key_name         = var.bastion_key_name
 
-  # Database connection info (static values to avoid circular dependency)
+  # Database connection info
+  rds_endpoint      = module.rds.endpoint
   database_name     = "octoniusdb"
   database_username = var.database_username
+  rds_secret_arn    = module.rds.secret_arn
 
   tags = local.common_tags
 }
@@ -166,10 +168,18 @@ module "rds" {
   performance_insights_retention_period = var.environment == "prod" ? 7 : 7
   deletion_protection                   = var.environment == "prod"
 
-  # Bastion host access
-  bastion_security_group_id = module.bastion.bastion_security_group_id
-
   tags = local.common_tags
+}
+
+# Add bastion access to RDS security group after both modules are created
+resource "aws_security_group_rule" "rds_from_bastion" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = module.bastion.bastion_security_group_id
+  security_group_id        = module.rds.security_group_id
+  description              = "PostgreSQL access from bastion host"
 }
 
 module "elasticache" {
