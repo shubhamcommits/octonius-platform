@@ -7,30 +7,9 @@
     </p>
   </div>
 
-  <div class="mb-8 flex justify-between items-center">
-    <button class="btn btn-primary" (click)="onAddGroup()">
-      <lucide-icon name="Plus" class="w-4 h-4 mr-2"></lucide-icon>
-      Add Group
-    </button>
-    <div class="flex gap-2 items-center">
-      <button class="btn btn-ghost btn-circle" (click)="onFilter()">
-        <lucide-icon name="ListFilter" class="w-5 h-5"></lucide-icon>
-      </button>
-      <button class="btn btn-ghost btn-circle" (click)="onSort()">
-        <lucide-icon name="ArrowUpDown" class="w-5 h-5"></lucide-icon>
-      </button>
-      <button class="btn btn-ghost btn-circle" (click)="onAddGroup()">
-        <lucide-icon name="Plus" class="w-5 h-5"></lucide-icon>
-      </button>
-      <div class="form-control">
-        <input 
-          type="text" 
-          placeholder="Search..." 
-          class="input input-bordered w-full max-w-xs"
-          (input)="onSearch($event)"
-          [value]="searchTerm" />
-      </div>
-    </div>
+  <div class="mt-4 mb-8 mx-auto max-w-6xl">
+    <app-topbar [showFilter]="true" [showAdd]="true" [showSearch]="true" searchPlaceholder="Search stories..."
+    (filter)="onFilter()" (add)="onAdd()" (search)="onSearch($event)"></app-topbar>
   </div>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">

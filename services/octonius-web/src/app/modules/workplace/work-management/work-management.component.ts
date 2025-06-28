@@ -71,7 +71,7 @@ export class WorkManagementComponent implements OnInit, OnDestroy {
     this.router.navigate(['/workplace/work-management', group.uuid]);
   }
 
-  onSearch(event: Event): void {
+  onSearch(event: any): void {
     const target = event.target as HTMLInputElement;
     this.searchTerm = target.value;
     this.searchSubject$.next(this.searchTerm);
@@ -96,7 +96,7 @@ export class WorkManagementComponent implements OnInit, OnDestroy {
     });
   }
 
-  onFilter(): void {
+  onFilter() {
     // Implement filter functionality
     console.log('Filter groups');
     // Could open a filter modal or dropdown
@@ -111,5 +111,11 @@ export class WorkManagementComponent implements OnInit, OnDestroy {
 
   get displayGroups(): WorkGroup[] {
     return this.filteredGroups;
+  }
+
+  onAdd() {
+    // Navigate to create group page or open modal
+    console.log('Add new group');
+    // this.router.navigate(['/workplace/work-management/create']);
   }
 }
