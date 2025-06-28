@@ -26,7 +26,11 @@
   <!-- Global stories -->
   <div class="max-w-2xl mx-auto mt-8">
     <h2 class="text-lg font-semibold mb-4 text-center">Global stories</h2>
-    <div class="flex flex-col gap-3">
+    <div *ngIf="globalStories.length === 0" class="flex flex-col items-center py-8">
+      <img [src]="getLoungeStoriesEmptyStateImage()" alt="No stories" class="w-64 mb-4">
+      <div class="text-base-content/60 text-center">No stories yet. Take a break, relax, and be the first to share something in the Lounge!</div>
+    </div>
+    <div class="flex flex-col gap-3" *ngIf="globalStories.length > 0">
       <div *ngFor="let story of globalStories" (click)="openStory(story)"
            class="rounded-lg p-4 flex gap-4 cursor-pointer border border-base-200 hover:shadow transition bg-base-200"
            [ngClass]="{
@@ -62,7 +66,11 @@
   <!-- Management updates -->
   <div class="max-w-2xl mx-auto mt-12">
     <h2 class="text-lg font-semibold mb-4 text-center">Management updates</h2>
-    <div class="flex flex-col gap-3">
+    <div *ngIf="managementUpdates.length === 0" class="flex flex-col items-center py-8">
+      <img [src]="getManagementUpdatesEmptyStateImage()" alt="No updates" class="w-64 mb-4">
+      <div class="text-base-content/60 text-center">No management updates yet. Stay tuned for important news and updates from your organization.</div>
+    </div>
+    <div class="flex flex-col gap-3" *ngIf="managementUpdates.length > 0">
       <div *ngFor="let story of managementUpdates" (click)="openStory(story)"
            class="rounded-lg p-4 flex gap-4 cursor-pointer border border-base-200 hover:shadow transition bg-base-200">
         <img [src]="story.image" alt="story image" class="w-24 h-24 object-cover rounded-md" />
