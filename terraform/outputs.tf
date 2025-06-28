@@ -184,7 +184,7 @@ output "bastion_ssh_command" {
 
 output "bastion_ssh_tunnel_command" {
   description = "SSH tunnel command for local database access"
-  value       = module.bastion.ssh_tunnel_command
+  value       = "ssh -L 5432:${module.rds.endpoint}:5432 -i ~/.ssh/${var.bastion_key_name}.pem ec2-user@${module.bastion.bastion_public_ip}"
 }
 
 output "bastion_local_psql_command" {

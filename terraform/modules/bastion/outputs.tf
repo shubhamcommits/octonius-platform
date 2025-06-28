@@ -25,7 +25,7 @@ output "ssh_command" {
 
 output "ssh_tunnel_command" {
   description = "SSH tunnel command for local database access"
-  value       = "ssh -L 5432:${var.rds_endpoint}:5432 -i ~/.ssh/${var.key_name}.pem ec2-user@${var.enable_elastic_ip ? aws_eip.bastion[0].public_ip : aws_instance.bastion.public_ip}"
+  value       = var.rds_endpoint != null ? "ssh -L 5432:${var.rds_endpoint}:5432 -i ~/.ssh/${var.key_name}.pem ec2-user@${var.enable_elastic_ip ? aws_eip.bastion[0].public_ip : aws_instance.bastion.public_ip}" : "RDS endpoint not available - will be updated after RDS deployment"
 }
 
 output "local_psql_command" {

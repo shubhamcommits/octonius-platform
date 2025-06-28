@@ -134,15 +134,11 @@ module "bastion" {
   whitelisted_ips  = var.whitelisted_ips
   key_name         = var.bastion_key_name
 
-  # Database connection info
-  rds_endpoint      = module.rds.endpoint
+  # Database connection info (static values to avoid circular dependency)
   database_name     = "octoniusdb"
   database_username = var.database_username
-  rds_secret_arn    = module.rds.secret_arn
 
   tags = local.common_tags
-
-  depends_on = [module.rds]
 }
 
 module "rds" {
