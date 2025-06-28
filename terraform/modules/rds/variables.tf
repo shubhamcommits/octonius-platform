@@ -115,9 +115,3 @@ variable "force_destroy_secret" {
   type        = bool
   default     = false
 }
-
-variable "bastion_security_group_id" {
-  description = "Security group ID of the bastion host for RDS access"
-  type        = string
-  default     = null
-} 
