@@ -190,15 +190,4 @@ output "bastion_ssh_tunnel_command" {
 output "bastion_local_psql_command" {
   description = "PostgreSQL command to use after SSH tunnel is established"
   value       = module.bastion.local_psql_command
-}
-
-# RDS Connection Helper
-output "rds_connection_command" {
-  description = "PostgreSQL connection command (requires AWS CLI to get password from Secrets Manager)"
-  value = "psql -h ${module.rds.endpoint} -p ${module.rds.port} -U ${var.database_username} -d octoniusdb"
-}
-
-output "rds_password_retrieval_command" {
-  description = "AWS CLI command to retrieve the database password"
-  value = "aws secretsmanager get-secret-value --secret-id '${module.rds.secret_arn}' --query SecretString --output text | jq -r .password"
 } 
