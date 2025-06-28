@@ -14,6 +14,7 @@ export interface Toast {
 export class ToastService {
   private toasts = new BehaviorSubject<Toast[]>([]);
   private toastId = 0;
+  private recentToasts = new Map<string, number>(); // Track recent toasts by message
 
   constructor() {}
 
@@ -22,6 +23,24 @@ export class ToastService {
   }
 
   show(toast: Omit<Toast, 'id'>): void {
+    // Check if this exact message was shown recently (within 100ms)
+    const messageKey = `${toast.type}-${toast.message}`;
+    const lastShown = this.recentToasts.get(messageKey);
+    const now = Date.now();
+    
+    if (lastShown && (now - lastShown) < 100) {
+      // Skip duplicate toast
+      return;
+    }
+    
+    // Track this toast
+    this.recentToasts.set(messageKey, now);
+    
+    // Clean up old entries after 1 second
+    setTimeout(() => {
+      this.recentToasts.delete(messageKey);
+    }, 1000);
+    
     const id = ++this.toastId;
     const newToast = { ...toast, id };
     const currentToasts = this.toasts.value;
@@ -30,7 +49,7 @@ export class ToastService {
     if (toast.duration !== 0) {
       setTimeout(() => {
         this.remove(id);
-      }, toast.duration || 5000);
+      }, toast.duration || 3000);
     }
   }
 
@@ -57,5 +76,6 @@ export class ToastService {
 
   clear(): void {
     this.toasts.next([]);
+    this.recentToasts.clear();
   }
 } 
