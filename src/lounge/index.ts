@@ -1,4 +1,4 @@
-export { LoungeStory as LoungeStoryModel } from './lounge.model';
+export { LoungeStory } from './lounge.model';
 export * from './lounge.type';
 export * from './lounge.service';
 export * from './lounge.controller';

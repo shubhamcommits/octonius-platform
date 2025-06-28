@@ -4,22 +4,24 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 export interface LoungeStory {
-  id: string;
+  uuid: string;
   title: string;
   description: string;
   type: 'news' | 'event' | 'update';
   date: string;
   image?: string;
-  authorId: string;
-  eventDate?: string;
-  eventLocation?: string;
-  eventAttending?: number;
-  eventStatus?: string;
+  user_id: string;
+  event_date?: string;
+  location?: string;
+  attendees?: string[];
+  created_at: string;
+  updated_at: string;
+  // Frontend-specific fields for UI
   highlight?: boolean;
   event?: boolean;
   time?: string;
-  createdAt: string;
-  updatedAt: string;
+  eventAttending?: number;
+  eventStatus?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -32,19 +34,19 @@ export class LoungeService {
     return this.http.get<{ stories: LoungeStory[] }>(`${this.apiUrl}`);
   }
 
-  getStory(id: string): Observable<{ story: LoungeStory }> {
-    return this.http.get<{ story: LoungeStory }>(`${this.apiUrl}/${id}`);
+  getStory(uuid: string): Observable<{ story: LoungeStory }> {
+    return this.http.get<{ story: LoungeStory }>(`${this.apiUrl}/${uuid}`);
   }
 
   createStory(data: Partial<LoungeStory>): Observable<{ story: LoungeStory }> {
     return this.http.post<{ story: LoungeStory }>(`${this.apiUrl}`, data);
   }
 
-  updateStory(id: string, data: Partial<LoungeStory>): Observable<{ story: LoungeStory }> {
-    return this.http.put<{ story: LoungeStory }>(`${this.apiUrl}/${id}`, data);
+  updateStory(uuid: string, data: Partial<LoungeStory>): Observable<{ story: LoungeStory }> {
+    return this.http.put<{ story: LoungeStory }>(`${this.apiUrl}/${uuid}`, data);
   }
 
-  deleteStory(id: string): Observable<{ story: LoungeStory }> {
-    return this.http.delete<{ story: LoungeStory }>(`${this.apiUrl}/${id}`);
+  deleteStory(uuid: string): Observable<{ story: LoungeStory }> {
+    return this.http.delete<{ story: LoungeStory }>(`${this.apiUrl}/${uuid}`);
   }
 } 

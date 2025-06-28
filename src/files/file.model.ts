@@ -6,7 +6,7 @@ export class File extends Model {
   declare name: string;
   declare type: 'note' | 'file';
   declare icon: string;
-  declare owner_id: string;
+  declare user_id: string;
   declare workplace_id: string;
   declare title?: string;
   declare content?: any;
@@ -36,12 +36,12 @@ File.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    owner_id: {
+    user_id: {
       type: DataTypes.UUID,
       allowNull: false,
       references: {
         model: 'users',
-        key: 'id',
+        key: 'uuid',
       },
     },
     workplace_id: {
@@ -49,7 +49,7 @@ File.init(
       allowNull: false,
       references: {
         model: 'workplaces',
-        key: 'id',
+        key: 'uuid',
       },
     },
     title: {

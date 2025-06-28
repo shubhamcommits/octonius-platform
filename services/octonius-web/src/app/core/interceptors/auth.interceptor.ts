@@ -4,11 +4,13 @@ import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
+import { ToastService } from '../services/toast.service';
 
 // Functional interceptor for Angular 17+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const authService = inject(AuthService);
     const router = inject(Router);
+    const toastService = inject(ToastService);
     
     // Skip interceptor for logout requests to prevent infinite loops
     if (req.url.includes('/auths/logout')) {
@@ -39,9 +41,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                 // Clear local storage and redirect without making logout API call
                 // Only if not already logging out
                 if (!authService['isLoggingOut']) {
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    authService.clearCurrentUser();
+                    toastService.warning('Your session has expired. Please log in again.');
+                    authService.clearAllAuthData();
                     router.navigate(['/auths/login']);
                 }
             }
@@ -55,7 +56,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 export class AuthInterceptor implements HttpInterceptor {
     constructor(
         private authService: AuthService,
-        private router: Router
+        private router: Router,
+        private toastService: ToastService
     ) { }
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
@@ -83,9 +85,8 @@ export class AuthInterceptor implements HttpInterceptor {
                     // Clear local storage and redirect without making logout API call
                     // Only if not already logging out
                     if (!this.authService['isLoggingOut']) {
-                        localStorage.removeItem('access_token');
-                        localStorage.removeItem('refresh_token');
-                        this.authService.clearCurrentUser();
+                        this.toastService.warning('Your session has expired. Please log in again.');
+                        this.authService.clearAllAuthData();
                         this.router.navigate(['/auths/login']);
                     }
                 }

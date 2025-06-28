@@ -65,15 +65,15 @@ export class FileController {
         const startTime = Date.now()
         try {
             logger.info('Fetching files by user and workplace', { method: req.method, path: req.path, query: req.query, ip: req.ip })
-            const { owner_id, workplace_id } = req.query
-            if (!owner_id || !workplace_id) {
+            const { user_id, workplace_id } = req.query
+            if (!user_id || !workplace_id) {
                 return res.status(400).json({
                     success: false,
-                    message: 'owner_id and workplace_id are required',
+                    message: 'user_id and workplace_id are required',
                     meta: { responseTime: '0ms' }
                 })
             }
-            const result = await this.fileService.getFilesByUserAndWorkplace(owner_id as string, workplace_id as string)
+            const result = await this.fileService.getFilesByUserAndWorkplace(user_id as string, workplace_id as string)
             const responseTime = Date.now() - startTime
             logger.info('Files retrieved successfully', { responseTime: `${responseTime}ms`, statusCode: 200 })
             return res.status(200).json({

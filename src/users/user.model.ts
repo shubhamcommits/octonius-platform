@@ -73,6 +73,13 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
             foreignKey: 'user_id',
             as: 'workplace_memberships'
         })
+
+        // User has many lounge stories as author
+        User.hasMany(models.LoungeStory, {
+            foreignKey: 'user_id',
+            sourceKey: 'uuid',
+            as: 'lounge_stories'
+        })
     }
 }
 

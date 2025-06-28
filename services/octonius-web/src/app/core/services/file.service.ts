@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { File } from '../models/file.model';
 import { environment } from '../../../environments/environment';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -13,13 +14,14 @@ export class FileService {
   constructor(private http: HttpClient) {}
 
   // File Operations
-  getFiles(owner_id: string, workplace_id: string): Observable<File[]> {
-    return this.http.get<File[]>(this.apiUrl, {
-      params: {
-        owner_id: owner_id,
-        workplace_id: workplace_id
-      }
-    })
+  getFiles(user_id: string, workplace_id: string): Observable<File[]> {
+    const params = new HttpParams()
+      .set('user_id', user_id)
+      .set('workplace_id', workplace_id);
+    
+    return this.http.get<any>(`${this.apiUrl}`, { params }).pipe(
+      map(response => response.data || [])
+    );
   }
 
   uploadFile(file: globalThis.File): Observable<File> {

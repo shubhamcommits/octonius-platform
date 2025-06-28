@@ -41,12 +41,12 @@
           </div>
           <div class="text-xs text-pink-500 font-medium mb-1" *ngIf="story.event">
             <lucide-icon name="Calendar" class="inline w-4 h-4 mr-1 text-pink-500"></lucide-icon>
-            {{ story.eventDate }}
+                            {{ story.event_date }}
           </div>
           <div class="text-xs text-base-content/60 mb-1" *ngIf="!story.event">{{ story.date }} {{ story.time }}</div>
           <div *ngIf="story.event" class="text-xs mb-1">
             <lucide-icon name="MapPin" class="inline w-4 h-4 mr-1 text-blue-500"></lucide-icon>
-            <span class="text-blue-700 font-medium">{{ story.eventLocation }}</span>
+                            <span class="text-blue-700 font-medium">{{ story.location }}</span>
           </div>
           <div class="text-sm text-base-content/80">{{ story.description }}</div>
           <div *ngIf="story.event" class="flex items-center gap-2 mt-2">

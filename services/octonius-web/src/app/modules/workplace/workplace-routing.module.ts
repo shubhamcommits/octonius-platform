@@ -46,7 +46,7 @@ const routes: Routes = [
         path: 'lounge',
         children: [
           { path: '', component: LoungeComponent },
-          { path: 'story/:id', component: LoungeStoryDetailComponent },
+          { path: 'story/:uuid', component: LoungeStoryDetailComponent },
         ]
       }
     ]

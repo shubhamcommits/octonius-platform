@@ -6,22 +6,22 @@ export class LoungeService {
     return LoungeStory.findAll({ order: [['date', 'DESC']] });
   }
 
-  async getById(id: string) {
-    return LoungeStory.findByPk(id);
+  async getByUuid(uuid: string) {
+    return LoungeStory.findByPk(uuid);
   }
 
   async create(data: CreateLoungeStoryDto) {
     return LoungeStory.create(data as any);
   }
 
-  async update(id: string, data: UpdateLoungeStoryDto) {
-    const story = await LoungeStory.findByPk(id);
+  async update(uuid: string, data: UpdateLoungeStoryDto) {
+    const story = await LoungeStory.findByPk(uuid);
     if (!story) return null;
     return story.update(data as any);
   }
 
-  async delete(id: string) {
-    const story = await LoungeStory.findByPk(id);
+  async delete(uuid: string) {
+    const story = await LoungeStory.findByPk(uuid);
     if (!story) return null;
     await story.destroy();
     return story;
