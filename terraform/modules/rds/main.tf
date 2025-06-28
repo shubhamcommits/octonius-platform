@@ -103,7 +103,7 @@ resource "aws_db_instance" "main" {
 
   # High availability configuration
   multi_az            = var.multi_az
-  publicly_accessible = true
+  publicly_accessible = false
   skip_final_snapshot = var.skip_final_snapshot
 
   # Backup configuration

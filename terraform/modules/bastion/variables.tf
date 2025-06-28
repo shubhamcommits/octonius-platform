@@ -46,7 +46,7 @@ variable "key_name" {
 variable "enable_elastic_ip" {
   description = "Whether to create an Elastic IP for the bastion host"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "rds_endpoint" {
