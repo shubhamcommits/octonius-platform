@@ -4,6 +4,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
+import { ToastService } from './toast.service';
 
 export interface User {
   uuid: string;
@@ -23,7 +24,7 @@ export class AuthService {
   public currentUser$: Observable<User | null>;
   private isLoggingOut = false;
 
-  constructor(private http: HttpClient, private router: Router) {
+  constructor(private http: HttpClient, private router: Router, private toastService: ToastService) {
     this.currentUserSubject = new BehaviorSubject<User | null>(
       this.getUserFromStorage()
     );
@@ -157,14 +158,23 @@ export class AuthService {
     
     this.isLoggingOut = true;
     
+    // Show loading toast
+    this.toastService.info('Logging you out...', 0); // 0 duration means it stays until manually removed
+    
     // Call backend logout API first
     this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
       next: () => {
+        // Clear the loading toast and show success
+        this.toastService.clear();
+        this.toastService.success('Logged out successfully');
         // Clear local storage and state
         this.clearAuthData();
       },
       error: (error) => {
         console.error('Logout failed:', error);
+        // Clear the loading toast and show success anyway
+        this.toastService.clear();
+        this.toastService.success('Logged out successfully');
         // Even if the API call fails, we should still clear local storage and redirect
         this.clearAuthData();
       }

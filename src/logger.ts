@@ -172,7 +172,11 @@ export function appLogger(message: string, metadata?: any) {
 
 // Export a function to log database messages
 export function dbLogger(message: string, metadata?: any) {
-    logger.info(message, { ...metadata, context: 'database' })
+    if (metadata?.level === 'error') {
+        logger.error(message, { ...metadata,  context: 'database' })
+    } else {
+        logger.info(message, { ...metadata, context: 'database' })
+    }
 }
 
 // Export a function to log redis messages

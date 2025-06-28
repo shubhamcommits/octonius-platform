@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { LoungeService, LoungeStory } from '../services/lounge.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-lounge',
@@ -17,7 +18,11 @@ export class LoungeComponent implements OnInit {
   isSubmitting = false;
   feedback: string | null = null;
 
-  constructor(private router: Router, private loungeService: LoungeService) {}
+  constructor(
+    private router: Router, 
+    private loungeService: LoungeService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.fetchStories();
@@ -40,7 +45,7 @@ export class LoungeComponent implements OnInit {
   }
 
   openStory(story: LoungeStory) {
-    this.router.navigate(['/workplace/lounge/story', story.id]);
+    this.router.navigate(['/workplace/lounge/story', story.uuid]);
   }
 
   onFilter() {
@@ -62,7 +67,19 @@ export class LoungeComponent implements OnInit {
 
   handleStoryCreated(data: Partial<LoungeStory>) {
     this.isSubmitting = true;
-    this.loungeService.createStory(data).subscribe({
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) {
+      this.feedback = 'User not authenticated.';
+      this.isSubmitting = false;
+      return;
+    }
+    
+    const storyData = {
+      ...data,
+      user_id: currentUser.uuid
+    };
+    
+    this.loungeService.createStory(storyData).subscribe({
       next: () => {
         this.isSubmitting = false;
         this.showCreateModal = false;

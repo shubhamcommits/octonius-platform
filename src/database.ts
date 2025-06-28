@@ -95,7 +95,7 @@ export async function initiliazeDatabase(): Promise<{ message: string, connected
                 dbLogger(`Read replication is working correctly`)
             }
         } catch (queryError) {
-            dbLogger(`Error fetching database information - ${queryError}`, { level: 'error' })
+            dbLogger(`Error fetching database information - ${queryError}`, { level: 'error', error: queryError })
         }
 
         await db.sync({ alter: alter_tables_auto })
@@ -107,7 +107,7 @@ export async function initiliazeDatabase(): Promise<{ message: string, connected
     } catch (error: any) {
 
         // Log error
-        dbLogger(`Error during database initialization: ${error.message}`, { level: 'error' })
+        dbLogger(`Error during database initialization: ${error.message}`, { level: 'error', error: error })
 
         // Do not throw, just return a failed state
         return { message: `Database unavailable: ${error.message}`, connected: false }

@@ -22,7 +22,7 @@ export class CreateStoryModalComponent implements OnInit {
       type: ['news', Validators.required],
       date: ['', Validators.required],
       image: [''],
-      eventDate: [''],
+      event_date: [''],
       location: ['']
     });
   }

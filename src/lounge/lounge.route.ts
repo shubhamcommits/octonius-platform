@@ -16,13 +16,13 @@ export class LoungeRoute {
   private configureRoutes(): void {
     // List all stories
     this.router.get('/', (req: Request, res: Response) => this.lounge_controller.list(req, res));
-    // Get a story by ID
-    this.router.get('/:id', (req: Request, res: Response) => this.lounge_controller.get(req, res));
+    // Get a story by UUID
+    this.router.get('/:uuid', (req: Request, res: Response) => this.lounge_controller.get(req, res));
     // Create a new story
     this.router.post('/', (req: Request, res: Response) => this.lounge_controller.create(req, res));
     // Update a story
-    this.router.put('/:id', (req: Request, res: Response) => this.lounge_controller.update(req, res));
+    this.router.put('/:uuid', (req: Request, res: Response) => this.lounge_controller.update(req, res));
     // Delete a story
-    this.router.delete('/:id', (req: Request, res: Response) => this.lounge_controller.delete(req, res));
+    this.router.delete('/:uuid', (req: Request, res: Response) => this.lounge_controller.delete(req, res));
   }
 } 

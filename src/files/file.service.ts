@@ -7,7 +7,7 @@ interface FileCreationData {
     name: string
     type: 'note' | 'file'
     icon: string
-    owner_id: string
+    user_id: string
     workplace_id: string
     size?: number
     mime_type?: string
@@ -69,10 +69,10 @@ export class FileService {
         }
     }
 
-    async getFilesByUserAndWorkplace(owner_id: string, workplace_id: string): Promise<FilesResponse<File[]>> {
+    async getFilesByUserAndWorkplace(user_id: string, workplace_id: string): Promise<FilesResponse<File[]>> {
         try {
             const files = await File.findAll({
-                where: { owner_id, workplace_id },
+                where: { user_id, workplace_id },
                 order: [['last_modified', 'DESC']]
             })
             return {
@@ -82,7 +82,7 @@ export class FileService {
                 files
             }
         } catch (error) {
-            logger.error('Files retrieval failed', { error, owner_id, workplace_id })
+            logger.error('Files retrieval failed', { error, user_id, workplace_id })
             throw {
                 success: false,
                 message: FileCode.DATABASE_ERROR,

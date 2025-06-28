@@ -30,14 +30,14 @@ export class LoungeController {
   async get(req: Request, res: Response): Promise<Response> {
     const startTime = Date.now();
     try {
-      logger.info('Fetching lounge story by ID', { method: req.method, path: req.path, params: req.params, ip: req.ip });
-      const story = await this.loungeService.getById(req.params.id);
+      logger.info('Fetching lounge story by UUID', { method: req.method, path: req.path, params: req.params, ip: req.ip });
+      const story = await this.loungeService.getByUuid(req.params.uuid);
       const responseTime = Date.now() - startTime;
       if (!story) {
-        logger.warn('Lounge story not found', { id: req.params.id, responseTime: `${responseTime}ms`, statusCode: 404 });
+        logger.warn('Lounge story not found', { uuid: req.params.uuid, responseTime: `${responseTime}ms`, statusCode: 404 });
         return sendError(res, null, LOUNGE_ERRORS.NOT_FOUND, 404);
       }
-      logger.info('Lounge story fetched', { id: req.params.id, responseTime: `${responseTime}ms`, statusCode: 200 });
+      logger.info('Lounge story fetched', { uuid: req.params.uuid, responseTime: `${responseTime}ms`, statusCode: 200 });
       return sendResponse(req, res, 200, { story });
     } catch (err: any) {
       const responseTime = Date.now() - startTime;
@@ -52,7 +52,7 @@ export class LoungeController {
       logger.info('Creating lounge story', { method: req.method, path: req.path, ip: req.ip });
       const story = await this.loungeService.create(req.body);
       const responseTime = Date.now() - startTime;
-      logger.info('Lounge story created', { id: story.id, responseTime: `${responseTime}ms`, statusCode: 201 });
+      logger.info('Lounge story created', { uuid: story.uuid, responseTime: `${responseTime}ms`, statusCode: 201 });
       return sendResponse(req, res, 201, { story });
     } catch (err: any) {
       const responseTime = Date.now() - startTime;
@@ -65,13 +65,13 @@ export class LoungeController {
     const startTime = Date.now();
     try {
       logger.info('Updating lounge story', { method: req.method, path: req.path, params: req.params, ip: req.ip });
-      const story = await this.loungeService.update(req.params.id, req.body);
+      const story = await this.loungeService.update(req.params.uuid, req.body);
       const responseTime = Date.now() - startTime;
       if (!story) {
-        logger.warn('Lounge story not found for update', { id: req.params.id, responseTime: `${responseTime}ms`, statusCode: 404 });
+        logger.warn('Lounge story not found for update', { uuid: req.params.uuid, responseTime: `${responseTime}ms`, statusCode: 404 });
         return sendError(res, null, LOUNGE_ERRORS.NOT_FOUND, 404);
       }
-      logger.info('Lounge story updated', { id: req.params.id, responseTime: `${responseTime}ms`, statusCode: 200 });
+      logger.info('Lounge story updated', { uuid: req.params.uuid, responseTime: `${responseTime}ms`, statusCode: 200 });
       return sendResponse(req, res, 200, { story });
     } catch (err: any) {
       const responseTime = Date.now() - startTime;
@@ -84,13 +84,13 @@ export class LoungeController {
     const startTime = Date.now();
     try {
       logger.info('Deleting lounge story', { method: req.method, path: req.path, params: req.params, ip: req.ip });
-      const story = await this.loungeService.delete(req.params.id);
+      const story = await this.loungeService.delete(req.params.uuid);
       const responseTime = Date.now() - startTime;
       if (!story) {
-        logger.warn('Lounge story not found for delete', { id: req.params.id, responseTime: `${responseTime}ms`, statusCode: 404 });
+        logger.warn('Lounge story not found for delete', { uuid: req.params.uuid, responseTime: `${responseTime}ms`, statusCode: 404 });
         return sendError(res, null, LOUNGE_ERRORS.NOT_FOUND, 404);
       }
-      logger.info('Lounge story deleted', { id: req.params.id, responseTime: `${responseTime}ms`, statusCode: 200 });
+      logger.info('Lounge story deleted', { uuid: req.params.uuid, responseTime: `${responseTime}ms`, statusCode: 200 });
       return sendResponse(req, res, 200, { story });
     } catch (err: any) {
       const responseTime = Date.now() - startTime;
