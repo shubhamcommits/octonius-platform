@@ -20,6 +20,8 @@ import { GroupTasksComponent } from './work-management/group-detail/group-tasks/
 import { GroupAdminComponent } from './work-management/group-detail/group-admin/group-admin.component';
 import { TaskDetailComponent } from './work-management/group-detail/group-tasks/task-detail/task-detail.component';
 import { LoungeStoryDetailComponent } from './lounge/lounge-story-detail/lounge-story-detail.component';
+import { CreateStoryModalComponent } from './lounge/create-story-modal/create-story-modal.component';
+import { ReactiveFormsModule } from '@angular/forms';
 
 @NgModule({
   declarations: [
@@ -38,13 +40,15 @@ import { LoungeStoryDetailComponent } from './lounge/lounge-story-detail/lounge-
     GroupTasksComponent,
     GroupAdminComponent,
     TaskDetailComponent,
-    LoungeStoryDetailComponent
+    LoungeStoryDetailComponent,
+    CreateStoryModalComponent
   ],
   imports: [
     CommonModule,
     WorkplaceRoutingModule,
     RouterModule,
-    SharedModule
+    SharedModule,
+    ReactiveFormsModule
   ]
 })
 export class WorkplaceModule { }

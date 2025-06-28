@@ -10,6 +10,19 @@
     </div>
   </div>
 
+  <!-- Top Bar (Filter, Add, Search) -->
+  <div class="max-w-2xl mx-auto mt-4 mb-8">
+    <app-topbar
+      [showFilter]="true"
+      [showAdd]="true"
+      [showSearch]="true"
+      searchPlaceholder="Search stories..."
+      (filter)="onFilter()"
+      (add)="onAdd()"
+      (search)="onSearch($event)"
+    ></app-topbar>
+  </div>
+
   <!-- Global stories -->
   <div class="max-w-2xl mx-auto mt-8">
     <h2 class="text-lg font-semibold mb-4 text-center">Global stories</h2>
@@ -61,4 +74,11 @@
       </div>
     </div>
   </div>
+
+  <app-create-story-modal
+    [open]="showCreateModal"
+    (close)="handleModalClose()"
+    (storyCreated)="handleStoryCreated($event)"
+  ></app-create-story-modal>
+  <div *ngIf="feedback" class="alert alert-info my-2">{{ feedback }}</div>
 </div>
