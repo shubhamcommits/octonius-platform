@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { LoungeService, LoungeStory } from '../services/lounge.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ThemeService } from '../../../core/services/theme.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-lounge',
@@ -9,7 +11,7 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './lounge.component.html',
   styleUrl: './lounge.component.scss'
 })
-export class LoungeComponent implements OnInit {
+export class LoungeComponent implements OnInit, OnDestroy {
   globalStories: LoungeStory[] = [];
   managementUpdates: LoungeStory[] = [];
   isLoading = true;
@@ -17,15 +19,41 @@ export class LoungeComponent implements OnInit {
   showCreateModal = false;
   isSubmitting = false;
   feedback: string | null = null;
+  currentTheme: string = 'light';
+  private themeSubscription: Subscription;
 
   constructor(
     private router: Router, 
     private loungeService: LoungeService,
-    private authService: AuthService
-  ) {}
+    private authService: AuthService,
+    private themeService: ThemeService
+  ) {
+    this.currentTheme = this.themeService.getCurrentTheme();
+    this.themeSubscription = this.themeService.currentTheme$.subscribe(theme => {
+      this.currentTheme = theme;
+    });
+  }
 
   ngOnInit(): void {
     this.fetchStories();
+  }
+
+  ngOnDestroy(): void {
+    if (this.themeSubscription) {
+      this.themeSubscription.unsubscribe();
+    }
+  }
+
+  getLoungeStoriesEmptyStateImage(): string {
+    return this.currentTheme === 'night' 
+      ? 'https://media.octonius.com/assets/no-lounge-light.svg'
+      : 'https://media.octonius.com/assets/no-lounge-dark.svg'
+  }
+
+  getManagementUpdatesEmptyStateImage(): string {
+    return this.currentTheme === 'night' 
+      ? 'https://media.octonius.com/assets/no-lounge-light.svg'
+      : 'https://media.octonius.com/assets/no-lounge-dark.svg'
   }
 
   fetchStories(): void {
