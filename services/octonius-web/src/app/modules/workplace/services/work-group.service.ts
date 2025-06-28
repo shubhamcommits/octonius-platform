@@ -1,89 +1,327 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, map, catchError, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
+// Backend response interfaces
+interface BackendGroup {
+  uuid: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  workplace_id: string;
+  created_by: string;
+  is_active: boolean;
+  settings: {
+    allow_member_invites: boolean;
+    require_approval: boolean;
+    visibility: 'public' | 'private';
+    default_role: 'member' | 'admin';
+  };
+  metadata: {
+    tags: string[];
+    category: string | null;
+    department: string | null;
+  };
+  created_at: string;
+  updated_at: string;
+  creator?: {
+    uuid: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+    avatar_url: string | null;
+  };
+  group_memberships?: Array<{
+    uuid: string;
+    role: 'admin' | 'member' | 'viewer';
+    status: 'active' | 'pending' | 'inactive';
+    user: {
+      uuid: string;
+      first_name: string | null;
+      last_name: string | null;
+      email: string;
+      avatar_url: string | null;
+    };
+  }>;
+}
+
+interface BackendResponse<T> {
+  success: boolean;
+  message: string;
+  code: number;
+  groups?: T[];
+  group?: T;
+}
+
+interface GroupsResponse {
+  success: boolean;
+  message: string;
+  code: number;
+  groups: BackendGroup[];
+}
+
+interface GroupResponse {
+  success: boolean;
+  message: string;
+  code: number;
+  group: BackendGroup;
+}
+
+// Frontend interface
 export interface WorkGroup {
   uuid: string;
   name: string;
-  imageUrl: string;
+  description: string | null;
+  imageUrl: string | null;
   memberCount: number;
+  creator: {
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+  };
+  settings: {
+    allowMemberInvites: boolean;
+    requireApproval: boolean;
+    visibility: 'public' | 'private';
+    defaultRole: 'member' | 'admin';
+  };
+  metadata: {
+    tags: string[];
+    category: string | null;
+    department: string | null;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class WorkGroupService {
-  private apiUrl = `${environment.apiUrl}/workplace/groups`;
-
-  // Mock data for now
-  private mockGroups: WorkGroup[] = [
-    { uuid: '1', name: 'Sales Department', imageUrl: 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1', memberCount: 12 },
-    { uuid: '2', name: 'Software Engineering', imageUrl: 'https://images.unsplash.com/photo-1517694712202-1428bc3cd4b5', memberCount: 25 },
-    { uuid: '3', name: 'Tech Support', imageUrl: 'https://images.unsplash.com/photo-1558021211-6514f4939332', memberCount: 8 },
-    { uuid: '4', name: 'Operations', imageUrl: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643', memberCount: 15 },
-    { uuid: '5', name: 'Production plant', imageUrl: 'https://images.unsplash.com/photo-1580983218943-91173663c434', memberCount: 42 },
-    { uuid: '6', name: 'Managers', imageUrl: 'https://images.unsplash.com/photo-1521737852577-684820831023', memberCount: 7 },
-    { uuid: '7', name: 'Customer Support', imageUrl: 'https://images.unsplash.com/photo-1553775282-20af8077976e', memberCount: 18 },
-    { uuid: '8', name: 'Marketing Department', imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4', memberCount: 10 },
-    { uuid: '9', name: 'CRM Department', imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f', memberCount: 5 },
-    { uuid: '10', name: 'Board', imageUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7', memberCount: 3 },
-  ];
+  private apiUrl = `${environment.apiUrl}/groups`;
 
   constructor(private http: HttpClient) { }
 
-  getGroups(): Observable<WorkGroup[]> {
-    // Return mock data for now, replace with actual API call later
-    return of(this.mockGroups);
-    // return this.http.get<WorkGroup[]>(this.apiUrl);
-  }
-
-  getGroup(id: string): Observable<WorkGroup | undefined> {
-    // Return mock data for now
-    const group = this.mockGroups.find(g => g.uuid === id);
-    return of(group);
-    // return this.http.get<WorkGroup>(`${this.apiUrl}/${id}`);
-  }
-
-  createGroup(group: Partial<WorkGroup>): Observable<WorkGroup> {
-    // Mock implementation
-    const newGroup: WorkGroup = {
-      uuid: (this.mockGroups.length + 1).toString(),
-      name: group.name || '',
-      imageUrl: group.imageUrl || 'https://media.octonius.com/groups/default.jpeg',
-      memberCount: 0,
-      ...group
+  /**
+   * Transform backend group data to frontend format
+   */
+  private transformGroup(backendGroup: BackendGroup): WorkGroup {
+    const activeMembers = backendGroup.group_memberships?.filter(m => m.status === 'active') || [];
+    
+    return {
+      uuid: backendGroup.uuid,
+      name: backendGroup.name,
+      description: backendGroup.description,
+      imageUrl: backendGroup.image_url || 'https://media.octonius.com/assets/icon_projects.svg',
+      memberCount: activeMembers.length,
+      creator: {
+        name: backendGroup.creator ? 
+          `${backendGroup.creator.first_name || ''} ${backendGroup.creator.last_name || ''}`.trim() || 
+          backendGroup.creator.email : 
+          'Unknown',
+        email: backendGroup.creator?.email || '',
+        avatarUrl: backendGroup.creator?.avatar_url || null
+      },
+      settings: {
+        allowMemberInvites: backendGroup.settings.allow_member_invites,
+        requireApproval: backendGroup.settings.require_approval,
+        visibility: backendGroup.settings.visibility,
+        defaultRole: backendGroup.settings.default_role
+      },
+      metadata: backendGroup.metadata,
+      createdAt: backendGroup.created_at,
+      updatedAt: backendGroup.updated_at
     };
-    this.mockGroups.push(newGroup);
-    return of(newGroup);
-    // return this.http.post<WorkGroup>(this.apiUrl, group);
   }
 
-  updateGroup(id: string, group: Partial<WorkGroup>): Observable<WorkGroup> {
-    // Mock implementation
-    const index = this.mockGroups.findIndex(g => g.uuid === id);
-    if (index !== -1) {
-      this.mockGroups[index] = { ...this.mockGroups[index], ...group };
-      return of(this.mockGroups[index]);
-    }
-    throw new Error('Group not found');
-    // return this.http.put<WorkGroup>(`${this.apiUrl}/${id}`, group);
+  /**
+   * Get all groups for the current workplace
+   */
+  getGroups(workplaceId: string): Observable<WorkGroup[]> {
+    const params = new HttpParams().set('workplace_id', workplaceId);
+    
+    return this.http.get<GroupsResponse>(`${this.apiUrl}`, { params })
+      .pipe(
+        map(response => {
+          if (!response.success || !response.groups) {
+            throw new Error(response.message || 'Failed to fetch groups');
+          }
+          return response.groups.map(group => this.transformGroup(group));
+        }),
+        catchError(error => {
+          console.error('Error fetching groups:', error);
+          return throwError(() => new Error('Failed to load work groups'));
+        })
+      );
   }
 
+  /**
+   * Get a specific group by ID
+   */
+  getGroup(id: string): Observable<WorkGroup> {
+    return this.http.get<GroupResponse>(`${this.apiUrl}/${id}`)
+      .pipe(
+        map(response => {
+          if (!response.success || !response.group) {
+            throw new Error(response.message || 'Failed to fetch group');
+          }
+          return this.transformGroup(response.group);
+        }),
+        catchError(error => {
+          console.error('Error fetching group:', error);
+          return throwError(() => new Error('Failed to load group'));
+        })
+      );
+  }
+
+  /**
+   * Create a new group
+   */
+  createGroup(groupData: {
+    name: string;
+    description?: string;
+    imageUrl?: string;
+    workplaceId: string;
+    settings?: any;
+    metadata?: any;
+  }): Observable<WorkGroup> {
+    const payload = {
+      name: groupData.name,
+      description: groupData.description,
+      image_url: groupData.imageUrl,
+      workplace_id: groupData.workplaceId,
+      settings: groupData.settings,
+      metadata: groupData.metadata
+    };
+
+    return this.http.post<GroupResponse>(`${this.apiUrl}`, payload)
+      .pipe(
+        map(response => {
+          if (!response.success || !response.group) {
+            throw new Error(response.message || 'Failed to create group');
+          }
+          return this.transformGroup(response.group);
+        }),
+        catchError(error => {
+          console.error('Error creating group:', error);
+          return throwError(() => new Error('Failed to create group'));
+        })
+      );
+  }
+
+  /**
+   * Update a group
+   */
+  updateGroup(id: string, groupData: Partial<{
+    name: string;
+    description: string;
+    imageUrl: string;
+    settings: any;
+    metadata: any;
+  }>): Observable<WorkGroup> {
+    const payload: any = {};
+    if (groupData.name !== undefined) payload.name = groupData.name;
+    if (groupData.description !== undefined) payload.description = groupData.description;
+    if (groupData.imageUrl !== undefined) payload.image_url = groupData.imageUrl;
+    if (groupData.settings !== undefined) payload.settings = groupData.settings;
+    if (groupData.metadata !== undefined) payload.metadata = groupData.metadata;
+
+    return this.http.put<GroupResponse>(`${this.apiUrl}/${id}`, payload)
+      .pipe(
+        map(response => {
+          if (!response.success || !response.group) {
+            throw new Error(response.message || 'Failed to update group');
+          }
+          return this.transformGroup(response.group);
+        }),
+        catchError(error => {
+          console.error('Error updating group:', error);
+          return throwError(() => new Error('Failed to update group'));
+        })
+      );
+  }
+
+  /**
+   * Delete a group
+   */
   deleteGroup(id: string): Observable<void> {
-    // Mock implementation
-    const index = this.mockGroups.findIndex(g => g.uuid === id);
-    if (index !== -1) {
-      this.mockGroups.splice(index, 1);
-    }
-    return of(undefined);
-    // return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    return this.http.delete<BackendResponse<void>>(`${this.apiUrl}/${id}`)
+      .pipe(
+        map(response => {
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to delete group');
+          }
+        }),
+        catchError(error => {
+          console.error('Error deleting group:', error);
+          return throwError(() => new Error('Failed to delete group'));
+        })
+      );
   }
 
-  searchGroups(searchTerm: string): Observable<WorkGroup[]> {
-    const filtered = this.mockGroups.filter(group => 
-      group.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    return of(filtered);
+  /**
+   * Search groups by name
+   */
+  searchGroups(workplaceId: string, searchTerm: string): Observable<WorkGroup[]> {
+    const params = new HttpParams()
+      .set('workplace_id', workplaceId)
+      .set('q', searchTerm);
+    
+    return this.http.get<GroupsResponse>(`${this.apiUrl}/search`, { params })
+      .pipe(
+        map(response => {
+          if (!response.success || !response.groups) {
+            throw new Error(response.message || 'Failed to search groups');
+          }
+          return response.groups.map(group => this.transformGroup(group));
+        }),
+        catchError(error => {
+          console.error('Error searching groups:', error);
+          return throwError(() => new Error('Search failed'));
+        })
+      );
+  }
+
+  /**
+   * Add a member to a group
+   */
+  addMember(groupId: string, userId: string, role: 'admin' | 'member' | 'viewer' = 'member'): Observable<any> {
+    const payload = {
+      user_id: userId,
+      role: role
+    };
+
+    return this.http.post<BackendResponse<any>>(`${this.apiUrl}/${groupId}/members`, payload)
+      .pipe(
+        map(response => {
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to add member');
+          }
+          return response;
+        }),
+        catchError(error => {
+          console.error('Error adding member:', error);
+          return throwError(() => new Error('Failed to add member'));
+        })
+      );
+  }
+
+  /**
+   * Remove a member from a group
+   */
+  removeMember(groupId: string, userId: string): Observable<void> {
+    return this.http.delete<BackendResponse<void>>(`${this.apiUrl}/${groupId}/members/${userId}`)
+      .pipe(
+        map(response => {
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to remove member');
+          }
+        }),
+        catchError(error => {
+          console.error('Error removing member:', error);
+          return throwError(() => new Error('Failed to remove member'));
+        })
+      );
   }
 } 

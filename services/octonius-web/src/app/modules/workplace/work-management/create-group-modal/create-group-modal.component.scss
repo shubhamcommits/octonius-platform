@@ -1,0 +1,66 @@
+// Modal backdrop animation
+.fixed {
+  animation: fadeIn 0.2s ease-out;
+}
+
+// Modal content animation
+.bg-base-100 {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+// Form styling enhancements
+.form-control {
+  .label {
+    .label-text {
+      font-weight: 500;
+    }
+  }
+}
+
+// Tag styling
+.badge {
+  transition: all 0.2s ease-in-out;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+  
+  .btn-ghost {
+    padding: 0;
+    min-height: auto;
+    height: auto;
+    
+    &:hover {
+      background-color: transparent;
+      color: inherit;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .bg-base-100 {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+} 

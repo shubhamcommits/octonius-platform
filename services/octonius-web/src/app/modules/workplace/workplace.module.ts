@@ -21,6 +21,7 @@ import { GroupAdminComponent } from './work-management/group-detail/group-admin/
 import { TaskDetailComponent } from './work-management/group-detail/group-tasks/task-detail/task-detail.component';
 import { LoungeStoryDetailComponent } from './lounge/lounge-story-detail/lounge-story-detail.component';
 import { CreateStoryModalComponent } from './lounge/create-story-modal/create-story-modal.component';
+import { CreateGroupModalComponent } from './work-management/create-group-modal/create-group-modal.component';
 import { ReactiveFormsModule } from '@angular/forms';
 
 @NgModule({
@@ -41,7 +42,8 @@ import { ReactiveFormsModule } from '@angular/forms';
     GroupAdminComponent,
     TaskDetailComponent,
     LoungeStoryDetailComponent,
-    CreateStoryModalComponent
+    CreateStoryModalComponent,
+    CreateGroupModalComponent
   ],
   imports: [
     CommonModule,
