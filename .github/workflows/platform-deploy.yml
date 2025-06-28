@@ -259,6 +259,18 @@ jobs:
               PRIVATE_SUBNETS="[\"10.${SECOND_OCTET}.10.0/24\", \"10.${SECOND_OCTET}.20.0/24\"]"
               ;;
           esac
+          
+          # Define whitelisted IPs directly in the pipeline
+          # Update this list as needed when IPs change
+          cat > config/ip_whitelist.tfvars <<EOF
+          whitelisted_ips = {
+            "shubham-macbook" = {
+              cidr        = "49.205.240.39/32"
+              description = "Shubham Macbook IP"
+            }
+          }
+          EOF
+          
           cat > config/terraform.tfvars <<EOF
           environment  = "$ENV"
           project_name = "${{ env.REPOSITORY_NAME }}"
@@ -302,6 +314,7 @@ jobs:
         run: |
           terraform plan \
             -var-file=config/terraform.tfvars \
+            -var-file=config/ip_whitelist.tfvars \
             -out=tfplan-${{ needs.determine-action.outputs.environment }} \
             -detailed-exitcode || exit_code=$?
           if [[ $exit_code -eq 1 ]]; then
@@ -322,13 +335,13 @@ jobs:
             terraform apply tfplan-${{ needs.determine-action.outputs.environment }}
           else
             echo "📋 No saved plan found. Creating new plan and applying..."
-            terraform plan -var-file=config/terraform.tfvars -out=tfplan-${{ needs.determine-action.outputs.environment }}
+            terraform plan -var-file=config/terraform.tfvars -var-file=config/ip_whitelist.tfvars -out=tfplan-${{ needs.determine-action.outputs.environment }}
             terraform apply tfplan-${{ needs.determine-action.outputs.environment }}
           fi
       - name: 🗑️ Destroy Infrastructure
         if: ${{ github.event.inputs.action == 'destroy' }}
         working-directory: terraform
-        run: terraform destroy -var-file=config/terraform.tfvars -auto-approve
+        run: terraform destroy -var-file=config/terraform.tfvars -var-file=config/ip_whitelist.tfvars -auto-approve
       - name: 📊 Extract Outputs
         id: extract
         working-directory: terraform
