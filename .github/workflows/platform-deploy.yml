@@ -279,6 +279,15 @@ jobs:
           public_subnets     = $PUBLIC_SUBNETS
           private_subnets    = $PRIVATE_SUBNETS
           image_tag          = "${GITHUB_SHA}"
+          bastion_key_name   = "$ENV-${{ env.REPOSITORY_NAME }}-bastion"
+          
+          # Whitelisted IPs for bastion host access
+          whitelisted_ips = {
+            "shubham-macbook" = {
+              cidr        = "49.205.240.39/32"
+              description = "Shubham Macbook IP"
+            }
+          }
           EOF
 
       - name: 📝 Show terraform.tfvars
