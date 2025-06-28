@@ -48,10 +48,12 @@ import { LucideAngularModule,
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
 import { NavbarComponent } from './components/navbar/navbar.component'
+import { TopbarComponent } from './components/topbar/topbar.component'
 
 @NgModule({
   imports: [
     CommonModule,
+    TopbarComponent,
     NavbarComponent,
     LucideAngularModule.pick({ 
       Home, 
@@ -102,6 +104,7 @@ import { NavbarComponent } from './components/navbar/navbar.component'
   exports: [
     CommonModule,
     LucideAngularModule,
+    TopbarComponent,
     NavbarComponent
   ],
   providers: [AuthGuard, NonAuthGuard]
