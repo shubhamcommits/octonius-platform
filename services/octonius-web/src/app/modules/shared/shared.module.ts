@@ -44,7 +44,8 @@ import { LucideAngularModule,
   MessageSquareText,
   MapPin,
   Users,
-  RefreshCw
+  RefreshCw,
+  ArrowRight
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -100,7 +101,8 @@ import { TopbarComponent } from './components/topbar/topbar.component'
       MessageSquareText,
       MapPin,
       Users,
-      RefreshCw
+      RefreshCw,
+      ArrowRight
     })
   ],
   exports: [
