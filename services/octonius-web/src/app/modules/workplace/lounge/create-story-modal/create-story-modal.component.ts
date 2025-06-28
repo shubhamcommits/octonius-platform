@@ -25,6 +25,13 @@ export class CreateStoryModalComponent implements OnInit {
       event_date: [''],
       location: ['']
     });
+
+    // Watch for type changes to handle event_date field
+    this.form.get('type')?.valueChanges.subscribe(type => {
+      if (type !== 'event') {
+        this.form.patchValue({ event_date: '', location: '' });
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -33,7 +40,28 @@ export class CreateStoryModalComponent implements OnInit {
 
   onSubmit() {
     if (this.form.valid) {
-      this.storyCreated.emit(this.form.value as Partial<LoungeStory>);
+      const formValue = this.form.value;
+      
+      // Clean up the data before sending
+      const storyData: Partial<LoungeStory> = {
+        title: formValue.title || '',
+        description: formValue.description || '',
+        type: (formValue.type || 'news') as 'news' | 'event' | 'update',
+        date: formValue.date || '',
+        image: formValue.image || undefined
+      };
+
+      // Only include event_date and location if type is 'event' and they have valid values
+      if (formValue.type === 'event') {
+        if (formValue.event_date && formValue.event_date.trim()) {
+          storyData.event_date = formValue.event_date;
+        }
+        if (formValue.location && formValue.location.trim()) {
+          storyData.location = formValue.location;
+        }
+      }
+
+      this.storyCreated.emit(storyData);
     }
   }
 

@@ -43,7 +43,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                 if (!authService['isLoggingOut']) {
                     toastService.warning('Your session has expired. Please log in again.');
                     authService.clearAllAuthData();
-                    router.navigate(['/auths/login']);
+                router.navigate(['/auths/login']);
                 }
             }
             return throwError(() => error);

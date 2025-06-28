@@ -23,6 +23,7 @@
     "@editorjs/list": "^2.0.8",
     "@editorjs/paragraph": "^2.11.7",
     "lucide-angular": "^0.510.0",
+    "ngx-skeleton-loader": "^11.2.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
