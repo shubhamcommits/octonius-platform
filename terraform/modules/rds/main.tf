@@ -53,15 +53,15 @@ resource "aws_security_group" "rds" {
     security_groups = [var.ecs_security_group_id]
   }
 
-  # Allow PostgreSQL traffic from whitelisted IPs
+  # Allow PostgreSQL traffic from bastion host security group
   dynamic "ingress" {
-    for_each = var.whitelisted_ips != null ? var.whitelisted_ips : {}
+    for_each = var.bastion_security_group_id != null ? [1] : []
     content {
-      from_port   = 5432
-      to_port     = 5432
-      protocol    = "tcp"
-      cidr_blocks = [ingress.value.cidr]
-      description = ingress.value.description
+      from_port       = 5432
+      to_port         = 5432
+      protocol        = "tcp"
+      security_groups = [var.bastion_security_group_id]
+      description     = "PostgreSQL access from bastion host"
     }
   }
 

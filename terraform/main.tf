@@ -123,6 +123,24 @@ resource "aws_security_group" "app_runner" {
   )
 }
 
+module "bastion" {
+  source = "./modules/bastion"
+
+  environment      = var.environment
+  project_name     = local.project_name
+  region           = var.aws_region
+  vpc_id           = module.vpc.vpc_id
+  public_subnet_id = module.vpc.public_subnet_ids[0]
+  whitelisted_ips  = var.whitelisted_ips
+  key_name         = var.bastion_key_name
+
+  # Database connection info
+  database_name     = "octoniusdb"
+  database_username = var.database_username
+
+  tags = local.common_tags
+}
+
 module "rds" {
   source = "./modules/rds"
 
@@ -148,8 +166,8 @@ module "rds" {
   performance_insights_retention_period = var.environment == "prod" ? 7 : 7
   deletion_protection                   = var.environment == "prod"
 
-  # IP whitelist for database access
-  whitelisted_ips = var.whitelisted_ips
+  # Bastion host access
+  bastion_security_group_id = module.bastion.bastion_security_group_id
 
   tags = local.common_tags
 }
