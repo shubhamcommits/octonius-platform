@@ -9,6 +9,8 @@ import { Auth } from '../auths/auth.model'
 import { Token } from '../auths/token.model'
 import { LoungeStory } from '../lounge/lounge.model'
 import { File } from '../files/file.model'
+import { Group } from '../groups/group.model'
+import { GroupMembership } from '../groups/group-membership.model'
 
 // Export all models
 export {
@@ -21,7 +23,9 @@ export {
     Auth,
     Token,
     LoungeStory,
-    File
+    File,
+    Group,
+    GroupMembership
 }
 
 // Create models object
@@ -35,7 +39,9 @@ const models = {
     Auth,
     Token,
     LoungeStory,
-    File
+    File,
+    Group,
+    GroupMembership
 }
 
 // Initialize associations
