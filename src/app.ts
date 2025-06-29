@@ -43,6 +43,9 @@ import { WorkloadRoute } from './workload/workload.route'
 // Import Lounge Route
 import { LoungeRoute } from './lounge/lounge.route'
 
+// Import Group Route
+import GroupRoute from './groups/group.route'
+
 // Define the express application
 const app = express()
 
@@ -157,6 +160,7 @@ app.use('/v1/workplaces', new WorkplaceRoute().router)
 app.use('/v1/files', new FileRoute().router)
 app.use('/v1/workload', new WorkloadRoute().router)
 app.use('/v1/lounges', new LoungeRoute().router)
+app.use('/v1/groups', GroupRoute)
 
 // Invalid routes handling middleware
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
