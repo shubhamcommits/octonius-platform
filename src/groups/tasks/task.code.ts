@@ -32,6 +32,7 @@ export enum TaskCode {
     INVALID_STATUS = 'Invalid task status',
     INVALID_PRIORITY = 'Invalid task priority',
     INVALID_COLOR_FORMAT = 'Invalid color format. Use hex color code',
+    INVALID_ASSIGNEE = 'Invalid assignee - user is not a member of this group',
     CANNOT_DELETE_DEFAULT_COLUMN = 'Cannot delete default column',
     COLUMN_HAS_TASKS = 'Cannot delete column with tasks. Move or delete tasks first',
     INVALID_POSITION = 'Invalid position value',

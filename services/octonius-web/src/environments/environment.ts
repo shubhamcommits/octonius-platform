@@ -4,5 +4,6 @@ import package_json from '../../package.json'
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:3000/v1',
-  version: package_json.version
+  version: package_json.version,
+  defaultAvatarUrl: 'https://media.octonius.com/assets/icon_avatar.svg'
 }

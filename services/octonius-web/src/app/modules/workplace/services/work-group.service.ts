@@ -76,6 +76,7 @@ export interface WorkGroup {
   imageUrl: string | null;
   memberCount: number;
   creator: {
+    uuid: string;
     name: string;
     email: string;
     avatarUrl: string | null;
@@ -117,12 +118,12 @@ export class WorkGroupService {
       imageUrl: backendGroup.image_url || 'https://media.octonius.com/assets/icon_projects.svg',
       memberCount: activeMembers.length,
       creator: {
-        name: backendGroup.creator ? 
-          `${backendGroup.creator.first_name || ''} ${backendGroup.creator.last_name || ''}`.trim() || 
-          backendGroup.creator.email : 
-          'Unknown',
+        uuid: backendGroup.creator?.uuid || 'unknown',
+        name: `${backendGroup.creator?.first_name || ''} ${backendGroup.creator?.last_name || ''}`.trim() || 
+            backendGroup.creator?.email ||
+            'Unknown',
         email: backendGroup.creator?.email || '',
-        avatarUrl: backendGroup.creator?.avatar_url || null
+        avatarUrl: backendGroup.creator?.avatar_url || environment.defaultAvatarUrl
       },
       settings: {
         allowMemberInvites: backendGroup.settings.allow_member_invites,

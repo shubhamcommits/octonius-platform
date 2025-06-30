@@ -85,6 +85,15 @@ export class TaskRoute {
                 }
             )
 
+        // Get group members for assignment (must be before /:task_id route)
+        this.router.get('/members',
+            verifyAccessToken,
+            isLoggedIn,
+            (req: Request, res: Response) => {
+                this.task_controller.getGroupMembers(req, res)
+            }
+        )
+
         // Specific task routes
         this.router
             // Get a specific task
@@ -155,6 +164,39 @@ export class TaskRoute {
                 isLoggedIn,
                 (req: Request, res: Response) => {
                     this.task_controller.deleteTaskComment(req, res)
+                }
+            )
+
+        // Time tracking routes
+        this.router
+            // Add time entry to task
+            .post('/:task_id/time-entries',
+                verifyAccessToken,
+                isLoggedIn,
+                (req: Request, res: Response) => {
+                    this.task_controller.addTimeEntry(req, res)
+                }
+            )
+
+        // Custom fields routes
+        this.router
+            // Update custom fields for task
+            .put('/:task_id/custom-fields',
+                verifyAccessToken,
+                isLoggedIn,
+                (req: Request, res: Response) => {
+                    this.task_controller.updateCustomFields(req, res)
+                }
+            )
+
+        // Assignee management routes
+        this.router
+            // Assign users to task
+            .post('/:task_id/assignees',
+                verifyAccessToken,
+                isLoggedIn,
+                (req: Request, res: Response) => {
+                    this.task_controller.assignUsersToTask(req, res)
                 }
             )
     }

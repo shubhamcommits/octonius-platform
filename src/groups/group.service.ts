@@ -8,6 +8,7 @@ import { GroupCode } from './group.code'
 import { GroupResponse, GroupsResponse, GroupError, GroupMembersResponse } from './group.type'
 import logger from '../logger'
 import taskService from './tasks/task.service'
+import { DEFAULT_AVATAR_URL } from '../config/constants'
 
 /**
  * Group Service Class
@@ -611,71 +612,63 @@ export class GroupService {
      */
     static async getGroupMembers(group_id: string, user_id: string): Promise<GroupMembersResponse<GroupMembership[]> | GroupError> {
         try {
-            const group = await Group.findOne({
-                where: {
-                    uuid: group_id,
-                    is_active: true
-                }
-            })
+            logger.info(`Attempting to retrieve members for group: ${group_id} by user: ${user_id}`)
 
+            // Check if the group exists
+            const group = await Group.findByPk(group_id)
             if (!group) {
-                return {
-                    success: false,
-                    message: GroupCode.GROUP_NOT_FOUND,
-                    code: 404,
-                    stack: new Error(GroupCode.GROUP_NOT_FOUND)
-                }
+                logger.warn(`Group not found: ${group_id}`)
+                throw new Error('Group not found')
             }
 
             // Check if user has access to view members
             const userMembership = await GroupMembership.findOne({
                 where: {
-                    group_id,
-                    user_id,
+                    group_id: group_id,
+                    user_id: user_id,
                     status: 'active'
                 }
             })
 
             if (!userMembership) {
-                return {
-                    success: false,
-                    message: GroupCode.INSUFFICIENT_PERMISSIONS,
-                    code: 403,
-                    stack: new Error(GroupCode.INSUFFICIENT_PERMISSIONS)
-                }
+                logger.warn(`User ${user_id} does not have access to group ${group_id}`)
+                throw new Error('Unauthorized access to group')
             }
 
+            // Get all active members of the group with user details
             const members = await GroupMembership.findAll({
                 where: {
-                    group_id,
+                    group_id: group_id,
                     status: 'active'
                 },
-                include: [
-                    {
-                        model: User,
-                        as: 'user',
-                        attributes: ['uuid', 'first_name', 'last_name', 'email', 'avatar_url']
-                    }
-                ],
-                order: [['created_at', 'ASC']]
+                include: [{
+                    model: User,
+                    as: 'user',
+                    attributes: ['uuid', 'first_name', 'last_name', 'email', 'avatar_url']
+                }]
             })
 
-            logger.info(`Retrieved ${members.length} members for group: ${group_id}`)
+            // Transform the members data to include avatar fallback
+            const transformedMembers = members.map(member => {
+                const memberData = member.toJSON() as any
+                if (memberData.user) {
+                    memberData.user.avatar_url = memberData.user.avatar_url || DEFAULT_AVATAR_URL
+                }
+                return memberData
+            })
+
+            logger.info(`Retrieved ${transformedMembers.length} members for group: ${group_id}`)
 
             return {
                 success: true,
                 message: GroupCode.GROUP_MEMBERS_FOUND,
                 code: 200,
-                members: members
+                members: transformedMembers
             }
-        } catch (error) {
+
+        } catch (error: any) {
             logger.error('Error retrieving group members:', error)
-            return {
-                success: false,
-                message: GroupCode.DATABASE_ERROR,
-                code: 500,
-                stack: error as Error
-            }
+            throw new Error('Database operation failed')
         }
     }
 

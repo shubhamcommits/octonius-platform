@@ -20,7 +20,6 @@ interface TaskAttributes {
     completed_at: Date | null
     completed_by: string | null
     created_by: string
-    assigned_to: string | null
     labels: Array<{
         text: string
         color: string
@@ -34,7 +33,13 @@ interface TaskAttributes {
     metadata: {
         estimated_hours?: number
         actual_hours?: number
-        custom_fields?: Record<string, any>
+        time_entries?: Array<{
+            user_id: string
+            hours: number
+            description?: string
+            date: Date
+        }>
+        custom_fields?: Record<string, string> // Simplified to key-value pairs
     }
     created_at: Date
     updated_at: Date
@@ -43,7 +48,7 @@ interface TaskAttributes {
 // Define task creation attributes
 interface TaskCreationAttributes extends Optional<TaskAttributes, 
     'uuid' | 'description' | 'status' | 'priority' | 'color' | 'position' | 
-    'due_date' | 'start_date' | 'completed_at' | 'completed_by' | 'assigned_to' | 
+    'due_date' | 'start_date' | 'completed_at' | 'completed_by' | 
     'labels' | 'attachments' | 'metadata' | 'created_at' | 'updated_at'> {}
 
 // Extend Sequelize Model Class
@@ -62,7 +67,6 @@ export class Task extends Model<TaskAttributes, TaskCreationAttributes> implemen
     public completed_at!: Date | null
     public completed_by!: string | null
     public created_by!: string
-    public assigned_to!: string | null
     public labels!: Array<{
         text: string
         color: string
@@ -76,7 +80,13 @@ export class Task extends Model<TaskAttributes, TaskCreationAttributes> implemen
     public metadata!: {
         estimated_hours?: number
         actual_hours?: number
-        custom_fields?: Record<string, any>
+        time_entries?: Array<{
+            user_id: string
+            hours: number
+            description?: string
+            date: Date
+        }>
+        custom_fields?: Record<string, string> // Simplified to key-value pairs
     }
     public readonly created_at!: Date
     public readonly updated_at!: Date
@@ -101,12 +111,6 @@ export class Task extends Model<TaskAttributes, TaskCreationAttributes> implemen
             as: 'creator'
         })
 
-        // Task assigned to user
-        Task.belongsTo(models.User, {
-            foreignKey: 'assigned_to',
-            as: 'assignee'
-        })
-
         // Task completed by user
         Task.belongsTo(models.User, {
             foreignKey: 'completed_by',
@@ -117,6 +121,20 @@ export class Task extends Model<TaskAttributes, TaskCreationAttributes> implemen
         Task.hasMany(models.TaskComment, {
             foreignKey: 'task_id',
             as: 'comments'
+        })
+
+        // Task has many assignees through TaskAssignee
+        Task.belongsToMany(models.User, {
+            through: models.TaskAssignee,
+            foreignKey: 'task_id',
+            otherKey: 'user_id',
+            as: 'assignees'
+        })
+
+        // Task has many task assignee records
+        Task.hasMany(models.TaskAssignee, {
+            foreignKey: 'task_id',
+            as: 'task_assignees'
         })
     }
 }
@@ -207,14 +225,6 @@ Task.init({
             key: 'uuid'
         }
     },
-    assigned_to: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'users',
-            key: 'uuid'
-        }
-    },
     labels: {
         type: DataTypes.JSON,
         allowNull: false,
@@ -252,9 +262,6 @@ Task.init({
         },
         {
             fields: ['column_id']
-        },
-        {
-            fields: ['assigned_to']
         },
         {
             fields: ['status']

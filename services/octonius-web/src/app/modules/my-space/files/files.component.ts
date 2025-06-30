@@ -10,6 +10,7 @@ import { ToastService } from '../../../core/services/toast.service'
 import { CapitalizePipe } from '../../../core/pipes/capitalize.pipe'
 import { firstValueFrom } from 'rxjs'
 import { SharedModule } from '../../shared/shared.module'
+import { environment } from '../../../../environments/environment'
 
 @Component({
   selector: 'app-files',
@@ -81,12 +82,36 @@ export class FilesComponent implements OnInit {
   }
 
   private getInitials(name: string): string {
-    if (!name) return '👤'
-    return name.split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
+    return name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2);
+  }
+
+  getUserAvatar(file: File): string {
+    return file.ownerAvatar || environment.defaultAvatarUrl;
+  }
+
+  getFileTypeIcon(type: string): string {
+    switch (type.toLowerCase()) {
+      case 'document':
+        return 'description';
+      case 'image':
+        return 'image';
+      case 'presentation':
+        return 'slideshow';
+      case 'spreadsheet':
+        return 'table_chart';
+      case 'note':
+        return 'note';
+      default:
+        return 'insert_drive_file';
+    }
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   onSearch(): void {

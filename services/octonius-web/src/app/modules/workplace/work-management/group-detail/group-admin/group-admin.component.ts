@@ -5,6 +5,7 @@ import { WorkGroupService, WorkGroup } from '../../../services/work-group.servic
 import { GroupMemberService, GroupMember } from '../../../services/group-member.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { environment } from '../../../../../../environments/environment';
 
 @Component({
   selector: 'app-group-admin',
@@ -66,7 +67,7 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.currentUser = this.authService.getCurrentUser();
+    this.getCurrentUser();
     this.groupSub = this.workGroupService.getCurrentGroup().subscribe(group => {
       this.group = group;
       if (group) {
@@ -113,31 +114,29 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
         this.toastService.error('Failed to load group members');
         this.isLoadingMembers = false;
         // Fallback to mock data for demo
-        this.members = [
-          {
-            uuid: '1',
-            role: 'admin',
-            status: 'active',
-            joinedAt: new Date().toISOString(),
-            user: {
-              uuid: this.currentUser?.uuid || '1',
-              firstName: this.currentUser?.first_name || 'John',
-              lastName: this.currentUser?.last_name || 'Doe',
-              email: this.currentUser?.email || 'john@example.com',
-              avatarUrl: this.currentUser?.avatar_url || null,
-              displayName: this.getUserDisplayName({
-                first_name: this.currentUser?.first_name || 'John',
-                last_name: this.currentUser?.last_name || 'Doe',
-                email: this.currentUser?.email || 'john@example.com'
-              }),
-              initials: this.getUserInitials({
-                first_name: this.currentUser?.first_name || 'John',
-                last_name: this.currentUser?.last_name || 'Doe',
-                email: this.currentUser?.email || 'john@example.com'
-              })
-            }
+        this.members.push({
+          uuid: 'temp-' + Date.now(),
+          role: 'member' as const,
+          status: 'pending' as const,
+          joinedAt: new Date().toISOString(),
+          user: {
+            uuid: this.currentUser?.uuid || '1',
+            firstName: this.currentUser?.firstName || 'John',
+            lastName: this.currentUser?.lastName || 'Doe',
+            email: this.currentUser?.email || 'john@example.com',
+            avatarUrl: this.currentUser?.avatarUrl || environment.defaultAvatarUrl,
+            displayName: this.getUserDisplayName({
+              firstName: this.currentUser?.firstName || 'John',
+              lastName: this.currentUser?.lastName || 'Doe',
+              email: this.currentUser?.email || 'john@example.com'
+            }),
+            initials: this.getUserInitials({
+              firstName: this.currentUser?.firstName || 'John',
+              lastName: this.currentUser?.lastName || 'Doe',
+              email: this.currentUser?.email || 'john@example.com'
+            })
           }
-        ];
+        });
       }
     });
   }
@@ -293,15 +292,15 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
 
   // Utility methods
   getUserDisplayName(user: any): string {
-    if (user.first_name || user.last_name) {
-      return `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    if (user.firstName || user.lastName) {
+      return `${user.firstName || ''} ${user.lastName || ''}`.trim();
     }
     return user.email;
   }
 
   getUserInitials(user: any): string {
-    if (user.first_name || user.last_name) {
-      return `${user.first_name?.charAt(0) || ''}${user.last_name?.charAt(0) || ''}`;
+    if (user.firstName || user.lastName) {
+      return `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`;
     }
     return user.email.charAt(0).toUpperCase();
   }
@@ -317,5 +316,26 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
 
   canDeleteGroup(): boolean {
     return this.isCurrentUserAdmin();
+  }
+
+  // Mock current user - in real app this would come from AuthService
+  private getCurrentUser() {
+    this.authService.currentUser$.subscribe((user: any) => {
+      if (user) {
+        this.currentUser = {
+          uuid: user.uuid,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          email: user.email,
+          avatarUrl: user.avatar_url || environment.defaultAvatarUrl,
+          displayName: user.first_name || user.last_name 
+            ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+            : user.email,
+          initials: user.first_name || user.last_name
+            ? `${user.first_name?.charAt(0) || ''}${user.last_name?.charAt(0) || ''}`
+            : user.email.charAt(0).toUpperCase()
+        };
+      }
+    });
   }
 }

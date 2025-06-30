@@ -90,7 +90,7 @@ export class GroupMemberService {
         firstName: backendMember.user.first_name,
         lastName: backendMember.user.last_name,
         email: backendMember.user.email,
-        avatarUrl: backendMember.user.avatar_url,
+        avatarUrl: backendMember.user.avatar_url || environment.defaultAvatarUrl,
         displayName,
         initials
       }
