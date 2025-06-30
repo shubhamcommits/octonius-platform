@@ -3,21 +3,17 @@
     <div class="flex justify-between items-center mb-4 px-4 pt-4">
         <!-- View Switcher (Board, List, Timeline) -->
         <div class="tabs tabs-boxed bg-base-200/50">
-            <a class="tab flex items-center gap-2" 
-               [class.tab-active]="currentView === 'board'"
-               [class.!bg-base-100]="currentView === 'board'"
-               [class.!text-base-content]="currentView === 'board'"
-               (click)="switchView('board')">
+            <a class="tab flex items-center gap-2" [class.tab-active]="currentView === 'board'"
+                [class.!bg-base-100]="currentView === 'board'" [class.!text-base-content]="currentView === 'board'"
+                (click)="switchView('board')">
                 <lucide-icon name="LayoutGrid" class="w-4 h-4"></lucide-icon> Board
             </a>
-            <a class="tab flex items-center gap-2"
-               [class.tab-active]="currentView === 'list'"
-               (click)="switchView('list')">
+            <a class="tab flex items-center gap-2" [class.tab-active]="currentView === 'list'"
+                (click)="switchView('list')">
                 <lucide-icon name="List" class="w-4 h-4"></lucide-icon> List
             </a>
-            <a class="tab flex items-center gap-2"
-               [class.tab-active]="currentView === 'timeline'"
-               (click)="switchView('timeline')">
+            <a class="tab flex items-center gap-2" [class.tab-active]="currentView === 'timeline'"
+                (click)="switchView('timeline')">
                 <lucide-icon name="BarChart3" class="w-4 h-4"></lucide-icon> Timeline
             </a>
         </div>
@@ -43,81 +39,80 @@
         <div class="kanban-board-container h-full overflow-x-auto overflow-y-hidden">
             <div class="kanban-board flex gap-4 p-4 h-full" style="min-width: max-content;">
                 <!-- Loop over columns -->
-                <div *ngFor="let column of board.columns" 
-                     class="kanban-column bg-base-200/50 rounded-lg p-3 flex flex-col"
-                     style="width: 300px; min-width: 300px;"
-                     (drop)="onTaskDrop($event, column)"
-                     (dragover)="onDragOver($event)">
+                <div *ngFor="let column of board.columns"
+                    class="kanban-column bg-base-200/50 rounded-lg p-3 flex flex-col"
+                    style="width: 300px; min-width: 300px;" (drop)="onTaskDrop($event, column)"
+                    (dragover)="onDragOver($event)">
                     <!-- Column Header -->
                     <div class="flex justify-between items-center mb-4 px-1 flex-shrink-0">
                         <div>
                             <h3 class="font-semibold text-base">{{ column.name }}</h3>
-                            <p class="text-xs text-base-content/60">{{ column.tasks.length }} Tasks, {{ getDoneTasks(column) }} done</p>
+                            <p class="text-xs text-base-content/60">{{ column.tasks.length }} Tasks, {{
+                                getDoneTasks(column) }} done</p>
                         </div>
                         <div class="dropdown dropdown-end">
                             <button class="btn btn-ghost btn-xs btn-circle" (click)="toggleColumnMenu(column.id)">
                                 <lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon>
                             </button>
-                            <ul *ngIf="columnMenuOpen[column.id]" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-10">
+                            <ul *ngIf="columnMenuOpen[column.id]"
+                                class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-10">
                                 <li><a (click)="editColumn(column); columnMenuOpen[column.id] = false">
-                                    <lucide-icon name="Edit" class="w-4 h-4"></lucide-icon> Rename
-                                </a></li>
-                                <li><a (click)="deleteColumn(column); columnMenuOpen[column.id] = false" class="text-error">
-                                    <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon> Delete
-                                </a></li>
+                                        <lucide-icon name="Edit" class="w-4 h-4"></lucide-icon> Rename
+                                    </a></li>
+                                <li><a (click)="deleteColumn(column); columnMenuOpen[column.id] = false"
+                                        class="text-error">
+                                        <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon> Delete
+                                    </a></li>
                             </ul>
                         </div>
                     </div>
-                    
+
                     <!-- Task Cards Container with Scroll -->
                     <div class="task-list flex-1 overflow-y-auto overflow-x-hidden mb-3 min-h-0">
                         <div class="flex flex-col gap-3 pr-1">
                             <!-- Loop over tasks -->
-                            <div *ngFor="let task of column.tasks" 
-                                 class="card bg-base-100 shadow-sm border-l-4 cursor-pointer hover:shadow-md transition-shadow group" 
-                                 [style.border-left-color]="getTaskBorderColor(task)"
-                                 [style.border-left-width.px]="4"
-                                 [attr.draggable]="true"
-                                 (dragstart)="onDragStart($event, task, column.id)"
-                                 (click)="onTaskClick(task)">
+                            <div *ngFor="let task of column.tasks"
+                                class="card bg-base-100 shadow-sm border-l-4 cursor-pointer hover:shadow-md transition-shadow group"
+                                [style.border-left-color]="getTaskBorderColor(task)" [style.border-left-width.px]="4"
+                                [attr.draggable]="true" (dragstart)="onDragStart($event, task, column.id)"
+                                (click)="onTaskClick(task)">
                                 <div class="card-body p-3">
                                     <!-- Task header with title and actions -->
                                     <div class="flex items-start justify-between mb-2">
-                                        <h4 class="font-medium text-sm flex-1" [ngClass]="{'line-through text-base-content/60': task.status === 'done'}">
+                                        <h4 class="font-medium text-sm flex-1"
+                                            [ngClass]="{'line-through text-base-content/60': task.status === 'done'}">
                                             {{ task.title }}
                                         </h4>
-                                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button *ngIf="task.status !== 'done'" 
-                                                    class="btn btn-ghost btn-xs btn-circle"
-                                                    (click)="markTaskAsDone(task, $event)"
-                                                    title="Mark as done">
+                                        <div
+                                            class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button *ngIf="task.status !== 'done'"
+                                                class="btn btn-ghost btn-xs btn-circle"
+                                                (click)="markTaskAsDone(task, $event)" title="Mark as done">
                                                 <lucide-icon name="Check" class="w-3 h-3"></lucide-icon>
                                             </button>
-                                            <button *ngIf="task.status === 'done'" 
-                                                    class="btn btn-ghost btn-xs btn-circle"
-                                                    (click)="reopenTask(task, $event)"
-                                                    title="Reopen task">
+                                            <button *ngIf="task.status === 'done'"
+                                                class="btn btn-ghost btn-xs btn-circle"
+                                                (click)="reopenTask(task, $event)" title="Reopen task">
                                                 <lucide-icon name="RotateCcw" class="w-3 h-3"></lucide-icon>
                                             </button>
                                             <button class="btn btn-ghost btn-xs btn-circle"
-                                                    (click)="deleteTask(task, $event)"
-                                                    title="Delete task">
+                                                (click)="deleteTask(task, $event)" title="Delete task">
                                                 <lucide-icon name="Trash2" class="w-3 h-3"></lucide-icon>
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <!-- Status and Priority badges -->
                                     <div class="flex gap-2 mb-2">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
-                                              [ngClass]="{
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
+                                            [ngClass]="{
                                                 'bg-info/20 text-info border border-info/30': task.status === 'todo',
                                                 'bg-warning/20 text-warning border border-warning/30': task.status === 'in_progress',
                                                 'bg-secondary/20 text-secondary border border-secondary/30': task.status === 'review',
                                                 'bg-success/20 text-success border border-success/30': task.status === 'done'
                                               }">
-                                            <span class="w-1.5 h-1.5 mr-1.5 rounded-full"
-                                                  [ngClass]="{
+                                            <span class="w-1.5 h-1.5 mr-1.5 rounded-full" [ngClass]="{
                                                     'bg-info': task.status === 'todo',
                                                     'bg-warning': task.status === 'in_progress',
                                                     'bg-secondary': task.status === 'review',
@@ -125,56 +120,65 @@
                                                   }"></span>
                                             {{ getStatusLabel(task.status) }}
                                         </span>
-                                        <span *ngIf="task.priority" 
-                                              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
-                                              [ngClass]="{
+                                        <span *ngIf="task.priority"
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
+                                            [ngClass]="{
                                                 'bg-error/20 text-error border border-error/30': task.priority === 'urgent',
                                                 'bg-warning/20 text-warning border border-warning/30': task.priority === 'high',
                                                 'bg-info/20 text-info border border-info/30': task.priority === 'medium',
                                                 'bg-base-300/50 text-base-content/70 border border-base-300': task.priority === 'low'
                                               }">
-                                            <lucide-icon 
+                                            <lucide-icon
                                                 [name]="task.priority === 'urgent' ? 'Zap' : task.priority === 'high' ? 'ChevronUp' : task.priority === 'medium' ? 'Minus' : 'ChevronDown'"
                                                 class="w-3 h-3 mr-1">
                                             </lucide-icon>
                                             {{ task.priority | titlecase }}
                                         </span>
                                     </div>
-                                    
+
                                     <!-- Description preview if exists -->
                                     <p *ngIf="task.description" class="text-xs text-base-content/70 mt-1 line-clamp-2">
                                         {{ task.description }}
                                     </p>
-                                    
+
                                     <!-- Labels -->
-                                    <div *ngIf="task.labels && task.labels.length > 0" class="flex flex-wrap gap-1 my-2">
-                                        <span *ngFor="let label of task.labels" 
-                                              class="badge text-xs" 
-                                              [style.background-color]="label.color + '20'" 
-                                              [style.color]="label.color">
+                                    <div *ngIf="task.labels && task.labels.length > 0"
+                                        class="flex flex-wrap gap-1 my-2">
+                                        <span *ngFor="let label of task.labels" class="badge text-xs"
+                                            [style.background-color]="label.color + '20'" [style.color]="label.color">
                                             {{ label.text }}
                                         </span>
                                     </div>
-                                    
-                                    <!-- Footer: Assignee and Due Date -->
+
+                                    <!-- Footer: Assignees and Due Date -->
                                     <div class="flex justify-between items-center mt-2">
-                                        <div *ngIf="task.assignee" class="avatar-group -space-x-3 rtl:space-x-reverse">
-                                            <div class="avatar border-none">
+                                        <div *ngIf="task.assignees && task.assignees.length > 0"
+                                            class="avatar-group -space-x-3 rtl:space-x-reverse">
+                                            <div *ngFor="let assignee of task.assignees.slice(0, 3)"
+                                                class="avatar border-none">
                                                 <div class="w-6">
-                                                    <div *ngIf="task.assignee.avatar_url; else assigneeInitials" 
-                                                         class="w-full h-full rounded-full overflow-hidden">
-                                                        <img [src]="task.assignee.avatar_url" 
-                                                             [alt]="task.assignee.first_name + ' ' + task.assignee.last_name" />
+                                                    <div class="w-full h-full rounded-full overflow-hidden">
+                                                        <img [src]="getUserAvatarUrl(assignee)"
+                                                            [alt]="assignee.first_name + ' ' + assignee.last_name" />
                                                     </div>
                                                     <ng-template #assigneeInitials>
-                                                        <div class="w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center text-xs font-semibold">
-                                                            {{ (task.assignee.first_name.charAt(0) || '') + (task.assignee.last_name.charAt(0) || '') }}
+                                                        <div
+                                                            class="w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center text-xs font-semibold">
+                                                            {{ (assignee.first_name.charAt(0) || '') +
+                                                            (assignee.last_name.charAt(0) || '') }}
                                                         </div>
                                                     </ng-template>
                                                 </div>
                                             </div>
+                                            <div *ngIf="task.assignees.length > 3" class="avatar border-none">
+                                                <div
+                                                    class="w-6 rounded-full bg-base-300 text-base-content flex items-center justify-center text-xs font-semibold">
+                                                    +{{ task.assignees.length - 3 }}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div *ngIf="task.due_date" class="text-xs" [ngClass]="{'text-error': isOverdue(task.due_date), 'text-base-content/60': !isOverdue(task.due_date)}">
+                                        <div *ngIf="task.due_date" class="text-xs"
+                                            [ngClass]="{'text-error': isOverdue(task.due_date), 'text-base-content/60': !isOverdue(task.due_date)}">
                                             {{ task.due_date | date:'MMM d' }}
                                         </div>
                                     </div>
@@ -182,7 +186,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Add Task Button -->
                     <button class="btn btn-ghost btn-sm w-full flex-shrink-0" (click)="openAddTaskModal(column)">
                         <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon> Add task
@@ -204,16 +208,17 @@
         <div class="h-full overflow-y-auto px-4">
             <!-- List Header -->
             <div class="sticky top-0 bg-base-100 z-10 py-3 border-b border-base-200">
-                <div class="grid grid-cols-12 gap-4 text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+                <div
+                    class="grid grid-cols-12 gap-4 text-xs font-semibold text-base-content/60 uppercase tracking-wider">
                     <div class="col-span-4">Task</div>
                     <div class="col-span-2">Status</div>
                     <div class="col-span-2">Priority</div>
-                    <div class="col-span-2">Assignee</div>
+                    <div class="col-span-2">Assignees</div>
                     <div class="col-span-1">Due Date</div>
                     <div class="col-span-1">Actions</div>
                 </div>
             </div>
-            
+
             <!-- Task List -->
             <div class="py-2">
                 <ng-container *ngFor="let column of board.columns">
@@ -223,44 +228,44 @@
                             <h3 class="font-semibold text-sm text-base-content/80">{{ column.name }}</h3>
                             <span class="text-xs text-base-content/50">{{ column.tasks.length }} tasks</span>
                         </div>
-                        
+
                         <!-- Tasks in this column -->
                         <div class="space-y-1">
-                            <div *ngFor="let task of column.tasks" 
-                                 class="grid grid-cols-12 gap-4 items-center py-3 px-2 rounded-lg hover:bg-base-200/50 transition-colors cursor-pointer group border-l-4"
-                                 [style.border-left-color]="getTaskBorderColor(task)"
-                                 (click)="onTaskClick(task)">
-                                
+                            <div *ngFor="let task of column.tasks"
+                                class="grid grid-cols-12 gap-4 items-center py-3 px-2 rounded-lg hover:bg-base-200/50 transition-colors cursor-pointer group border-l-4"
+                                [style.border-left-color]="getTaskBorderColor(task)" (click)="onTaskClick(task)">
+
                                 <!-- Task Title & Description -->
                                 <div class="col-span-4">
-                                    <h4 class="font-medium text-sm mb-1" [ngClass]="{'line-through text-base-content/60': task.status === 'done'}">
+                                    <h4 class="font-medium text-sm mb-1"
+                                        [ngClass]="{'line-through text-base-content/60': task.status === 'done'}">
                                         {{ task.title }}
                                     </h4>
                                     <p *ngIf="task.description" class="text-xs text-base-content/60 line-clamp-1">
                                         {{ task.description }}
                                     </p>
                                     <!-- Labels -->
-                                    <div *ngIf="task.labels && task.labels.length > 0" class="flex flex-wrap gap-1 mt-1">
-                                        <span *ngFor="let label of task.labels" 
-                                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs" 
-                                              [style.background-color]="label.color + '20'" 
-                                              [style.color]="label.color">
+                                    <div *ngIf="task.labels && task.labels.length > 0"
+                                        class="flex flex-wrap gap-1 mt-1">
+                                        <span *ngFor="let label of task.labels"
+                                            class="inline-flex items-center px-1.5 py-0.5 rounded text-xs"
+                                            [style.background-color]="label.color + '20'" [style.color]="label.color">
                                             {{ label.text }}
                                         </span>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Status -->
                                 <div class="col-span-2">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
-                                          [ngClass]="{
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
+                                        [ngClass]="{
                                             'bg-info/20 text-info border border-info/30': task.status === 'todo',
                                             'bg-warning/20 text-warning border border-warning/30': task.status === 'in_progress',
                                             'bg-secondary/20 text-secondary border border-secondary/30': task.status === 'review',
                                             'bg-success/20 text-success border border-success/30': task.status === 'done'
                                           }">
-                                        <span class="w-1.5 h-1.5 mr-1.5 rounded-full"
-                                              [ngClass]="{
+                                        <span class="w-1.5 h-1.5 mr-1.5 rounded-full" [ngClass]="{
                                                 'bg-info': task.status === 'todo',
                                                 'bg-warning': task.status === 'in_progress',
                                                 'bg-secondary': task.status === 'review',
@@ -269,18 +274,18 @@
                                         {{ getStatusLabel(task.status) }}
                                     </span>
                                 </div>
-                                
+
                                 <!-- Priority -->
                                 <div class="col-span-2">
-                                    <span *ngIf="task.priority" 
-                                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
-                                          [ngClass]="{
+                                    <span *ngIf="task.priority"
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
+                                        [ngClass]="{
                                             'bg-error/20 text-error border border-error/30': task.priority === 'urgent',
                                             'bg-warning/20 text-warning border border-warning/30': task.priority === 'high',
                                             'bg-info/20 text-info border border-info/30': task.priority === 'medium',
                                             'bg-base-300/50 text-base-content/70 border border-base-300': task.priority === 'low'
                                           }">
-                                        <lucide-icon 
+                                        <lucide-icon
                                             [name]="task.priority === 'urgent' ? 'Zap' : task.priority === 'high' ? 'ChevronUp' : task.priority === 'medium' ? 'Minus' : 'ChevronDown'"
                                             class="w-3 h-3 mr-1">
                                         </lucide-icon>
@@ -288,59 +293,69 @@
                                     </span>
                                     <span *ngIf="!task.priority" class="text-xs text-base-content/40">—</span>
                                 </div>
-                                
-                                <!-- Assignee -->
+
+                                <!-- Assignees -->
                                 <div class="col-span-2">
-                                    <div *ngIf="task.assignee" class="flex items-center gap-2">
-                                        <div class="avatar">
-                                            <div class="w-6 rounded-full">
-                                                <div *ngIf="task.assignee.avatar_url; else assigneeInitialsList" 
-                                                     class="w-full h-full rounded-full overflow-hidden">
-                                                    <img [src]="task.assignee.avatar_url" 
-                                                         [alt]="task.assignee.first_name + ' ' + task.assignee.last_name" />
-                                                </div>
-                                                <ng-template #assigneeInitialsList>
-                                                    <div class="w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center text-xs font-semibold">
-                                                        {{ (task.assignee.first_name.charAt(0) || '') + (task.assignee.last_name.charAt(0) || '') }}
+                                    <div *ngIf="task.assignees && task.assignees.length > 0"
+                                        class="flex items-center gap-2">
+                                        <div class="avatar-group -space-x-2">
+                                            <div *ngFor="let assignee of task.assignees.slice(0, 2)" class="avatar">
+                                                <div class="w-6 rounded-full">
+                                                    <div class="w-full h-full rounded-full overflow-hidden">
+                                                        <img [src]="getUserAvatarUrl(assignee)"
+                                                            [alt]="assignee.first_name + ' ' + assignee.last_name" />
                                                     </div>
-                                                </ng-template>
+                                                    <ng-template #assigneeInitialsList>
+                                                        <div
+                                                            class="w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center text-xs font-semibold">
+                                                            {{ (assignee.first_name.charAt(0) || '') +
+                                                            (assignee.last_name.charAt(0) || '') }}
+                                                        </div>
+                                                    </ng-template>
+                                                </div>
+                                            </div>
+                                            <div *ngIf="task.assignees.length > 2" class="avatar">
+                                                <div
+                                                    class="w-6 rounded-full bg-base-300 text-base-content flex items-center justify-center text-xs font-semibold">
+                                                    +{{ task.assignees.length - 2 }}
+                                                </div>
                                             </div>
                                         </div>
-                                        <span class="text-xs text-base-content/80 truncate">
-                                            {{ task.assignee.first_name }} {{ task.assignee.last_name }}
+                                        <span *ngIf="task.assignees.length === 1"
+                                            class="text-xs text-base-content/80 truncate">
+                                            {{ task.assignees[0].first_name }} {{ task.assignees[0].last_name }}
+                                        </span>
+                                        <span *ngIf="task.assignees.length > 1" class="text-xs text-base-content/80">
+                                            {{ task.assignees.length }} assignees
                                         </span>
                                     </div>
-                                    <span *ngIf="!task.assignee" class="text-xs text-base-content/40">Unassigned</span>
+                                    <span *ngIf="!task.assignees || task.assignees.length === 0"
+                                        class="text-xs text-base-content/40">Unassigned</span>
                                 </div>
-                                
+
                                 <!-- Due Date -->
                                 <div class="col-span-1">
-                                    <span *ngIf="task.due_date" 
-                                          class="text-xs"
-                                          [ngClass]="{'text-error font-medium': isOverdue(task.due_date), 'text-base-content/70': !isOverdue(task.due_date)}">
+                                    <span *ngIf="task.due_date" class="text-xs"
+                                        [ngClass]="{'text-error font-medium': isOverdue(task.due_date), 'text-base-content/70': !isOverdue(task.due_date)}">
                                         {{ task.due_date | date:'MMM d' }}
                                     </span>
                                     <span *ngIf="!task.due_date" class="text-xs text-base-content/40">—</span>
                                 </div>
-                                
+
                                 <!-- Actions -->
                                 <div class="col-span-1">
-                                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button *ngIf="task.status !== 'done'" 
-                                                class="btn btn-ghost btn-xs btn-circle"
-                                                (click)="markTaskAsDone(task, $event)"
-                                                title="Mark as done">
+                                    <div
+                                        class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button *ngIf="task.status !== 'done'" class="btn btn-ghost btn-xs btn-circle"
+                                            (click)="markTaskAsDone(task, $event)" title="Mark as done">
                                             <lucide-icon name="Check" class="w-3 h-3"></lucide-icon>
                                         </button>
-                                        <button *ngIf="task.status === 'done'" 
-                                                class="btn btn-ghost btn-xs btn-circle"
-                                                (click)="reopenTask(task, $event)"
-                                                title="Reopen task">
+                                        <button *ngIf="task.status === 'done'" class="btn btn-ghost btn-xs btn-circle"
+                                            (click)="reopenTask(task, $event)" title="Reopen task">
                                             <lucide-icon name="RotateCcw" class="w-3 h-3"></lucide-icon>
                                         </button>
                                         <button class="btn btn-ghost btn-xs btn-circle"
-                                                (click)="deleteTask(task, $event)"
-                                                title="Delete task">
+                                            (click)="deleteTask(task, $event)" title="Delete task">
                                             <lucide-icon name="Trash2" class="w-3 h-3"></lucide-icon>
                                         </button>
                                     </div>
@@ -349,7 +364,7 @@
                         </div>
                     </div>
                 </ng-container>
-                
+
                 <!-- Empty state for list view -->
                 <div *ngIf="!board.columns || getAllTasks().length === 0" class="text-center py-12">
                     <lucide-icon name="List" class="w-12 h-12 mx-auto text-base-content/30 mb-4"></lucide-icon>
@@ -384,7 +399,8 @@
         <div class="h-full overflow-x-auto overflow-y-hidden">
             <div class="flex gap-4 p-4 h-full" style="min-width: max-content;">
                 <!-- Skeleton columns -->
-                <div *ngFor="let i of [1,2,3,4]" class="bg-base-200/50 rounded-lg p-3 flex flex-col animate-pulse" style="width: 300px; min-width: 300px;">
+                <div *ngFor="let i of [1,2,3,4]" class="bg-base-200/50 rounded-lg p-3 flex flex-col animate-pulse"
+                    style="width: 300px; min-width: 300px;">
                     <!-- Column header skeleton -->
                     <div class="flex justify-between items-center mb-4 px-1">
                         <div>
@@ -393,25 +409,26 @@
                         </div>
                         <div class="h-6 w-6 bg-base-300 rounded-full"></div>
                     </div>
-                    
+
                     <!-- Task cards skeleton -->
                     <div class="flex-1 overflow-y-auto overflow-x-hidden mb-3 min-h-0">
                         <div class="flex flex-col gap-3 pr-1">
-                            <div *ngFor="let j of [1,2,3]" class="card bg-base-100 shadow-sm border-l-4 border-base-300">
+                            <div *ngFor="let j of [1,2,3]"
+                                class="card bg-base-100 shadow-sm border-l-4 border-base-300">
                                 <div class="card-body p-3">
                                     <!-- Task title skeleton -->
                                     <div class="h-4 w-3/4 bg-base-300 rounded mb-2"></div>
-                                    
+
                                     <!-- Badges skeleton -->
                                     <div class="flex gap-2 mb-2">
                                         <div class="h-5 w-16 bg-base-300 rounded-full"></div>
                                         <div class="h-5 w-12 bg-base-300 rounded-full"></div>
                                     </div>
-                                    
+
                                     <!-- Description skeleton -->
                                     <div class="h-3 w-full bg-base-300 rounded mb-1"></div>
                                     <div class="h-3 w-2/3 bg-base-300 rounded mb-3"></div>
-                                    
+
                                     <!-- Footer skeleton -->
                                     <div class="flex justify-between items-center">
                                         <div class="h-6 w-6 bg-base-300 rounded-full"></div>
@@ -421,11 +438,11 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Add task button skeleton -->
                     <div class="h-8 w-full bg-base-300 rounded"></div>
                 </div>
-                
+
                 <!-- Add section button skeleton -->
                 <div class="flex items-center" style="width: 300px; min-width: 300px;">
                     <div class="h-10 w-full bg-base-300 rounded animate-pulse"></div>
@@ -449,41 +466,36 @@
                 <label class="label">
                     <span class="label-text">Task Title</span>
                 </label>
-                <input type="text" 
-                       [(ngModel)]="newTaskTitle" 
-                       placeholder="Enter task title" 
-                       class="input input-bordered w-full" 
-                       required />
+                <input type="text" [(ngModel)]="newTaskTitle" name="newTaskTitle" placeholder="What needs to be done?"
+                    class="input input-bordered w-full" required />
             </div>
-            
+
             <div class="form-control w-full mb-4">
                 <label class="label">
                     <span class="label-text">Description (optional)</span>
                 </label>
-                <textarea [(ngModel)]="newTaskDescription" 
-                          class="textarea textarea-bordered" 
-                          placeholder="Add a description..."
-                          rows="3"></textarea>
+                <textarea [(ngModel)]="newTaskDescription" name="newTaskDescription" class="textarea textarea-bordered"
+                    placeholder="Provide additional details about this task..." rows="3"></textarea>
             </div>
-            
+
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Priority</span>
                     </label>
-                    <select [(ngModel)]="newTaskPriority" class="select select-bordered">
+                    <select [(ngModel)]="newTaskPriority" name="newTaskPriority" class="select select-bordered">
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                         <option value="urgent">Urgent</option>
                     </select>
                 </div>
-                
+
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Status</span>
                     </label>
-                    <select [(ngModel)]="newTaskStatus" class="select select-bordered">
+                    <select [(ngModel)]="newTaskStatus" name="newTaskStatus" class="select select-bordered">
                         <option value="todo">To Do</option>
                         <option value="in_progress">In Progress</option>
                         <option value="review">Review</option>
@@ -491,27 +503,23 @@
                     </select>
                 </div>
             </div>
-            
+
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Due Date (optional)</span>
                     </label>
-                    <input type="date" 
-                           [(ngModel)]="newTaskDueDate" 
-                           class="input input-bordered" />
+                    <input type="date" [(ngModel)]="newTaskDueDate" name="newTaskDueDate" class="input input-bordered" />
                 </div>
-                
+
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Task Color</span>
                     </label>
-                    <input type="color" 
-                           [(ngModel)]="newTaskColor" 
-                           class="input input-bordered h-11" />
+                    <input type="color" [(ngModel)]="newTaskColor" name="newTaskColor" class="input input-bordered h-11" />
                 </div>
             </div>
-            
+
             <div class="modal-action">
                 <button type="button" class="btn" (click)="closeAddTaskModal()">Cancel</button>
                 <button type="submit" class="btn btn-primary" [disabled]="!newTaskTitle.trim()">Create Task</button>
@@ -530,22 +538,17 @@
                 <label class="label">
                     <span class="label-text">Section Name</span>
                 </label>
-                <input type="text" 
-                       [(ngModel)]="newColumnName" 
-                       placeholder="Enter section name" 
-                       class="input input-bordered w-full" 
-                       required />
+                <input type="text" [(ngModel)]="newColumnName" name="newColumnName" placeholder="e.g., To Do, In Progress, Done"
+                    class="input input-bordered w-full" required />
             </div>
-            
+
             <div class="form-control w-full mb-4">
                 <label class="label">
                     <span class="label-text">Color</span>
                 </label>
-                <input type="color" 
-                       [(ngModel)]="newColumnColor" 
-                       class="input input-bordered w-full h-12" />
+                <input type="color" [(ngModel)]="newColumnColor" name="newColumnColor" class="input input-bordered w-full h-12" />
             </div>
-            
+
             <div class="modal-action">
                 <button type="button" class="btn" (click)="closeAddSectionModal()">Cancel</button>
                 <button type="submit" class="btn btn-primary" [disabled]="!newColumnName.trim()">Create Section</button>
@@ -554,4 +557,3 @@
     </div>
     <div class="modal-backdrop" (click)="closeAddSectionModal()"></div>
 </div>
-

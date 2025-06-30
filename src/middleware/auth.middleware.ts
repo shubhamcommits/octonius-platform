@@ -22,6 +22,9 @@ import jwt from 'jsonwebtoken'
 // Import JWT Config
 import { getJWTConfig } from '../config/jwt'
 
+// Import Constants
+import { DEFAULT_AVATAR_URL } from '../config/constants'
+
 /**
  * This function is responsible for verifying the access token
  * @param req - Express request object
@@ -102,7 +105,7 @@ export const verifyAccessToken = async (req: any, res: Response, next: NextFunct
                     first_name: user?.first_name,
                     last_name: user?.last_name,
                     current_workplace_id: user?.current_workplace_id,
-                    avatar_url: user?.avatar_url,
+                    avatar_url: user?.avatar_url || DEFAULT_AVATAR_URL,
                     iat: decoded.iat,
                     exp: decoded.exp
                 }

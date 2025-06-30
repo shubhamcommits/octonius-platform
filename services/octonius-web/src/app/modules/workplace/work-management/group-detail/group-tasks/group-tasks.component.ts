@@ -5,6 +5,7 @@ import { GroupTaskService, Task, TaskColumn, Board } from '../../../services/gro
 import { WorkGroupService, WorkGroup } from '../../../services/work-group.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { environment } from '../../../../../../environments/environment';
 
 @Component({
   selector: 'app-group-tasks',
@@ -131,7 +132,9 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
         tasks = tasks.filter(task => task.status === this.filterStatus);
       }
       if (this.filterAssignee !== 'all') {
-        tasks = tasks.filter(task => task.assigned_to === this.filterAssignee);
+        tasks = tasks.filter(task => 
+          task.assignees && task.assignees.some(assignee => assignee.uuid === this.filterAssignee)
+        );
       }
       if (this.filterPriority !== 'all') {
         tasks = tasks.filter(task => task.priority === this.filterPriority);
@@ -150,7 +153,9 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
             compareValue = priorityOrder[a.priority] - priorityOrder[b.priority];
             break;
           case 'assignee':
-            compareValue = (a.assignee?.first_name || '').localeCompare(b.assignee?.first_name || '');
+            const getFirstAssigneeName = (task: Task) => 
+              task.assignees && task.assignees.length > 0 ? task.assignees[0].first_name : '';
+            compareValue = getFirstAssigneeName(a).localeCompare(getFirstAssigneeName(b));
             break;
           case 'created':
             compareValue = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -231,8 +236,8 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
   // Task actions
   openAddTaskModal(column: any): void {
     this.selectedColumn = column;
-    this.showAddTaskModal = true;
     this.resetTaskForm();
+    this.showAddTaskModal = true;
   }
 
   closeAddTaskModal(): void {
@@ -241,6 +246,7 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
   }
 
   resetTaskForm(): void {
+    // Clear all form fields explicitly
     this.newTaskTitle = '';
     this.newTaskDescription = '';
     this.newTaskPriority = 'medium';
@@ -248,6 +254,15 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
     this.newTaskDueDate = '';
     this.newTaskAssignee = '';
     this.newTaskColor = '#3B82F6';
+    
+    // Force change detection to ensure form is properly reset
+    setTimeout(() => {
+      // Additional reset to clear any browser form persistence
+      const titleInput = document.querySelector('input[name="newTaskTitle"]') as HTMLInputElement;
+      const descInput = document.querySelector('textarea[name="newTaskDescription"]') as HTMLTextAreaElement;
+      if (titleInput) titleInput.value = '';
+      if (descInput) descInput.value = '';
+    }, 0);
   }
 
   createTask(): void {
@@ -449,5 +464,10 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
     return this.board.columns.reduce((allTasks: Task[], column) => {
       return allTasks.concat(column.tasks);
     }, []);
+  }
+
+  // Helper method to get user avatar with fallback
+  getUserAvatarUrl(user: any): string {
+    return user?.avatar_url || environment.defaultAvatarUrl;
   }
 }

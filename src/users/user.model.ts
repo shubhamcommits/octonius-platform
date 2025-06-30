@@ -4,6 +4,9 @@ import { Model, DataTypes, Optional } from 'sequelize'
 // Import Database Class
 import { db } from '../sequelize'
 
+// Import Constants
+import { DEFAULT_AVATAR_URL } from '../config/constants'
+
 // Define user attributes (passwordless authentication)
 interface UserAttributes {
     uuid: string
@@ -88,6 +91,28 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
             as: 'task_comments'
         })
     }
+
+    // Virtual getter for avatar URL with fallback
+    get avatarUrlWithFallback(): string {
+        return this.avatar_url || DEFAULT_AVATAR_URL
+    }
+
+    // Method to get user display data with fallbacks
+    getUserDisplay() {
+        return {
+            uuid: this.uuid,
+            first_name: this.first_name,
+            last_name: this.last_name,
+            email: this.email,
+            avatar_url: this.avatarUrlWithFallback,
+            display_name: this.first_name || this.last_name 
+                ? `${this.first_name || ''} ${this.last_name || ''}`.trim()
+                : this.email,
+            initials: this.first_name || this.last_name
+                ? `${this.first_name?.charAt(0) || ''}${this.last_name?.charAt(0) || ''}`
+                : this.email.charAt(0).toUpperCase()
+        }
+    }
 }
 
 User.init({
@@ -103,14 +128,14 @@ User.init({
         allowNull: false
     },
     first_name: {
-        type: DataTypes.CHAR(50),
+        type: DataTypes.STRING(50),
         allowNull: true,
         validate: {
             len: [0, 50]
         }
     },
     last_name: {
-        type: DataTypes.CHAR(50),
+        type: DataTypes.STRING(50),
         allowNull: true,
         validate: {
             len: [0, 50]

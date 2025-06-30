@@ -4,6 +4,8 @@ import { WorkGroupService, WorkGroup } from '../../../services/work-group.servic
 import { GroupActivityService, GroupActivityPost } from '../../../services/group-activity.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { Subscription } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { environment } from '../../../../../../environments/environment';
 
 @Component({
   selector: 'app-group-activity',
@@ -24,7 +26,8 @@ export class GroupActivityComponent implements OnInit, OnDestroy, AfterViewInit 
     private activityService: GroupActivityService,
     private authService: AuthService,
     private workGroupService: WorkGroupService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -165,5 +168,10 @@ export class GroupActivityComponent implements OnInit, OnDestroy, AfterViewInit 
       event.preventDefault();
       this.addComment(post);
     }
+  }
+
+  // Helper method to get user avatar with fallback
+  getUserAvatarUrl(user: any): string {
+    return user?.avatar_url || environment.defaultAvatarUrl;
   }
 }

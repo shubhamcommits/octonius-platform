@@ -73,14 +73,19 @@ export interface TaskCreationData {
     color?: string
     due_date?: Date
     start_date?: Date
-    assigned_to?: string
     labels?: Array<{
         text: string
         color: string
     }>
     metadata?: {
         estimated_hours?: number
-        custom_fields?: Record<string, any>
+        time_entries?: Array<{
+            user_id: string
+            hours: number
+            description?: string
+            date: Date
+        }>
+        custom_fields?: Record<string, string>
     }
 }
 
@@ -97,7 +102,6 @@ export interface TaskUpdateData {
     start_date?: Date | null
     completed_at?: Date | null
     completed_by?: string | null
-    assigned_to?: string | null
     labels?: Array<{
         text: string
         color: string
@@ -105,7 +109,13 @@ export interface TaskUpdateData {
     metadata?: {
         estimated_hours?: number
         actual_hours?: number
-        custom_fields?: Record<string, any>
+        time_entries?: Array<{
+            user_id: string
+            hours: number
+            description?: string
+            date: Date
+        }>
+        custom_fields?: Record<string, string>
     }
 }
 

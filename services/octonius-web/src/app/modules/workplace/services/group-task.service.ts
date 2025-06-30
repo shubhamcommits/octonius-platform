@@ -19,7 +19,6 @@ export interface Task {
   completed_at: Date | null;
   completed_by: string | null;
   created_by: string;
-  assigned_to: string | null;
   labels: Array<{
     text: string;
     color: string;
@@ -33,7 +32,13 @@ export interface Task {
   metadata: {
     estimated_hours?: number;
     actual_hours?: number;
-    custom_fields?: Record<string, any>;
+    time_entries?: Array<{
+      user_id: string;
+      hours: number;
+      description?: string;
+      date: Date;
+    }>;
+    custom_fields?: Record<string, string>; // Simplified to key-value pairs
   };
   created_at: string;
   updated_at: string;
@@ -43,12 +48,16 @@ export interface Task {
     last_name: string;
     avatar_url?: string;
   };
-  assignee?: {
+  assignees?: Array<{
     uuid: string;
     first_name: string;
     last_name: string;
     avatar_url?: string;
-  };
+    TaskAssignee?: {
+      assigned_at: string;
+      assigned_by: string;
+    };
+  }>;
 }
 
 export interface TaskColumn {
@@ -71,6 +80,14 @@ export interface Board {
     color: string;
     tasks: Task[];
   }>;
+}
+
+export interface GroupMember {
+  uuid: string;
+  first_name: string;
+  last_name: string;
+  avatar_url?: string;
+  email: string;
 }
 
 interface ApiResponse<T> {
@@ -295,5 +312,79 @@ export class GroupTaskService {
    */
   reopenTask(groupId: string, taskId: string): Observable<Task> {
     return this.updateTask(groupId, taskId, { status: 'todo' });
+  }
+
+  /**
+   * Assign users to a task
+   * @param groupId The group UUID
+   * @param taskId The task UUID
+   * @param userIds Array of user UUIDs to assign
+   * @returns Observable of the updated task
+   */
+  assignUsersToTask(groupId: string, taskId: string, userIds: string[]): Observable<Task> {
+    return this.http.post<ApiResponse<Task>>(`${this.apiUrl}/${groupId}/tasks/${taskId}/assignees`, { userIds })
+      .pipe(
+        map(response => response.data),
+        catchError(error => {
+          console.error('Error assigning users to task:', error);
+          return throwError(() => new Error('Failed to assign users to task'));
+        })
+      );
+  }
+
+  /**
+   * Get group members who can be assigned to tasks
+   * @param groupId The group UUID
+   * @returns Observable of group members
+   */
+  getGroupMembers(groupId: string): Observable<GroupMember[]> {
+    return this.http.get<ApiResponse<GroupMember[]>>(`${this.apiUrl}/${groupId}/tasks/members`)
+      .pipe(
+        map(response => response.data),
+        catchError(error => {
+          console.error('Error fetching group members:', error);
+          return throwError(() => new Error('Failed to load group members'));
+        })
+      );
+  }
+
+  /**
+   * Add a time entry to a task
+   * @param groupId The group UUID
+   * @param taskId The task UUID
+   * @param timeData Time entry data
+   * @returns Observable of the updated task
+   */
+  addTimeEntry(groupId: string, taskId: string, timeData: {
+    hours: number;
+    description?: string;
+    date?: Date;
+  }): Observable<Task> {
+    return this.http.post<ApiResponse<Task>>(`${this.apiUrl}/${groupId}/tasks/${taskId}/time-entries`, timeData)
+      .pipe(
+        map(response => response.data),
+        catchError(error => {
+          console.error('Error adding time entry:', error);
+          return throwError(() => new Error('Failed to add time entry'));
+        })
+      );
+  }
+
+  /**
+   * Update custom fields for a task
+   * @param groupId The group UUID
+   * @param taskId The task UUID
+   * @param customFields Custom fields to update
+   * @returns Observable of the updated task
+   */
+  updateCustomFields(groupId: string, taskId: string, customFields: Record<string, string>): Observable<Task> {
+    return this.http.put<ApiResponse<Task>>(`${this.apiUrl}/${groupId}/tasks/${taskId}/custom-fields`, customFields)
+      .pipe(
+        map(response => response.data),
+        catchError(error => {
+          console.error('Error updating custom fields:', error);
+          return throwError(() => new Error('Failed to update custom fields'));
+        })
+      );
   }
 } 

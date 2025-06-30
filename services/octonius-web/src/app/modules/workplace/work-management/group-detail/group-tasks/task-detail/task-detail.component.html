@@ -104,7 +104,7 @@
           <div *ngFor="let comment of comments" class="flex gap-3">
             <div class="flex-shrink-0">
               <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
-                <img [src]="comment.user?.avatar_url || 'https://i.pravatar.cc/150?u=' + comment.user?.uuid" 
+                <img [src]="getUserAvatarUrl(comment.user)" 
                      [alt]="getUserDisplayName(comment.user)" 
                      class="w-full h-full object-cover" />
               </div>
@@ -127,7 +127,7 @@
             <div class="flex gap-3">
               <div class="flex-shrink-0">
                 <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
-                  <img [src]="currentUser?.avatar_url || 'https://i.pravatar.cc/150?u=' + currentUser?.uuid" 
+                  <img [src]="getUserAvatarUrl(currentUser)" 
                        [alt]="getUserDisplayName(currentUser)" 
                        class="w-full h-full object-cover" />
                 </div>
@@ -169,50 +169,32 @@
 
     <!-- Right/Sidebar Column -->
     <div class="space-y-6">
-      <!-- Assignee Section -->
+      <!-- Assignees Section -->
       <div>
-        <h3 class="text-sm font-medium text-base-content/70 mb-3">Assignee</h3>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Assignees</h3>
         <div class="space-y-2">
-          <!-- Current Assignee (if exists) -->
-          <div *ngIf="task.assignee" class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200">
+          <!-- Current Assignees -->
+          <div *ngFor="let assignee of task.assignees" class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200">
             <div class="w-6 h-6 rounded-full overflow-hidden bg-base-300">
-              <img [src]="task.assignee.avatar_url || 'https://i.pravatar.cc/150?u=' + task.assignee.uuid" 
-                   [alt]="getUserDisplayName(task.assignee)"
+                             <img [src]="getUserAvatarUrl(assignee)" 
+                   [alt]="getUserDisplayName(assignee)"
                    class="w-full h-full object-cover" />
             </div>
-            <span class="text-sm font-medium flex-grow">{{ getUserDisplayName(task.assignee) }}</span>
-            <button class="text-base-content/40 hover:text-base-content/80 transition-colors">
+            <span class="text-sm font-medium flex-grow">{{ getUserDisplayName(assignee) }}</span>
+            <button class="text-base-content/40 hover:text-base-content/80 transition-colors" 
+                    (click)="removeAssignee(assignee.uuid)">
               <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
             </button>
           </div>
           
-          <!-- Mock additional assignees for demo (matching the image) -->
-          <div class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200">
-            <div class="w-6 h-6 rounded-full overflow-hidden bg-base-300">
-              <img src="https://i.pravatar.cc/150?u=martin" 
-                   alt="Martin Iglesias"
-                   class="w-full h-full object-cover" />
-            </div>
-            <span class="text-sm font-medium flex-grow">Martin Iglesias</span>
-            <button class="text-base-content/40 hover:text-base-content/80 transition-colors">
-              <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
-            </button>
-          </div>
-          
-          <div class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200">
-            <div class="w-6 h-6 rounded-full overflow-hidden bg-base-300">
-              <img src="https://i.pravatar.cc/150?u=lila" 
-                   alt="Lila Carter"
-                   class="w-full h-full object-cover" />
-            </div>
-            <span class="text-sm font-medium flex-grow">Lila Carter</span>
-            <button class="text-base-content/40 hover:text-base-content/80 transition-colors">
-              <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
-            </button>
+          <!-- No Assignees State -->
+          <div *ngIf="!task.assignees || task.assignees.length === 0" class="text-sm text-base-content/60 p-2">
+            No assignees yet
           </div>
           
           <!-- Add Assignee Button -->
-          <button class="flex items-center gap-2 p-2 text-base-content/60 hover:text-base-content/80 hover:bg-base-100 rounded-lg border border-dashed border-base-300 hover:border-base-400 transition-all w-full">
+          <button class="flex items-center gap-2 p-2 text-base-content/60 hover:text-base-content/80 hover:bg-base-100 rounded-lg border border-dashed border-base-300 hover:border-base-400 transition-all w-full"
+                  (click)="openAssigneeModal()">
             <div class="w-6 h-6 rounded-full bg-base-200 flex items-center justify-center">
               <lucide-icon name="Plus" class="w-3 h-3"></lucide-icon>
             </div>
@@ -274,48 +256,34 @@
       <div>
         <h3 class="text-sm font-medium text-base-content/70 mb-3">Custom fields</h3>
         <div class="space-y-2">
-          <!-- Stage Field -->
-          <div class="flex items-center justify-between p-2 bg-base-100 rounded-lg border border-base-200">
+          <!-- Dynamic Custom Fields -->
+          <div *ngFor="let field of getCustomFieldEntries(); trackBy: trackByFieldKey" 
+               class="group flex items-center justify-between p-2 rounded-lg border transition-all duration-200 hover:shadow-sm hover:scale-[1.02]"
+               [style.background-color]="getCustomFieldBackgroundColor(field.key)"
+               [style.border-color]="getCustomFieldColor(field.key) + '40'">
             <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded-sm bg-warning"></div>
-              <span class="text-sm font-medium">Stage</span>
+              <div class="w-4 h-4 rounded-sm shadow-sm"
+                   [style.background-color]="getCustomFieldColor(field.key)"></div>
+              <span class="text-sm font-medium">{{ field.key | titlecase }}</span>
             </div>
-            <div class="dropdown dropdown-end">
-              <label tabindex="0" class="flex items-center gap-1 text-sm text-base-content/60 cursor-pointer hover:text-base-content/80">
-                <span>pipeline</span>
-                <lucide-icon name="ChevronDown" class="w-3 h-3"></lucide-icon>
-              </label>
-              <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-32 border border-base-200">
-                <li><a>pipeline</a></li>
-                <li><a>design</a></li>
-                <li><a>development</a></li>
-                <li><a>testing</a></li>
-              </ul>
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-base-content/80 font-medium">{{ field.value }}</span>
+              <button class="opacity-0 group-hover:opacity-100 text-base-content/40 hover:text-error transition-all duration-200 p-1 rounded hover:bg-error/10" 
+                      (click)="removeCustomField(field.key)"
+                      title="Remove {{ field.key }} field">
+                <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
+              </button>
             </div>
           </div>
           
-          <!-- Priority Field -->
-          <div class="flex items-center justify-between p-2 bg-base-100 rounded-lg border border-base-200">
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded-sm bg-error"></div>
-              <span class="text-sm font-medium">Priority</span>
-            </div>
-            <div class="dropdown dropdown-end">
-              <label tabindex="0" class="flex items-center gap-1 text-sm text-base-content/60 cursor-pointer hover:text-base-content/80">
-                <span>{{ getPriorityLabel(task.priority).toUpperCase() }}</span>
-                <lucide-icon name="ChevronDown" class="w-3 h-3"></lucide-icon>
-              </label>
-              <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-32 border border-base-200">
-                <li><a (click)="updateTaskPriority('low')">LOW</a></li>
-                <li><a (click)="updateTaskPriority('medium')">MEDIUM</a></li>
-                <li><a (click)="updateTaskPriority('high')">HIGH</a></li>
-                <li><a (click)="updateTaskPriority('urgent')">URGENT</a></li>
-              </ul>
-            </div>
+          <!-- No Custom Fields State -->
+          <div *ngIf="!hasCustomFields()" class="text-sm text-base-content/60 p-2">
+            No custom fields added yet
           </div>
           
           <!-- Add Custom Field Button -->
-          <button class="flex items-center gap-2 p-2 text-base-content/60 hover:text-base-content/80 hover:bg-base-100 rounded-lg border border-dashed border-base-300 hover:border-base-400 transition-all w-full">
+          <button class="flex items-center gap-2 p-2 text-base-content/60 hover:text-base-content/80 hover:bg-base-100 rounded-lg border border-dashed border-base-300 hover:border-base-400 transition-all w-full"
+                  (click)="openCustomFieldsModal()">
             <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon>
             <span class="text-sm">Add Custom field</span>
           </button>
@@ -325,7 +293,7 @@
       <!-- Time Tracking Section -->
       <div>
         <h3 class="text-sm font-medium text-base-content/70 mb-3">Time tracking</h3>
-        <div *ngIf="task.metadata?.estimated_hours || task.metadata?.actual_hours" class="space-y-1">
+        <div *ngIf="task.metadata?.estimated_hours || task.metadata?.actual_hours" class="space-y-1 mb-3">
           <div *ngIf="task.metadata.estimated_hours" class="text-sm">
             Estimated: {{ task.metadata.estimated_hours }}h
           </div>
@@ -334,9 +302,13 @@
           </div>
         </div>
         <p *ngIf="!task.metadata?.estimated_hours && !task.metadata?.actual_hours" 
-           class="text-sm text-base-content/60">
+           class="text-sm text-base-content/60 mb-3">
           No time tracked yet
         </p>
+        <button class="btn btn-outline btn-sm w-full" (click)="openTimeEntryModal()">
+          <lucide-icon name="Clock" class="w-4 h-4"></lucide-icon>
+          Add Time Entry
+        </button>
       </div>
     </div>
   </div>
@@ -424,4 +396,121 @@
     <p class="text-base-content/70 mb-6">The task you're looking for doesn't exist or has been deleted.</p>
     <button class="btn btn-primary" routerLink="../">Back to Tasks</button>
   </div>
-</div> 
+</div>
+
+<!-- Assignee Modal -->
+<div class="modal" [class.modal-open]="showAssigneeModal">
+  <div class="modal-box w-11/12 max-w-md">
+    <h3 class="font-bold text-lg mb-4">Manage Assignees</h3>
+    
+    <div *ngIf="isLoadingMembers" class="flex justify-center py-4">
+      <div class="loading loading-spinner loading-md"></div>
+    </div>
+
+    <div *ngIf="!isLoadingMembers" class="space-y-2 max-h-60 overflow-y-auto">
+      <div *ngFor="let member of groupMembers" class="flex items-center gap-3 p-2 hover:bg-base-100 rounded">
+        <input type="checkbox" 
+               class="checkbox checkbox-sm" 
+               [checked]="assigneeForm.selectedUserIds.includes(member.uuid)"
+               (change)="toggleAssignee(member.uuid, $event)" />
+        <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
+                     <img [src]="getUserAvatarUrl(member)" 
+               [alt]="getUserDisplayName(member)"
+               class="w-full h-full object-cover" />
+        </div>
+        <span class="text-sm">{{ getUserDisplayName(member) }}</span>
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeAssigneeModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="saveAssignees()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Time Entry Modal -->
+<div class="modal" [class.modal-open]="showTimeEntryModal">
+  <div class="modal-box w-11/12 max-w-md">
+    <h3 class="font-bold text-lg mb-4">Add Time Entry</h3>
+    
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Hours *</span>
+      </label>
+      <input type="number" 
+             class="input input-bordered" 
+             [(ngModel)]="timeEntryForm.hours" 
+             placeholder="0.5" 
+             step="0.25" 
+             min="0.25" />
+    </div>
+
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Description</span>
+      </label>
+      <textarea class="textarea textarea-bordered" 
+                [(ngModel)]="timeEntryForm.description" 
+                placeholder="What did you work on?"
+                rows="3"></textarea>
+    </div>
+
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Date</span>
+      </label>
+      <input type="date" 
+             class="input input-bordered" 
+             [(ngModel)]="timeEntryForm.date" />
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeTimeEntryModal()">Cancel</button>
+      <button class="btn btn-primary" 
+              [disabled]="timeEntryForm.hours <= 0 || isAddingTimeEntry" 
+              (click)="addTimeEntry()">
+        <span *ngIf="isAddingTimeEntry" class="loading loading-spinner loading-xs"></span>
+        {{ isAddingTimeEntry ? 'Adding...' : 'Add Entry' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Fields Modal -->
+<div class="modal" [class.modal-open]="showCustomFieldsModal">
+  <div class="modal-box w-11/12 max-w-md">
+    <h3 class="font-bold text-lg mb-4">Add Custom Field</h3>
+    
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Field Name *</span>
+      </label>
+      <input type="text" 
+             class="input input-bordered" 
+             [(ngModel)]="customFieldsForm.fieldName" 
+             name="customFieldName"
+             placeholder="e.g., Stage, Department, etc." />
+    </div>
+
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Field Value *</span>
+      </label>
+      <input type="text" 
+             class="input input-bordered" 
+             [(ngModel)]="customFieldsForm.fieldValue" 
+             name="customFieldValue"
+             placeholder="Enter field value" />
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeCustomFieldsModal()">Cancel</button>
+      <button class="btn btn-primary" 
+              [disabled]="!customFieldsForm.fieldName.trim() || !customFieldsForm.fieldValue.trim() || isUpdatingCustomFields" 
+              (click)="saveCustomFields()">
+        <span *ngIf="isUpdatingCustomFields" class="loading loading-spinner loading-xs"></span>
+        {{ isUpdatingCustomFields ? 'Adding...' : 'Add Field' }}
+      </button>
+    </div>
+  </div> 

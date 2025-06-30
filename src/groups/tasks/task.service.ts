@@ -10,6 +10,7 @@ import TaskColumn from './task-column.model'
 import User from '../../users/user.model'
 import Group from '../group.model'
 import GroupMembership from '../group-membership.model'
+import TaskAssignee from './task-assignee.model'
 
 // Import Logger
 import logger from '../../logger'
@@ -99,7 +100,7 @@ export class TaskService {
             const createdTask = await Task.findByPk(task.uuid, {
                 include: [
                     { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
-                    { model: User, as: 'assignee', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
+                    { model: User, as: 'assignees', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
                     { model: TaskColumn, as: 'column', attributes: ['uuid', 'name', 'color'] }
                 ],
                 transaction
@@ -143,22 +144,22 @@ export class TaskService {
      */
     async getBoard(groupId: string, userId: string): Promise<BoardResponse<any>> {
         try {
-            // Fetches all columns with their tasks
-            const columns = await TaskColumn.findAll({
-                where: { group_id: groupId },
-                include: [{
-                    model: Task,
-                    as: 'tasks',
-                    include: [
-                        { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
-                        { model: User, as: 'assignee', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] }
-                    ]
-                }],
-                order: [
-                    ['position', 'ASC'],
-                    [{ model: Task, as: 'tasks' }, 'position', 'ASC']
+                    // Fetches all columns with their tasks
+        const columns = await TaskColumn.findAll({
+            where: { group_id: groupId },
+            include: [{
+                model: Task,
+                as: 'tasks',
+                include: [
+                    { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
+                    { model: User, as: 'assignees', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] }
                 ]
-            })
+            }],
+            order: [
+                ['position', 'ASC'],
+                [{ model: Task, as: 'tasks' }, 'position', 'ASC']
+            ]
+        })
 
             // Formats the board data
             const board = {
@@ -192,11 +193,11 @@ export class TaskService {
     }
 
     /**
-     * Retrieves a single task by its UUID.
+     * Gets a specific task by ID with all related data.
      * 
      * @param groupId - The UUID of the group
      * @param taskId - The UUID of the task
-     * @returns A response containing the requested task
+     * @returns A response containing the task with all related data
      * @throws TaskError if the task retrieval process fails
      */
     async getTask(groupId: string, taskId: string): Promise<TaskResponse<Task>> {
@@ -209,8 +210,13 @@ export class TaskService {
                 },
                 include: [
                     { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
-                    { model: User, as: 'assignee', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
-                    { model: TaskColumn, as: 'column', attributes: ['uuid', 'name', 'color'] }
+                    { model: TaskColumn, as: 'column', attributes: ['uuid', 'name', 'color'] },
+                    { 
+                        model: User, 
+                        as: 'assignees', 
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'],
+                        through: { attributes: ['assigned_at', 'assigned_by'] }
+                    }
                 ]
             })
 
@@ -229,7 +235,7 @@ export class TaskService {
                 success: true,
                 message: TaskCode.TASK_FOUND,
                 code: 200,
-                task
+                task: task as any
             }
         } catch (error) {
             // Logs error
@@ -295,8 +301,13 @@ export class TaskService {
             const updatedTask = await Task.findByPk(task.uuid, {
                 include: [
                     { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
-                    { model: User, as: 'assignee', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
-                    { model: TaskColumn, as: 'column', attributes: ['uuid', 'name', 'color'] }
+                    { model: TaskColumn, as: 'column', attributes: ['uuid', 'name', 'color'] },
+                    { 
+                        model: User, 
+                        as: 'assignees', 
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'],
+                        through: { attributes: ['assigned_at', 'assigned_by'] }
+                    }
                 ]
             })
 
@@ -308,7 +319,7 @@ export class TaskService {
                 success: true,
                 message: TaskCode.TASK_UPDATED,
                 code: 200,
-                task: updatedTask!
+                task: updatedTask! as any
             }
         } catch (error) {
             // Logs error
@@ -420,8 +431,13 @@ export class TaskService {
             const movedTask = await Task.findByPk(task.uuid, {
                 include: [
                     { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
-                    { model: User, as: 'assignee', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
-                    { model: TaskColumn, as: 'column', attributes: ['uuid', 'name', 'color'] }
+                    { model: TaskColumn, as: 'column', attributes: ['uuid', 'name', 'color'] },
+                    { 
+                        model: User, 
+                        as: 'assignees', 
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'],
+                        through: { attributes: ['assigned_at', 'assigned_by'] }
+                    }
                 ]
             })
 
@@ -433,7 +449,7 @@ export class TaskService {
                 success: true,
                 message: TaskCode.TASK_MOVED,
                 code: 200,
-                task: movedTask!
+                task: movedTask! as any
             }
         } catch (error) {
             await transaction.rollback()
@@ -1093,6 +1109,343 @@ export class TaskService {
             throw {
                 success: false,
                 message: TaskCommentCode.DATABASE_ERROR,
+                code: 400,
+                stack: error instanceof Error ? error : new Error('Database operation failed')
+            }
+        }
+    }
+
+    /**
+     * Adds a time entry to a task.
+     * 
+     * @param groupId - The UUID of the group
+     * @param taskId - The UUID of the task
+     * @param timeData - The time entry data
+     * @param userId - The UUID of the user adding the time entry
+     * @returns A response containing the updated task
+     * @throws TaskError if the time entry process fails
+     */
+    async addTimeEntry(
+        groupId: string,
+        taskId: string,
+        timeData: { hours: number; description?: string; date?: Date },
+        userId: string
+    ): Promise<TaskResponse<Task>> {
+        try {
+            // Finds the task
+            const task = await Task.findOne({
+                where: {
+                    uuid: taskId,
+                    group_id: groupId
+                }
+            })
+
+            if (!task) {
+                throw {
+                    success: false,
+                    message: TaskCode.TASK_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Task not found in this group')
+                }
+            }
+
+            // Gets current metadata
+            const currentMetadata = task.metadata || {}
+            const currentTimeEntries = currentMetadata.time_entries || []
+
+            // Creates new time entry
+            const newTimeEntry = {
+                user_id: userId,
+                hours: timeData.hours,
+                description: timeData.description || '',
+                date: timeData.date || new Date()
+            }
+
+            // Updates metadata with new time entry
+            const updatedMetadata = {
+                ...currentMetadata,
+                time_entries: [...currentTimeEntries, newTimeEntry],
+                actual_hours: (currentMetadata.actual_hours || 0) + timeData.hours
+            }
+
+            // Updates the task
+            await task.update({ metadata: updatedMetadata })
+
+            // Fetches updated task with associations
+            const updatedTask = await Task.findByPk(task.uuid, {
+                include: [
+                    { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
+                    { model: TaskColumn, as: 'column', attributes: ['uuid', 'name', 'color'] },
+                    { 
+                        model: User, 
+                        as: 'assignees', 
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'],
+                        through: { attributes: ['assigned_at', 'assigned_by'] }
+                    }
+                ]
+            })
+
+            // Logs success
+            logger.info('Time entry added successfully', { taskId, groupId, userId, hours: timeData.hours })
+
+            // Returns success response
+            return {
+                success: true,
+                message: TaskCode.TASK_UPDATED,
+                code: 200,
+                task: updatedTask! as any
+            }
+        } catch (error) {
+            // Logs error
+            logger.error('Time entry addition failed', { error, groupId, taskId, timeData, userId })
+
+            // Throws formatted error
+            throw {
+                success: false,
+                message: TaskCode.DATABASE_ERROR,
+                code: 400,
+                stack: error instanceof Error ? error : new Error('Database operation failed')
+            }
+        }
+    }
+
+    /**
+     * Updates custom fields for a task.
+     * 
+     * @param groupId - The UUID of the group
+     * @param taskId - The UUID of the task
+     * @param customFields - The custom fields to update
+     * @param userId - The UUID of the user updating the fields
+     * @returns A response containing the updated task
+     * @throws TaskError if the update process fails
+     */
+    async updateCustomFields(
+        groupId: string,
+        taskId: string,
+        customFields: Record<string, any>,
+        userId: string
+    ): Promise<TaskResponse<Task>> {
+        try {
+            // Finds the task
+            const task = await Task.findOne({
+                where: {
+                    uuid: taskId,
+                    group_id: groupId
+                }
+            })
+
+            if (!task) {
+                throw {
+                    success: false,
+                    message: TaskCode.TASK_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Task not found in this group')
+                }
+            }
+
+            // Gets current metadata
+            const currentMetadata = task.metadata || {}
+
+            // Updates metadata with custom fields (replace entire custom_fields object)
+            const updatedMetadata = {
+                ...currentMetadata,
+                custom_fields: customFields  // Replace entire custom_fields object to allow field removal
+            }
+
+            // Updates the task
+            await task.update({ metadata: updatedMetadata })
+
+            // Fetches updated task with associations
+            const updatedTask = await Task.findByPk(task.uuid, {
+                include: [
+                    { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
+                    { model: TaskColumn, as: 'column', attributes: ['uuid', 'name', 'color'] },
+                    { 
+                        model: User, 
+                        as: 'assignees', 
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'],
+                        through: { attributes: ['assigned_at', 'assigned_by'] }
+                    }
+                ]
+            })
+
+            // Logs success
+            logger.info('Custom fields updated successfully', { taskId, groupId, userId })
+
+            // Returns success response
+            return {
+                success: true,
+                message: TaskCode.TASK_UPDATED,
+                code: 200,
+                task: updatedTask! as any
+            }
+        } catch (error) {
+            // Logs error
+            logger.error('Custom fields update failed', { error, groupId, taskId, customFields, userId })
+
+            // Throws formatted error
+            throw {
+                success: false,
+                message: TaskCode.DATABASE_ERROR,
+                code: 400,
+                stack: error instanceof Error ? error : new Error('Database operation failed')
+            }
+        }
+    }
+
+    /**
+     * Assigns users to a task.
+     * 
+     * @param groupId - The UUID of the group
+     * @param taskId - The UUID of the task
+     * @param userIds - Array of user IDs to assign
+     * @param assignedBy - The UUID of the user performing the assignment
+     * @returns A response containing the updated task
+     * @throws TaskError if the assignment process fails
+     */
+    async assignUsersToTask(
+        groupId: string,
+        taskId: string,
+        userIds: string[],
+        assignedBy: string
+    ): Promise<TaskResponse<Task>> {
+        const transaction = await db.transaction()
+        
+        try {
+            // Validates that the task exists and belongs to the group
+            const task = await Task.findOne({
+                where: {
+                    uuid: taskId,
+                    group_id: groupId
+                },
+                transaction
+            })
+
+            if (!task) {
+                throw {
+                    success: false,
+                    message: TaskCode.TASK_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Task not found in this group')
+                }
+            }
+
+            // Validates that all users are members of the group
+            const groupMembers = await GroupMembership.findAll({
+                where: {
+                    group_id: groupId,
+                    user_id: { [Op.in]: userIds },
+                    status: 'active'
+                },
+                transaction
+            })
+
+            if (groupMembers.length !== userIds.length) {
+                throw {
+                    success: false,
+                    message: TaskCode.INVALID_ASSIGNEE,
+                    code: 400,
+                    stack: new Error('One or more users are not members of this group')
+                }
+            }
+
+            // Remove existing assignments for this task
+            await TaskAssignee.destroy({
+                where: { task_id: taskId },
+                transaction
+            })
+
+            // Create new assignments
+            const assignmentData = userIds.map(userId => ({
+                task_id: taskId,
+                user_id: userId,
+                assigned_by: assignedBy
+            }))
+
+            await TaskAssignee.bulkCreate(assignmentData, { transaction })
+
+            await transaction.commit()
+
+            // Fetch updated task with assignees
+            const updatedTask = await Task.findByPk(task.uuid, {
+                include: [
+                    { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
+                    { model: TaskColumn, as: 'column', attributes: ['uuid', 'name', 'color'] },
+                    { 
+                        model: User, 
+                        as: 'assignees', 
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'],
+                        through: { attributes: ['assigned_at', 'assigned_by'] }
+                    }
+                ]
+            })
+
+            // Logs success
+            logger.info('Users assigned to task successfully', { taskId, groupId, assignedBy, userIds })
+
+            // Returns success response
+            return {
+                success: true,
+                message: TaskCode.TASK_UPDATED,
+                code: 200,
+                task: updatedTask! as any
+            }
+        } catch (error) {
+            await transaction.rollback()
+            
+            // Logs error
+            logger.error('Task assignment failed', { error, groupId, taskId, userIds, assignedBy })
+
+            // Throws formatted error
+            throw {
+                success: false,
+                message: TaskCode.DATABASE_ERROR,
+                code: 400,
+                stack: error instanceof Error ? error : new Error('Database operation failed')
+            }
+        }
+    }
+
+    /**
+     * Gets group members who can be assigned to tasks.
+     * 
+     * @param groupId - The UUID of the group
+     * @returns A response containing the group members
+     * @throws TaskError if the retrieval process fails
+     */
+    async getGroupMembers(groupId: string): Promise<{ success: true; members: any[] }> {
+        try {
+            // Fetches active group members
+            const members = await GroupMembership.findAll({
+                where: {
+                    group_id: groupId,
+                    status: 'active'
+                },
+                include: [
+                    { 
+                        model: User, 
+                        as: 'user', 
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url', 'email'] 
+                    }
+                ]
+            })
+
+            // Logs success
+            logger.info('Group members retrieved successfully', { groupId, memberCount: members.length })
+
+            // Returns success response
+            return {
+                success: true,
+                members: members.map(member => (member as any).user)
+            }
+        } catch (error) {
+            // Logs error
+            logger.error('Group members retrieval failed', { error, groupId })
+
+            // Throws formatted error
+            throw {
+                success: false,
+                message: TaskCode.DATABASE_ERROR,
                 code: 400,
                 stack: error instanceof Error ? error : new Error('Database operation failed')
             }

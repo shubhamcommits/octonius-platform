@@ -17,6 +17,7 @@ import { GroupActivityComment } from '../groups/activity/activity.model'
 import { Task } from '../groups/tasks/task.model'
 import { TaskColumn } from '../groups/tasks/task-column.model'
 import { TaskComment } from '../groups/tasks/task-comment.model'
+import { TaskAssignee } from '../groups/tasks/task-assignee.model'
 
 // Export all models
 export {
@@ -37,7 +38,8 @@ export {
     GroupActivityComment,
     Task,
     TaskColumn,
-    TaskComment
+    TaskComment,
+    TaskAssignee
 }
 
 // Create models object
@@ -59,7 +61,8 @@ const models = {
     GroupActivityComment,
     Task,
     TaskColumn,
-    TaskComment
+    TaskComment,
+    TaskAssignee
 }
 
 // Initialize associations

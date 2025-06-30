@@ -9,6 +9,8 @@ import { UserService } from '../../../core/services/user.service'
 import { FileService } from '../../../core/services/file.service'
 import { User } from '../../../core/services/auth.service'
 import { File } from '../../../core/models/file.model'
+import { AuthService } from '../../../core/services/auth.service'
+import { environment } from '../../../../environments/environment'
 
 @Component({
   selector: 'app-note-editor',
@@ -37,7 +39,8 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private userService: UserService,
-    private fileService: FileService
+    private fileService: FileService,
+    private authService: AuthService
   ) {}
   
   ngOnInit(): void {
@@ -48,7 +51,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
         this.userId = user.uuid
         this.workplaceId = user.current_workplace_id || ''
         this.createdBy = user.first_name || user.email?.split('@')[0] || 'User'
-        this.createdByAvatar = user.avatar_url || '👤'
+        this.createdByAvatar = user.avatar_url || environment.defaultAvatarUrl
         if (this.noteId) {
           this.fileService.getNote(this.noteId).subscribe({
             next: (note: File) => {
@@ -76,6 +79,16 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
         console.error('Error loading user:', err)
       }
     })
+
+    // Subscribe to current user
+    this.authService.currentUser$.subscribe((user: any) => {
+      if (user) {
+        this.createdBy = user.first_name || user.last_name 
+          ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+          : user.email;
+        this.createdByAvatar = user.avatar_url || environment.defaultAvatarUrl;
+      }
+    });
   }
   
   ngOnDestroy(): void {

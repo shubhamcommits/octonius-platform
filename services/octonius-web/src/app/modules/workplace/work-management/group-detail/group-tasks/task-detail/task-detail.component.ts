@@ -1,11 +1,12 @@
-import { Component, EventEmitter, Input, OnInit, OnDestroy, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, OnDestroy, Output, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { GroupTaskService, Task } from '../../../../services/group-task.service';
+import { GroupTaskService, Task, GroupMember } from '../../../../services/group-task.service';
 import { TaskCommentService, TaskComment } from '../../../../services/task-comment.service';
 import { WorkGroupService, WorkGroup } from '../../../../services/work-group.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
+import { environment } from '../../../../../../../environments/environment';
 
 @Component({
   selector: 'app-task-detail',
@@ -21,17 +22,24 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   group: WorkGroup | null = null;
   comments: TaskComment[] = [];
   currentUser: any = null;
+  groupMembers: GroupMember[] = [];
 
   // Loading states
   isLoading = false;
   isLoadingComments = false;
+  isLoadingMembers = false;
   isSaving = false;
   isUpdatingStatus = false;
+  isAddingTimeEntry = false;
+  isUpdatingCustomFields = false;
 
   // UI state
-  activeTab: 'activity' | 'subtasks' | 'files' = 'activity';
+  activeTab: 'activity' | 'subtasks' | 'files' | 'time' = 'activity';
   showEditModal = false;
   showDeleteModal = false;
+  showAssigneeModal = false;
+  showTimeEntryModal = false;
+  showCustomFieldsModal = false;
 
   // Form data
   editForm = {
@@ -40,7 +48,25 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
     status: 'todo' as 'todo' | 'in_progress' | 'review' | 'done',
     due_date: '',
-    assigned_to: ''
+    estimated_hours: 0
+  };
+
+  // Assignee form
+  assigneeForm = {
+    selectedUserIds: [] as string[]
+  };
+
+  // Time entry form
+  timeEntryForm = {
+    hours: 0,
+    description: '',
+    date: new Date().toISOString().split('T')[0]
+  };
+
+  // Custom fields form
+  customFieldsForm = {
+    fieldName: '',
+    fieldValue: ''
   };
 
   // Comment form
@@ -58,7 +84,8 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     private commentService: TaskCommentService,
     private workGroupService: WorkGroupService,
     private toastService: ToastService,
-    private authService: AuthService
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -137,17 +164,19 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       priority: this.task.priority,
       status: this.task.status,
       due_date: this.task.due_date ? new Date(this.task.due_date).toISOString().split('T')[0] : '',
-      assigned_to: this.task.assigned_to || ''
+      estimated_hours: this.task.metadata?.estimated_hours || 0
     };
   }
 
   // Tab management
-  switchTab(tab: 'activity' | 'subtasks' | 'files'): void {
+  switchTab(tab: 'activity' | 'subtasks' | 'files' | 'time'): void {
     this.activeTab = tab;
     if (tab === 'subtasks') {
       this.toastService.info('Subtasks feature coming soon!');
     } else if (tab === 'files') {
       this.toastService.info('File attachments feature coming soon!');
+    } else if (tab === 'time') {
+      this.toastService.info('Time tracking feature coming soon!');
     }
   }
 
@@ -206,7 +235,7 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       priority: this.editForm.priority,
       status: this.editForm.status,
       due_date: this.editForm.due_date ? new Date(this.editForm.due_date) : null,
-      assigned_to: this.editForm.assigned_to || null
+      estimated_hours: this.editForm.estimated_hours
     };
 
     this.taskService.updateTask(this.group.uuid, this.task.uuid, updateData).subscribe({
@@ -267,6 +296,276 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
         this.isSubmittingComment = false;
       }
     });
+  }
+
+  // Assignee management
+  openAssigneeModal(): void {
+    this.loadGroupMembers();
+    this.populateAssigneeForm();
+    this.showAssigneeModal = true;
+  }
+
+  closeAssigneeModal(): void {
+    this.showAssigneeModal = false;
+  }
+
+  private loadGroupMembers(): void {
+    if (!this.group) return;
+
+    this.isLoadingMembers = true;
+    this.taskService.getGroupMembers(this.group.uuid).subscribe({
+      next: (members: GroupMember[]) => {
+        this.groupMembers = members;
+        this.isLoadingMembers = false;
+      },
+      error: (error: any) => {
+        console.error('Error loading group members:', error);
+        this.toastService.error('Failed to load group members');
+        this.isLoadingMembers = false;
+      }
+    });
+  }
+
+  private populateAssigneeForm(): void {
+    if (!this.task) return;
+    this.assigneeForm.selectedUserIds = this.task.assignees?.map(assignee => assignee.uuid) || [];
+  }
+
+  saveAssignees(): void {
+    if (!this.task || !this.group) return;
+
+    this.taskService.assignUsersToTask(this.group.uuid, this.task.uuid, this.assigneeForm.selectedUserIds).subscribe({
+      next: (updatedTask: Task) => {
+        this.task = updatedTask;
+        this.closeAssigneeModal();
+        this.toastService.success('Assignees updated successfully');
+      },
+      error: (error: any) => {
+        console.error('Error updating assignees:', error);
+        this.toastService.error('Failed to update assignees');
+      }
+    });
+  }
+
+  toggleAssignee(userId: string, event: any): void {
+    const isChecked = event.target.checked;
+    if (isChecked) {
+      if (!this.assigneeForm.selectedUserIds.includes(userId)) {
+        this.assigneeForm.selectedUserIds.push(userId);
+      }
+    } else {
+      this.assigneeForm.selectedUserIds = this.assigneeForm.selectedUserIds.filter(id => id !== userId);
+    }
+  }
+
+  removeAssignee(userId: string): void {
+    if (!this.task || !this.group) return;
+
+    const updatedUserIds = this.task.assignees?.filter(assignee => assignee.uuid !== userId).map(assignee => assignee.uuid) || [];
+    
+    this.taskService.assignUsersToTask(this.group.uuid, this.task.uuid, updatedUserIds).subscribe({
+      next: (updatedTask: Task) => {
+        this.task = updatedTask;
+        this.toastService.success('Assignee removed successfully');
+      },
+      error: (error: any) => {
+        console.error('Error removing assignee:', error);
+        this.toastService.error('Failed to remove assignee');
+      }
+    });
+  }
+
+  // Time tracking
+  openTimeEntryModal(): void {
+    this.timeEntryForm = {
+      hours: 0,
+      description: '',
+      date: new Date().toISOString().split('T')[0]
+    };
+    this.showTimeEntryModal = true;
+  }
+
+  closeTimeEntryModal(): void {
+    this.showTimeEntryModal = false;
+  }
+
+  addTimeEntry(): void {
+    if (!this.task || !this.group || this.timeEntryForm.hours <= 0) return;
+
+    this.isAddingTimeEntry = true;
+    const timeData = {
+      hours: this.timeEntryForm.hours,
+      description: this.timeEntryForm.description,
+      date: new Date(this.timeEntryForm.date)
+    };
+
+    this.taskService.addTimeEntry(this.group.uuid, this.task.uuid, timeData).subscribe({
+      next: (updatedTask: Task) => {
+        this.task = updatedTask;
+        this.closeTimeEntryModal();
+        this.toastService.success('Time entry added successfully');
+        this.isAddingTimeEntry = false;
+      },
+      error: (error: any) => {
+        console.error('Error adding time entry:', error);
+        this.toastService.error('Failed to add time entry');
+        this.isAddingTimeEntry = false;
+      }
+    });
+  }
+
+  // Custom fields
+  openCustomFieldsModal(): void {
+    this.populateCustomFieldsForm();
+    this.showCustomFieldsModal = true;
+  }
+
+  closeCustomFieldsModal(): void {
+    this.showCustomFieldsModal = false;
+  }
+
+  private populateCustomFieldsForm(): void {
+    // Reset form for adding new field
+    this.customFieldsForm = {
+      fieldName: '',
+      fieldValue: ''
+    };
+  }
+
+  saveCustomFields(): void {
+    if (!this.task || !this.group || !this.customFieldsForm.fieldName.trim() || !this.customFieldsForm.fieldValue.trim()) {
+      this.toastService.error('Please enter both field name and value');
+      return;
+    }
+
+    this.isUpdatingCustomFields = true;
+    const customFields: Record<string, string> = {
+      ...(this.task.metadata?.custom_fields || {}),
+      [this.customFieldsForm.fieldName.trim()]: this.customFieldsForm.fieldValue.trim()
+    };
+
+    this.taskService.updateCustomFields(this.group.uuid, this.task.uuid, customFields).subscribe({
+      next: (updatedTask: Task) => {
+        this.task = updatedTask;
+        this.closeCustomFieldsModal();
+        this.toastService.success('Custom field added successfully');
+        this.isUpdatingCustomFields = false;
+      },
+      error: (error: any) => {
+        console.error('Error updating custom fields:', error);
+        this.toastService.error('Failed to add custom field');
+        this.isUpdatingCustomFields = false;
+      }
+    });
+  }
+
+  removeCustomField(fieldName: string): void {
+    if (!this.task || !this.group) return;
+
+    // Show loading state (optional)
+    console.log('Removing custom field:', fieldName);
+    console.log('Current custom fields:', this.task.metadata?.custom_fields);
+
+    const customFields: Record<string, string> = { ...(this.task.metadata?.custom_fields || {}) };
+    delete customFields[fieldName];
+
+    console.log('Updated custom fields to send:', customFields);
+
+    this.taskService.updateCustomFields(this.group.uuid, this.task.uuid, customFields).subscribe({
+      next: (updatedTask: Task) => {
+        console.log('Updated task received:', updatedTask);
+        this.task = updatedTask;
+        // Force change detection to ensure UI updates
+        this.cdr.detectChanges();
+        this.toastService.success(`${fieldName} field removed successfully`);
+      },
+      error: (error: any) => {
+        console.error('Error removing custom field:', error);
+        this.toastService.error(`Failed to remove ${fieldName} field`);
+      }
+    });
+  }
+
+  // Helper method to get custom field value safely
+  getCustomFieldValue(field: string): string {
+    return this.task?.metadata?.custom_fields?.[field] || '';
+  }
+
+  // Helper method to get all custom fields that exist
+  getCustomFields(): { [key: string]: string } {
+    return this.task?.metadata?.custom_fields || {};
+  }
+
+  // Helper method to check if custom fields exist
+  hasCustomFields(): boolean {
+    const customFields = this.getCustomFields();
+    return Object.keys(customFields).length > 0;
+  }
+
+  // Helper method to get custom field entries as array for iteration
+  getCustomFieldEntries(): { key: string; value: string }[] {
+    const customFields = this.getCustomFields();
+    return Object.entries(customFields).map(([key, value]) => ({ key, value }));
+  }
+
+  // TrackBy function for custom fields to improve change detection
+  trackByFieldKey(index: number, field: { key: string; value: string }): string {
+    return field.key;
+  }
+
+  // Generate a beautiful color for a custom field based on field name
+  getCustomFieldColor(fieldName: string): string {
+    // Beautiful color palette for custom fields
+    const colors = [
+      '#6366F1', // Indigo
+      '#8B5CF6', // Violet  
+      '#EC4899', // Pink
+      '#F59E0B', // Amber
+      '#10B981', // Emerald
+      '#3B82F6', // Blue
+      '#EF4444', // Red
+      '#8B5A2B', // Brown
+      '#6B7280', // Gray
+      '#84CC16', // Lime
+      '#06B6D4', // Cyan
+      '#F97316', // Orange
+      '#A855F7', // Purple
+      '#14B8A6', // Teal
+      '#F43F5E', // Rose
+      '#22D3EE', // Sky
+      '#65A30D', // Green
+      '#DC2626', // Red-600
+      '#7C3AED', // Violet-600
+      '#DB2777'  // Pink-600
+    ];
+
+    // Simple hash function to get consistent color for same field name
+    let hash = 0;
+    for (let i = 0; i < fieldName.length; i++) {
+      const char = fieldName.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Use absolute value and modulo to get color index
+    const colorIndex = Math.abs(hash) % colors.length;
+    return colors[colorIndex];
+  }
+
+  // Get lighter version of the color for background
+  getCustomFieldBackgroundColor(fieldName: string): string {
+    const baseColor = this.getCustomFieldColor(fieldName);
+    // Convert hex to RGB and add transparency
+    const hex = baseColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.08)`;
+  }
+
+  // Helper method to get user avatar with fallback
+  getUserAvatarUrl(user: any): string {
+    return user?.avatar_url || environment.defaultAvatarUrl;
   }
 
   // Utility methods
