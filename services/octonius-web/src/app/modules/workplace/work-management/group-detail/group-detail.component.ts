@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router, RouterEvent, UrlSegment } from '@angular/router';
 import { WorkGroup, WorkGroupService } from '../../services/work-group.service';
 import { filter, map, startWith } from 'rxjs';
@@ -12,6 +12,9 @@ import { filter, map, startWith } from 'rxjs';
 export class GroupDetailComponent implements OnInit {
   group: WorkGroup | undefined;
   activeView: string = 'activity';
+  
+  // Dropdown state
+  isDropdownOpen = false;
 
   menuItems = [
     { label: 'Dashboard', description: 'Your team\'s dashboard', icon: 'LayoutDashboard', route: './dashboard' },
@@ -23,7 +26,8 @@ export class GroupDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private workGroupService: WorkGroupService
+    private workGroupService: WorkGroupService,
+    private eRef: ElementRef
   ) { }
 
   ngOnInit(): void {
@@ -54,5 +58,30 @@ export class GroupDetailComponent implements OnInit {
     if (!child) return false;
     const segments = child.snapshot.url;
     return segments.length === 2 && segments[0].path === 'tasks';
+  }
+
+  cleanRoute(route: string): string {
+    return route.replace('./', '');
+  }
+
+  // Dropdown management
+  toggleDropdown(): void {
+    this.isDropdownOpen = !this.isDropdownOpen;
+  }
+
+  closeDropdown(): void {
+    this.isDropdownOpen = false;
+  }
+
+  onNavigate(route: string): void {
+    this.router.navigate([route], { relativeTo: this.route });
+    this.closeDropdown();
+  }
+
+  @HostListener('document:click', ['$event'])
+  handleClickOutside(event: MouseEvent): void {
+    if (!this.eRef.nativeElement.contains(event.target)) {
+      this.closeDropdown();
+    }
   }
 }

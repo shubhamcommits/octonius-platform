@@ -46,8 +46,22 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
   
   // Member management
   showAddMemberModal = false;
+  showInviteMemberModal = false;
   newMemberEmail = '';
   newMemberRole: 'admin' | 'member' | 'viewer' = 'member';
+  
+  // User search for adding existing members
+  userSearchQuery = '';
+  searchResults: any[] = [];
+  selectedUser: any = null;
+  
+  // Invite form
+  inviteForm = {
+    email: '',
+    role: 'member' as 'admin' | 'member' | 'viewer',
+    message: ''
+  };
+  isSendingInvite = false;
   
   // Tag management
   newTag = '';
@@ -192,7 +206,7 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
   addTag(): void {
     if (!this.newTag.trim()) return;
     
-    if (!this.groupForm.metadata.tags.includes(this.newTag.trim())) {
+    if (!this.groupForm.metadata.tags.includes(this.newTag.trim()) && this.groupForm.metadata.tags.length < 10) {
       this.groupForm.metadata.tags.push(this.newTag.trim());
       this.newTag = '';
     }
@@ -202,10 +216,55 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
     this.groupForm.metadata.tags.splice(index, 1);
   }
 
-  // Member management
+  onTagInputKeyPress(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.addTag();
+    }
+  }
+
+  // Invite member functionality
+  openInviteMemberModal(): void {
+    this.showInviteMemberModal = true;
+    this.inviteForm = {
+      email: '',
+      role: 'member',
+      message: ''
+    };
+  }
+
+  closeInviteMemberModal(): void {
+    this.showInviteMemberModal = false;
+  }
+
+  sendInvitation(): void {
+    if (!this.group || !this.inviteForm.email.trim() || !this.isValidEmail(this.inviteForm.email)) return;
+    
+    this.isSendingInvite = true;
+    this.groupMemberService.inviteMember(this.group.uuid, {
+      email: this.inviteForm.email.trim(),
+      role: this.inviteForm.role,
+      message: this.inviteForm.message?.trim()
+    }).subscribe({
+      next: () => {
+        this.toastService.success(`Invitation sent to ${this.inviteForm.email}`);
+        this.closeInviteMemberModal();
+        this.loadMembers(); // Refresh member list
+        this.isSendingInvite = false;
+      },
+      error: (error) => {
+        this.toastService.error('Failed to send invitation');
+        this.isSendingInvite = false;
+      }
+    });
+  }
+
+  // Add existing member functionality
   openAddMemberModal(): void {
     this.showAddMemberModal = true;
-    this.newMemberEmail = '';
+    this.userSearchQuery = '';
+    this.searchResults = [];
+    this.selectedUser = null;
     this.newMemberRole = 'member';
   }
 
@@ -213,21 +272,72 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
     this.showAddMemberModal = false;
   }
 
+  searchUsers(): void {
+    if (!this.userSearchQuery.trim() || this.userSearchQuery.length < 2) {
+      this.searchResults = [];
+      return;
+    }
+
+    // Mock search results - in real app this would be an API call
+    const mockUsers = [
+      {
+        uuid: 'user-1',
+        firstName: 'Jane',
+        lastName: 'Smith',
+        email: 'jane.smith@example.com',
+        avatarUrl: null,
+        displayName: 'Jane Smith',
+        initials: 'JS'
+      },
+      {
+        uuid: 'user-2',
+        firstName: 'Bob',
+        lastName: 'Johnson',
+        email: 'bob.johnson@example.com',
+        avatarUrl: null,
+        displayName: 'Bob Johnson',
+        initials: 'BJ'
+      },
+      {
+        uuid: 'user-3',
+        firstName: 'Alice',
+        lastName: 'Williams',
+        email: 'alice.williams@example.com',
+        avatarUrl: null,
+        displayName: 'Alice Williams',
+        initials: 'AW'
+      }
+    ];
+
+    // Filter mock users based on search query
+    this.searchResults = mockUsers.filter(user => 
+      user.displayName.toLowerCase().includes(this.userSearchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(this.userSearchQuery.toLowerCase())
+    ).filter(user => 
+      // Exclude users who are already members
+      !this.members.some(member => member.user.uuid === user.uuid)
+    );
+  }
+
+  selectUser(user: any): void {
+    this.selectedUser = user;
+  }
+
   addMember(): void {
-    if (!this.group || !this.newMemberEmail.trim()) return;
+    if (!this.group || !this.selectedUser) return;
     
-    // Use invitation system for now
+    // For now, use the invitation system for existing users too
     this.groupMemberService.inviteMember(this.group.uuid, {
-      email: this.newMemberEmail.trim(),
+      email: this.selectedUser.email,
       role: this.newMemberRole
     }).subscribe({
       next: () => {
-        this.toastService.success(`Invitation sent to ${this.newMemberEmail}`);
+        this.toastService.success(`${this.selectedUser.displayName} added to group`);
         this.closeAddMemberModal();
         this.loadMembers(); // Refresh member list
       },
       error: (error) => {
-        this.toastService.error('Failed to send invitation');
+        this.toastService.error('Failed to add member');
       }
     });
   }
@@ -316,6 +426,21 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
 
   canDeleteGroup(): boolean {
     return this.isCurrentUserAdmin();
+  }
+
+  getCurrentUserRole(): string {
+    const currentMember = this.members.find(m => m.user.uuid === this.currentUser?.uuid);
+    return currentMember?.role || 'none';
+  }
+
+  // Utility methods
+  isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  getUserAvatarUrl(user: any): string {
+    return user?.avatarUrl || user?.avatar_url || environment.defaultAvatarUrl;
   }
 
   // Mock current user - in real app this would come from AuthService
