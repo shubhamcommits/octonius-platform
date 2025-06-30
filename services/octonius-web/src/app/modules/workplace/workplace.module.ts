@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { WorkplaceRoutingModule } from './workplace-routing.module';
 import { SharedModule } from '../shared/shared.module';
@@ -22,7 +23,6 @@ import { TaskDetailComponent } from './work-management/group-detail/group-tasks/
 import { LoungeStoryDetailComponent } from './lounge/lounge-story-detail/lounge-story-detail.component';
 import { CreateStoryModalComponent } from './lounge/create-story-modal/create-story-modal.component';
 import { CreateGroupModalComponent } from './work-management/create-group-modal/create-group-modal.component';
-import { ReactiveFormsModule } from '@angular/forms';
 
 @NgModule({
   declarations: [
@@ -50,7 +50,8 @@ import { ReactiveFormsModule } from '@angular/forms';
     WorkplaceRoutingModule,
     RouterModule,
     SharedModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    FormsModule
   ]
 })
 export class WorkplaceModule { }

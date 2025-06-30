@@ -31,6 +31,7 @@ export class GroupDetailComponent implements OnInit {
     if (groupId) {
       this.workGroupService.getGroup(groupId).subscribe(group => {
         this.group = group;
+        this.workGroupService.setCurrentGroup(group);
       });
     }
 

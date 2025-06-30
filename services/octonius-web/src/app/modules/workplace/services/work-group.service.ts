@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map, catchError, throwError } from 'rxjs';
+import { Observable, BehaviorSubject, map, catchError, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 // Backend response interfaces
@@ -100,6 +100,7 @@ export interface WorkGroup {
 })
 export class WorkGroupService {
   private apiUrl = `${environment.apiUrl}/groups`;
+  private currentGroup$ = new BehaviorSubject<WorkGroup | null>(null);
 
   constructor(private http: HttpClient) { }
 
@@ -323,5 +324,19 @@ export class WorkGroupService {
           return throwError(() => new Error('Failed to remove member'));
         })
       );
+  }
+
+  /**
+   * Set the current group for context sharing
+   */
+  setCurrentGroup(group: WorkGroup | null) {
+    this.currentGroup$.next(group);
+  }
+
+  /**
+   * Get the current group as observable
+   */
+  getCurrentGroup(): Observable<WorkGroup | null> {
+    return this.currentGroup$.asObservable();
   }
 } 

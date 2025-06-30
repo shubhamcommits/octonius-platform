@@ -11,6 +11,11 @@ import { LoungeStory } from '../lounge/lounge.model'
 import { File } from '../files/file.model'
 import { Group } from '../groups/group.model'
 import { GroupMembership } from '../groups/group-membership.model'
+import { GroupActivityPost } from '../groups/activity/activity.model'
+import { GroupActivityLike } from '../groups/activity/activity.model'
+import { GroupActivityComment } from '../groups/activity/activity.model'
+import { Task } from '../groups/tasks/task.model'
+import { TaskColumn } from '../groups/tasks/task-column.model'
 
 // Export all models
 export {
@@ -25,7 +30,12 @@ export {
     LoungeStory,
     File,
     Group,
-    GroupMembership
+    GroupMembership,
+    GroupActivityPost,
+    GroupActivityLike,
+    GroupActivityComment,
+    Task,
+    TaskColumn
 }
 
 // Create models object
@@ -41,7 +51,12 @@ const models = {
     LoungeStory,
     File,
     Group,
-    GroupMembership
+    GroupMembership,
+    GroupActivityPost,
+    GroupActivityLike,
+    GroupActivityComment,
+    Task,
+    TaskColumn
 }
 
 // Initialize associations

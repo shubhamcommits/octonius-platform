@@ -1,16 +1,9 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { User, AuthService } from '../../../../../core/services/auth.service';
-import { WorkGroup } from '../../../services/work-group.service';
-
-interface Post {
-  author: { name: string; avatar_url: string };
-  timestamp: Date;
-  title: string;
-  content: string;
-  likes: number;
-  comments: number;
-  expanded?: boolean;
-}
+import { WorkGroupService, WorkGroup } from '../../../services/work-group.service';
+import { GroupActivityService, GroupActivityPost } from '../../../services/group-activity.service';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-group-activity',
@@ -18,33 +11,159 @@ interface Post {
   templateUrl: './group-activity.component.html',
   styleUrls: ['./group-activity.component.scss']
 })
-export class GroupActivityComponent implements OnInit {
-  @Input() group: WorkGroup | undefined;
-  
-  posts: Post[] = [];
+export class GroupActivityComponent implements OnInit, OnDestroy, AfterViewInit {
+  posts: GroupActivityPost[] = [];
+  isLoading = false;
+  newPostContent = '';
+  isSubmitting = false;
+  currentUser: User | null = null;
+  group: WorkGroup | null = null;
+  private groupSub: Subscription | null = null;
 
-  constructor() { }
+  constructor(
+    private activityService: GroupActivityService,
+    private authService: AuthService,
+    private workGroupService: WorkGroupService,
+    private toastService: ToastService
+  ) {}
 
   ngOnInit(): void {
+    this.currentUser = this.authService.getCurrentUser();
+    this.groupSub = this.workGroupService.getCurrentGroup().subscribe(group => {
+      this.group = group;
+      this.fetchPosts();
+    });
+  }
 
-    // Mock data for posts
-    this.posts = [
-      {
-        author: { name: 'Miriam Enzo', avatar_url: 'https://i.pravatar.cc/150?u=a042581f4e29026704e' },
-        timestamp: new Date('2025-05-16T16:56:00'),
-        title: 'Updates regarding the new Launch Event',
-        content: 'User experience (UX) design is all about creating products that provide meaningful and relevant experiences to users. It involves understanding user needs, behaviors, and motivations through research and testing. A well-designed UX can enhance user satisfaction and drive engagement, making it a crucial aspect of product development.',
-        likes: 3,
-        comments: 1
+  ngOnDestroy(): void {
+    if (this.groupSub) this.groupSub.unsubscribe();
+    document.removeEventListener('click', this.closeAllDropdowns);
+  }
+
+  ngAfterViewInit(): void {
+    document.addEventListener('click', this.closeAllDropdowns);
+  }
+
+  fetchPosts() {
+    if (!this.group) return;
+    this.isLoading = true;
+    this.activityService.list(this.group.uuid).subscribe({
+      next: (posts) => {
+        this.posts = posts.map(post => ({ ...post, showMenu: false }));
+        this.isLoading = false;
       },
-      {
-        author: { name: 'John Doe', avatar_url: 'https://i.pravatar.cc/150?u=a042581f4e29026704f' },
-        timestamp: new Date('2025-05-15T10:30:00'),
-        title: 'Weekly Sync Notes',
-        content: 'Here are the notes from our weekly sync. Please review and add your comments. We have a lot to cover for the upcoming sprint. Lets make sure we are all aligned on the priorities.',
-        likes: 12,
-        comments: 5
+      error: (err) => {
+        this.toastService.error('Failed to load activity posts.');
+        this.isLoading = false;
       }
-    ];
+    });
+  }
+
+  createPost() {
+    if (!this.group || !this.newPostContent.trim()) return;
+    this.isSubmitting = true;
+    this.activityService.create(this.group.uuid, this.newPostContent.trim()).subscribe({
+      next: (post) => {
+        this.posts.unshift({ ...post, showMenu: false });
+        this.newPostContent = '';
+        this.isSubmitting = false;
+      },
+      error: (err) => {
+        this.toastService.error('Failed to create post.');
+        this.isSubmitting = false;
+      }
+    });
+  }
+
+  toggleLike(post: any) {
+    if (!this.group) return;
+    if (post.liked_by_current_user) {
+      this.activityService.unlike(this.group.uuid, post.uuid).subscribe({
+        next: (res) => {
+          post.like_count = res.likeCount;
+          post.liked_by_current_user = false;
+        },
+        error: () => {
+          this.toastService.error('Failed to unlike post.');
+        }
+      });
+    } else {
+      this.activityService.like(this.group.uuid, post.uuid).subscribe({
+        next: (res) => {
+          post.like_count = res.likeCount;
+          post.liked_by_current_user = true;
+        },
+        error: () => {
+          this.toastService.error('Failed to like post.');
+        }
+      });
+    }
+  }
+
+  editPost(post: any) {
+    // TODO: Implement edit post logic (open modal or inline edit)
+    this.toastService.info('Edit post coming soon!');
+  }
+
+  deletePost(post: any) {
+    // TODO: Implement delete post logic (confirmation and API call)
+    this.toastService.info('Delete post coming soon!');
+  }
+
+  // Close all dropdowns when opening one
+  openDropdown(post: any) {
+    this.posts.forEach(p => { if (p !== post) p.showMenu = false; });
+    post.showMenu = !post.showMenu;
+  }
+
+  closeAllDropdowns = () => {
+    this.posts.forEach(p => p.showMenu = false);
+  }
+
+  toggleComments(post: any) {
+    post.showComments = !post.showComments;
+    
+    // Load comments if opening and not already loaded
+    if (post.showComments && !post.comments) {
+      post.loadingComments = true;
+      this.activityService.listComments(this.group!.uuid, post.uuid).subscribe({
+        next: (comments) => {
+          post.comments = comments;
+          post.loadingComments = false;
+        },
+        error: () => {
+          this.toastService.error('Failed to load comments.');
+          post.loadingComments = false;
+        }
+      });
+    }
+  }
+
+  addComment(post: any) {
+    if (!this.group || !post.newComment?.trim()) return;
+    
+    post.submittingComment = true;
+    this.activityService.createComment(this.group.uuid, post.uuid, post.newComment.trim()).subscribe({
+      next: (comment) => {
+        // Add the new comment to the list
+        if (!post.comments) post.comments = [];
+        post.comments.push(comment);
+        post.comment_count = (post.comment_count || 0) + 1;
+        post.newComment = '';
+        post.submittingComment = false;
+      },
+      error: () => {
+        this.toastService.error('Failed to post comment.');
+        post.submittingComment = false;
+      }
+    });
+  }
+
+  handleCommentKeydown(event: KeyboardEvent, post: any) {
+    // Allow Shift+Enter for new lines, Enter alone submits the comment
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.addComment(post);
+    }
   }
 }
