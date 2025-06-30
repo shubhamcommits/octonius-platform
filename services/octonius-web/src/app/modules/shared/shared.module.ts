@@ -61,7 +61,10 @@ import { LucideAngularModule,
   UserRound,
   UserRoundCheck,
   Shield,
-  Circle
+  Circle,
+  Mail,
+  Eye,
+  Save
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -134,7 +137,10 @@ import { TopbarComponent } from './components/topbar/topbar.component'
       UserRound,
       UserRoundCheck,
       Shield,
-      Circle
+      Circle,
+      Mail,
+      Eye,
+      Save
     })
   ],
   exports: [

@@ -5,8 +5,8 @@
   </div>
   <!-- Theme Switcher Right -->
   <div class="relative">
-    <button class="btn btn-ghost btn-circle" (click)="toggleTheme()">
-      <lucide-icon [name]="currentTheme === 'night' ? 'SunMoon' : 'SunMoon'" class="w-8 h-8"></lucide-icon>
+    <button class="btn btn-ghost btn-circle group" (click)="toggleTheme()">
+      <lucide-icon [name]="currentTheme === 'night' ? 'SunMoon' : 'SunMoon'" class="w-8 h-8 transition-transform duration-300 group-hover:scale-110"></lucide-icon>
     </button>
   </div>
 </nav>

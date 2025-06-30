@@ -26,6 +26,10 @@ export class NavbarComponent {
     this.openDropdown = this.openDropdown === tabId ? null : tabId;
   }
 
+  closeAllDropdowns() {
+    this.openDropdown = null;
+  }
+
   @HostListener('document:click', ['$event'])
   handleClickOutside(event: MouseEvent) {
     if (!this.eRef.nativeElement.contains(event.target)) {

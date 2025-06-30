@@ -41,8 +41,8 @@
             <p class="text-sm text-base-content/70">No one has access to your private files.</p>
           </div>
           <div class="ml-auto flex items-center gap-2">
-            <button class="btn btn-ghost btn-circle" (click)="onUploadFile()">
-              <lucide-icon name="UploadCloud" class="w-6 h-6"></lucide-icon> 
+            <button class="btn btn-ghost btn-circle group" (click)="onUploadFile()">
+              <lucide-icon name="UploadCloud" class="w-6 h-6 transition-transform duration-300 group-hover:scale-110"></lucide-icon> 
             </button>
           </div>
         </div>
@@ -51,9 +51,9 @@
 
     <!-- Search and Filter Bar -->
     <div class="flex items-center gap-4 mb-6">
-      <lucide-icon name="ListFilter" class="w-5 h-5 cursor-pointer"></lucide-icon>
-      <lucide-icon name="ArrowUpDown" class="w-5 h-5 cursor-pointer"></lucide-icon>
-      <lucide-icon name="Search" class="w-5 h-5 cursor-pointer"></lucide-icon>
+      <lucide-icon name="ListFilter" class="w-5 h-5 cursor-pointer transition-transform duration-300 hover:scale-110"></lucide-icon>
+      <lucide-icon name="ArrowUpDown" class="w-5 h-5 cursor-pointer transition-transform duration-300 hover:scale-110"></lucide-icon>
+      <lucide-icon name="Search" class="w-5 h-5 cursor-pointer transition-transform duration-300 hover:scale-110"></lucide-icon>
 
       <div class="flex-1 relative flex items-center">
         <input 
