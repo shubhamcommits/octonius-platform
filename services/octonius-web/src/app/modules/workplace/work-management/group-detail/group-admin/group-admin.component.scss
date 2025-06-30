@@ -1,0 +1,217 @@
+// Group Admin Component Styles
+
+// Tab navigation enhancements
+.tab-nav {
+  &:hover {
+    .border-transparent {
+      border-color: theme('colors.base-300');
+    }
+  }
+}
+
+// Form enhancements
+.form-control {
+  .input, .textarea, .select {
+    transition: all 0.2s ease;
+    
+    &:focus {
+      box-shadow: 0 0 0 3px theme('colors.primary/20%');
+    }
+  }
+}
+
+// Card hover effects
+.card {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+}
+
+// Member list enhancements
+.member-row {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: theme('colors.base-100');
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  }
+}
+
+// Tag styling
+.tag {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: theme('colors.primary/30%');
+  }
+  
+  button {
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: theme('colors.primary/40%');
+    }
+  }
+}
+
+// Modal backdrop blur
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+}
+
+// Button loading states
+.btn {
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// Danger zone styling
+.danger-zone {
+  background: linear-gradient(135deg, theme('colors.error/5%'), theme('colors.error/10%'));
+  border: 1px solid theme('colors.error/20%');
+  
+  .danger-icon {
+    background: linear-gradient(135deg, theme('colors.error/20%'), theme('colors.error/30%'));
+  }
+}
+
+// Avatar improvements
+.avatar {
+  .avatar-image {
+    object-fit: cover;
+    transition: all 0.2s ease;
+  }
+  
+  &:hover .avatar-image {
+    transform: scale(1.05);
+  }
+}
+
+// Role badges with better contrast
+.role-badge {
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  
+  &.admin {
+    background: linear-gradient(135deg, theme('colors.error/20%'), theme('colors.error/30%'));
+    color: theme('colors.error');
+    border: 1px solid theme('colors.error/30%');
+  }
+  
+  &.member {
+    background: linear-gradient(135deg, theme('colors.info/20%'), theme('colors.info/30%'));
+    color: theme('colors.info');
+    border: 1px solid theme('colors.info/30%');
+  }
+  
+  &.viewer {
+    background: linear-gradient(135deg, theme('colors.warning/20%'), theme('colors.warning/30%'));
+    color: theme('colors.warning');
+    border: 1px solid theme('colors.warning/30%');
+  }
+}
+
+// Loading states
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  
+  .loading-text {
+    margin-top: 1rem;
+    color: theme('colors.base-content/60%');
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .tab-nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .modal-box {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .member-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    
+    .member-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+}
+
+// Dark mode adjustments
+@media (prefers-color-scheme: dark) {
+  .card {
+    &:hover {
+      box-shadow: 0 4px 6px -1px rgb(255 255 255 / 0.1), 0 2px 4px -2px rgb(255 255 255 / 0.1);
+    }
+  }
+  
+  .member-row {
+    &:hover {
+      background-color: theme('colors.base-200');
+    }
+  }
+}
+
+// Animation keyframes
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+// Focus improvements for accessibility
+.btn:focus-visible,
+.input:focus-visible,
+.textarea:focus-visible,
+.select:focus-visible {
+  outline: 2px solid theme('colors.primary');
+  outline-offset: 2px;
+}
+
+// Scrollbar styling
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.base-300') transparent;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: theme('colors.base-300');
+    border-radius: 3px;
+    
+    &:hover {
+      background: theme('colors.base-200');
+    }
+  }
+}

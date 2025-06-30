@@ -310,4 +310,182 @@ export class GroupController {
             return sendError(res, error, GroupCode.UNKNOWN_ERROR, 500)
         }
     }
+
+    /**
+     * Get all members of a group
+     * GET /api/workplace/groups/:group_id/members
+     */
+    static async getMembers(req: Request, res: Response) {
+        try {
+            const { group_id } = req.params
+            const user_id = req.user?.uuid
+
+            if (!user_id) {
+                return sendError(res, 'User not authenticated', 'Authentication required', 401)
+            }
+
+            if (!group_id) {
+                return sendValidationError(res, {
+                    group_id: 'Group ID is required'
+                })
+            }
+
+            const result = await GroupService.getGroupMembers(group_id, user_id)
+
+            if (!result.success) {
+                return sendError(res, result.stack, result.message, result.code)
+            }
+
+            return sendResponse(req, res, result.code, result)
+        } catch (error) {
+            logger.error('Error in getMembers controller:', error)
+            return sendError(res, error, GroupCode.UNKNOWN_ERROR, 500)
+        }
+    }
+
+    /**
+     * Update member role
+     * PUT /api/workplace/groups/:group_id/members/:member_id
+     */
+    static async updateMemberRole(req: Request, res: Response) {
+        try {
+            const { group_id, member_id } = req.params
+            const { role } = req.body
+            const user_id = req.user?.uuid
+
+            if (!user_id) {
+                return sendError(res, 'User not authenticated', 'Authentication required', 401)
+            }
+
+            if (!group_id || !member_id) {
+                return sendValidationError(res, {
+                    group_id: group_id ? null : 'Group ID is required',
+                    member_id: member_id ? null : 'Member ID is required'
+                })
+            }
+
+            if (!role || !['admin', 'member', 'viewer'].includes(role)) {
+                return sendValidationError(res, {
+                    role: 'Valid role is required (admin, member, viewer)'
+                })
+            }
+
+            const result = await GroupService.updateMemberRole(group_id, member_id, role, user_id)
+
+            if (!result.success) {
+                return sendError(res, result.stack, result.message, result.code)
+            }
+
+            return sendResponse(req, res, result.code, result)
+        } catch (error) {
+            logger.error('Error in updateMemberRole controller:', error)
+            return sendError(res, error, GroupCode.UNKNOWN_ERROR, 500)
+        }
+    }
+
+    /**
+     * Invite member by email
+     * POST /api/workplace/groups/:group_id/invite
+     */
+    static async inviteMember(req: Request, res: Response) {
+        try {
+            const { group_id } = req.params
+            const { email, role, message } = req.body
+            const user_id = req.user?.uuid
+
+            if (!user_id) {
+                return sendError(res, 'User not authenticated', 'Authentication required', 401)
+            }
+
+            if (!group_id) {
+                return sendValidationError(res, {
+                    group_id: 'Group ID is required'
+                })
+            }
+
+            if (!email) {
+                return sendValidationError(res, {
+                    email: 'Email address is required'
+                })
+            }
+
+            const memberRole = role && ['admin', 'member', 'viewer'].includes(role) ? role : 'member'
+
+            const result = await GroupService.inviteMember(group_id, email, memberRole, user_id, message)
+
+            if (!result.success) {
+                return sendError(res, result.stack, result.message, result.code)
+            }
+
+            return sendResponse(req, res, result.code, result)
+        } catch (error) {
+            logger.error('Error in inviteMember controller:', error)
+            return sendError(res, error, GroupCode.UNKNOWN_ERROR, 500)
+        }
+    }
+
+    /**
+     * Get pending invitations
+     * GET /api/workplace/groups/:group_id/invitations
+     */
+    static async getPendingInvitations(req: Request, res: Response) {
+        try {
+            const { group_id } = req.params
+            const user_id = req.user?.uuid
+
+            if (!user_id) {
+                return sendError(res, 'User not authenticated', 'Authentication required', 401)
+            }
+
+            if (!group_id) {
+                return sendValidationError(res, {
+                    group_id: 'Group ID is required'
+                })
+            }
+
+            const result = await GroupService.getPendingInvitations(group_id, user_id)
+
+            if (!result.success) {
+                return sendError(res, result.stack, result.message, result.code)
+            }
+
+            return sendResponse(req, res, result.code, result)
+        } catch (error) {
+            logger.error('Error in getPendingInvitations controller:', error)
+            return sendError(res, error, GroupCode.UNKNOWN_ERROR, 500)
+        }
+    }
+
+    /**
+     * Cancel invitation
+     * DELETE /api/workplace/groups/:group_id/invitations/:invitation_id
+     */
+    static async cancelInvitation(req: Request, res: Response) {
+        try {
+            const { group_id, invitation_id } = req.params
+            const user_id = req.user?.uuid
+
+            if (!user_id) {
+                return sendError(res, 'User not authenticated', 'Authentication required', 401)
+            }
+
+            if (!group_id || !invitation_id) {
+                return sendValidationError(res, {
+                    group_id: group_id ? null : 'Group ID is required',
+                    invitation_id: invitation_id ? null : 'Invitation ID is required'
+                })
+            }
+
+            const result = await GroupService.cancelInvitation(group_id, invitation_id, user_id)
+
+            if (!result.success) {
+                return sendError(res, result.stack, result.message, result.code)
+            }
+
+            return sendResponse(req, res, result.code, result)
+        } catch (error) {
+            logger.error('Error in cancelInvitation controller:', error)
+            return sendError(res, error, GroupCode.UNKNOWN_ERROR, 500)
+        }
+    }
 } 

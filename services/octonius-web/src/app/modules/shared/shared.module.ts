@@ -50,7 +50,18 @@ import { LucideAngularModule,
   Trash2,
   Edit,
   RotateCcw,
-  Minus
+  Minus,
+  Info,
+  AlertTriangle,
+  UserPlus,
+  UserMinus,
+  UserCheck,
+  UserX,
+  UserCircle,
+  UserRound,
+  UserRoundCheck,
+  Shield,
+  Circle
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -112,7 +123,18 @@ import { TopbarComponent } from './components/topbar/topbar.component'
       Trash2,
       Edit,
       RotateCcw,
-      Minus
+      Minus,
+      Info,
+      AlertTriangle,
+      UserPlus,
+      UserMinus,
+      UserCheck,
+      UserX,
+      UserCircle,
+      UserRound,
+      UserRoundCheck,
+      Shield,
+      Circle
     })
   ],
   exports: [

@@ -39,7 +39,7 @@
     </div>
 
     <!-- Kanban Board Grid -->
-    <div class="kanban-board-wrapper flex-1 overflow-hidden">
+    <div *ngIf="currentView === 'board'" class="kanban-board-wrapper flex-1 overflow-hidden">
         <div class="kanban-board-container h-full overflow-x-auto overflow-y-hidden">
             <div class="kanban-board flex gap-4 p-4 h-full" style="min-width: max-content;">
                 <!-- Loop over columns -->
@@ -111,27 +111,27 @@
                                     <div class="flex gap-2 mb-2">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
                                               [ngClass]="{
-                                                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400': task.status === 'todo',
-                                                'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400': task.status === 'in_progress',
-                                                'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400': task.status === 'review',
-                                                'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': task.status === 'done'
+                                                'bg-info/20 text-info border border-info/30': task.status === 'todo',
+                                                'bg-warning/20 text-warning border border-warning/30': task.status === 'in_progress',
+                                                'bg-secondary/20 text-secondary border border-secondary/30': task.status === 'review',
+                                                'bg-success/20 text-success border border-success/30': task.status === 'done'
                                               }">
                                             <span class="w-1.5 h-1.5 mr-1.5 rounded-full"
                                                   [ngClass]="{
-                                                    'bg-blue-500': task.status === 'todo',
-                                                    'bg-amber-500': task.status === 'in_progress',
-                                                    'bg-purple-500': task.status === 'review',
-                                                    'bg-green-500': task.status === 'done'
+                                                    'bg-info': task.status === 'todo',
+                                                    'bg-warning': task.status === 'in_progress',
+                                                    'bg-secondary': task.status === 'review',
+                                                    'bg-success': task.status === 'done'
                                                   }"></span>
                                             {{ getStatusLabel(task.status) }}
                                         </span>
                                         <span *ngIf="task.priority" 
                                               class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
                                               [ngClass]="{
-                                                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400': task.priority === 'urgent',
-                                                'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400': task.priority === 'high',
-                                                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400': task.priority === 'medium',
-                                                'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400': task.priority === 'low'
+                                                'bg-error/20 text-error border border-error/30': task.priority === 'urgent',
+                                                'bg-warning/20 text-warning border border-warning/30': task.priority === 'high',
+                                                'bg-info/20 text-info border border-info/30': task.priority === 'medium',
+                                                'bg-base-300/50 text-base-content/70 border border-base-300': task.priority === 'low'
                                               }">
                                             <lucide-icon 
                                                 [name]="task.priority === 'urgent' ? 'Zap' : task.priority === 'high' ? 'ChevronUp' : task.priority === 'medium' ? 'Minus' : 'ChevronDown'"
@@ -194,6 +194,166 @@
                     <button class="btn btn-ghost w-full" (click)="openAddSectionModal()">
                         <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon> Add section
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- List View -->
+    <div *ngIf="currentView === 'list'" class="flex-1 overflow-hidden">
+        <div class="h-full overflow-y-auto px-4">
+            <!-- List Header -->
+            <div class="sticky top-0 bg-base-100 z-10 py-3 border-b border-base-200">
+                <div class="grid grid-cols-12 gap-4 text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+                    <div class="col-span-4">Task</div>
+                    <div class="col-span-2">Status</div>
+                    <div class="col-span-2">Priority</div>
+                    <div class="col-span-2">Assignee</div>
+                    <div class="col-span-1">Due Date</div>
+                    <div class="col-span-1">Actions</div>
+                </div>
+            </div>
+            
+            <!-- Task List -->
+            <div class="py-2">
+                <ng-container *ngFor="let column of board.columns">
+                    <!-- Column Group Header -->
+                    <div *ngIf="column.tasks.length > 0" class="py-3 border-b border-base-200/50">
+                        <div class="flex items-center gap-3 mb-3">
+                            <h3 class="font-semibold text-sm text-base-content/80">{{ column.name }}</h3>
+                            <span class="text-xs text-base-content/50">{{ column.tasks.length }} tasks</span>
+                        </div>
+                        
+                        <!-- Tasks in this column -->
+                        <div class="space-y-1">
+                            <div *ngFor="let task of column.tasks" 
+                                 class="grid grid-cols-12 gap-4 items-center py-3 px-2 rounded-lg hover:bg-base-200/50 transition-colors cursor-pointer group border-l-4"
+                                 [style.border-left-color]="getTaskBorderColor(task)"
+                                 (click)="onTaskClick(task)">
+                                
+                                <!-- Task Title & Description -->
+                                <div class="col-span-4">
+                                    <h4 class="font-medium text-sm mb-1" [ngClass]="{'line-through text-base-content/60': task.status === 'done'}">
+                                        {{ task.title }}
+                                    </h4>
+                                    <p *ngIf="task.description" class="text-xs text-base-content/60 line-clamp-1">
+                                        {{ task.description }}
+                                    </p>
+                                    <!-- Labels -->
+                                    <div *ngIf="task.labels && task.labels.length > 0" class="flex flex-wrap gap-1 mt-1">
+                                        <span *ngFor="let label of task.labels" 
+                                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs" 
+                                              [style.background-color]="label.color + '20'" 
+                                              [style.color]="label.color">
+                                            {{ label.text }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Status -->
+                                <div class="col-span-2">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
+                                          [ngClass]="{
+                                            'bg-info/20 text-info border border-info/30': task.status === 'todo',
+                                            'bg-warning/20 text-warning border border-warning/30': task.status === 'in_progress',
+                                            'bg-secondary/20 text-secondary border border-secondary/30': task.status === 'review',
+                                            'bg-success/20 text-success border border-success/30': task.status === 'done'
+                                          }">
+                                        <span class="w-1.5 h-1.5 mr-1.5 rounded-full"
+                                              [ngClass]="{
+                                                'bg-info': task.status === 'todo',
+                                                'bg-warning': task.status === 'in_progress',
+                                                'bg-secondary': task.status === 'review',
+                                                'bg-success': task.status === 'done'
+                                              }"></span>
+                                        {{ getStatusLabel(task.status) }}
+                                    </span>
+                                </div>
+                                
+                                <!-- Priority -->
+                                <div class="col-span-2">
+                                    <span *ngIf="task.priority" 
+                                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
+                                          [ngClass]="{
+                                            'bg-error/20 text-error border border-error/30': task.priority === 'urgent',
+                                            'bg-warning/20 text-warning border border-warning/30': task.priority === 'high',
+                                            'bg-info/20 text-info border border-info/30': task.priority === 'medium',
+                                            'bg-base-300/50 text-base-content/70 border border-base-300': task.priority === 'low'
+                                          }">
+                                        <lucide-icon 
+                                            [name]="task.priority === 'urgent' ? 'Zap' : task.priority === 'high' ? 'ChevronUp' : task.priority === 'medium' ? 'Minus' : 'ChevronDown'"
+                                            class="w-3 h-3 mr-1">
+                                        </lucide-icon>
+                                        {{ task.priority | titlecase }}
+                                    </span>
+                                    <span *ngIf="!task.priority" class="text-xs text-base-content/40">—</span>
+                                </div>
+                                
+                                <!-- Assignee -->
+                                <div class="col-span-2">
+                                    <div *ngIf="task.assignee" class="flex items-center gap-2">
+                                        <div class="avatar">
+                                            <div class="w-6 rounded-full">
+                                                <div *ngIf="task.assignee.avatar_url; else assigneeInitialsList" 
+                                                     class="w-full h-full rounded-full overflow-hidden">
+                                                    <img [src]="task.assignee.avatar_url" 
+                                                         [alt]="task.assignee.first_name + ' ' + task.assignee.last_name" />
+                                                </div>
+                                                <ng-template #assigneeInitialsList>
+                                                    <div class="w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center text-xs font-semibold">
+                                                        {{ (task.assignee.first_name.charAt(0) || '') + (task.assignee.last_name.charAt(0) || '') }}
+                                                    </div>
+                                                </ng-template>
+                                            </div>
+                                        </div>
+                                        <span class="text-xs text-base-content/80 truncate">
+                                            {{ task.assignee.first_name }} {{ task.assignee.last_name }}
+                                        </span>
+                                    </div>
+                                    <span *ngIf="!task.assignee" class="text-xs text-base-content/40">Unassigned</span>
+                                </div>
+                                
+                                <!-- Due Date -->
+                                <div class="col-span-1">
+                                    <span *ngIf="task.due_date" 
+                                          class="text-xs"
+                                          [ngClass]="{'text-error font-medium': isOverdue(task.due_date), 'text-base-content/70': !isOverdue(task.due_date)}">
+                                        {{ task.due_date | date:'MMM d' }}
+                                    </span>
+                                    <span *ngIf="!task.due_date" class="text-xs text-base-content/40">—</span>
+                                </div>
+                                
+                                <!-- Actions -->
+                                <div class="col-span-1">
+                                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button *ngIf="task.status !== 'done'" 
+                                                class="btn btn-ghost btn-xs btn-circle"
+                                                (click)="markTaskAsDone(task, $event)"
+                                                title="Mark as done">
+                                            <lucide-icon name="Check" class="w-3 h-3"></lucide-icon>
+                                        </button>
+                                        <button *ngIf="task.status === 'done'" 
+                                                class="btn btn-ghost btn-xs btn-circle"
+                                                (click)="reopenTask(task, $event)"
+                                                title="Reopen task">
+                                            <lucide-icon name="RotateCcw" class="w-3 h-3"></lucide-icon>
+                                        </button>
+                                        <button class="btn btn-ghost btn-xs btn-circle"
+                                                (click)="deleteTask(task, $event)"
+                                                title="Delete task">
+                                            <lucide-icon name="Trash2" class="w-3 h-3"></lucide-icon>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ng-container>
+                
+                <!-- Empty state for list view -->
+                <div *ngIf="!board.columns || getAllTasks().length === 0" class="text-center py-12">
+                    <lucide-icon name="List" class="w-12 h-12 mx-auto text-base-content/30 mb-4"></lucide-icon>
+                    <p class="text-base-content/60">No tasks to display in list view</p>
                 </div>
             </div>
         </div>

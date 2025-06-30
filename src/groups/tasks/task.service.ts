@@ -31,6 +31,15 @@ import {
     ColumnUpdateData
 } from './task.type'
 
+// Import Task Comment Model
+import { TaskComment } from './task-comment.model'
+
+// Import Types
+import { TaskCommentResponse, TaskCommentsResponse, TaskCommentError, TaskCommentCreateData, TaskCommentUpdateData } from './task-comment.type'
+
+// Import Codes
+import { TaskCommentCode } from './task-comment.code'
+
 /**
  * Service class for handling all task-related operations.
  * This includes CRUD operations for tasks and columns, board management, and task assignments.
@@ -768,6 +777,325 @@ export class TaskService {
         } catch (error) {
             logger.error('Failed to create default columns', { error, groupId, userId })
             // Don't throw error as this is not critical
+        }
+    }
+
+    /**
+     * Gets all comments for a specific task.
+     * 
+     * @param groupId - The UUID of the group
+     * @param taskId - The UUID of the task
+     * @returns A response containing the task comments
+     * @throws TaskCommentError if the retrieval process fails
+     */
+    async getTaskComments(groupId: string, taskId: string): Promise<TaskCommentsResponse<TaskComment>> {
+        try {
+            // Validates that the task exists and belongs to the group
+            const task = await Task.findOne({
+                where: {
+                    uuid: taskId,
+                    group_id: groupId
+                }
+            })
+
+            if (!task) {
+                throw {
+                    success: false,
+                    message: TaskCommentCode.TASK_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Task not found in this group')
+                }
+            }
+
+            // Retrieves all comments for the task
+            const comments = await TaskComment.findAll({
+                where: { task_id: taskId },
+                include: [
+                    { model: User, as: 'user', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] }
+                ],
+                order: [['created_at', 'ASC']]
+            })
+
+            // Logs success
+            logger.info('Task comments retrieved successfully', { taskId, groupId, commentCount: comments.length })
+
+            // Returns success response
+            return {
+                success: true,
+                message: TaskCommentCode.COMMENTS_FOUND,
+                code: 200,
+                comments
+            }
+        } catch (error) {
+            // Logs error
+            logger.error('Task comments retrieval failed', { error, groupId, taskId })
+
+            // Throws formatted error
+            throw {
+                success: false,
+                message: TaskCommentCode.DATABASE_ERROR,
+                code: 400,
+                stack: error instanceof Error ? error : new Error('Database operation failed')
+            }
+        }
+    }
+
+    /**
+     * Creates a new comment for a task.
+     * 
+     * @param groupId - The UUID of the group
+     * @param taskId - The UUID of the task
+     * @param commentData - The comment data to be created
+     * @param userId - The UUID of the user creating the comment
+     * @returns A response containing the newly created comment
+     * @throws TaskCommentError if the creation process fails
+     */
+    async createTaskComment(
+        groupId: string,
+        taskId: string,
+        commentData: TaskCommentCreateData,
+        userId: string
+    ): Promise<TaskCommentResponse<TaskComment>> {
+        try {
+            // Validates that the task exists and belongs to the group
+            const task = await Task.findOne({
+                where: {
+                    uuid: taskId,
+                    group_id: groupId
+                }
+            })
+
+            if (!task) {
+                throw {
+                    success: false,
+                    message: TaskCommentCode.TASK_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Task not found in this group')
+                }
+            }
+
+            // Creates the comment
+            const comment = await TaskComment.create({
+                task_id: taskId,
+                user_id: userId,
+                content: commentData.content.trim()
+            })
+
+            // Fetches the created comment with user details
+            const createdComment = await TaskComment.findByPk(comment.uuid, {
+                include: [
+                    { model: User, as: 'user', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] }
+                ]
+            })
+
+            // Logs success
+            logger.info('Task comment created successfully', { commentId: comment.uuid, taskId, groupId, userId })
+
+            // Returns success response
+            return {
+                success: true,
+                message: TaskCommentCode.COMMENT_CREATED,
+                code: 201,
+                comment: createdComment!
+            }
+        } catch (error) {
+            // Logs error
+            logger.error('Task comment creation failed', { error, groupId, taskId, commentData, userId })
+
+            // Throws formatted error
+            throw {
+                success: false,
+                message: TaskCommentCode.DATABASE_ERROR,
+                code: 400,
+                stack: error instanceof Error ? error : new Error('Database operation failed')
+            }
+        }
+    }
+
+    /**
+     * Updates an existing task comment.
+     * 
+     * @param groupId - The UUID of the group
+     * @param taskId - The UUID of the task
+     * @param commentId - The UUID of the comment to update
+     * @param updateData - The data to update
+     * @param userId - The UUID of the user performing the update
+     * @returns A response containing the updated comment
+     * @throws TaskCommentError if the update process fails
+     */
+    async updateTaskComment(
+        groupId: string,
+        taskId: string,
+        commentId: string,
+        updateData: TaskCommentUpdateData,
+        userId: string
+    ): Promise<TaskCommentResponse<TaskComment>> {
+        try {
+            // Validates that the task exists and belongs to the group
+            const task = await Task.findOne({
+                where: {
+                    uuid: taskId,
+                    group_id: groupId
+                }
+            })
+
+            if (!task) {
+                throw {
+                    success: false,
+                    message: TaskCommentCode.TASK_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Task not found in this group')
+                }
+            }
+
+            // Finds the comment
+            const comment = await TaskComment.findOne({
+                where: {
+                    uuid: commentId,
+                    task_id: taskId
+                }
+            })
+
+            if (!comment) {
+                throw {
+                    success: false,
+                    message: TaskCommentCode.COMMENT_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Comment not found for this task')
+                }
+            }
+
+            // Checks if the user owns the comment or has admin rights
+            if (comment.user_id !== userId) {
+                throw {
+                    success: false,
+                    message: TaskCommentCode.PERMISSION_DENIED,
+                    code: 403,
+                    stack: new Error('You can only edit your own comments')
+                }
+            }
+
+            // Updates the comment
+            await comment.update({
+                content: updateData.content.trim()
+            })
+
+            // Fetches updated comment with user details
+            const updatedComment = await TaskComment.findByPk(comment.uuid, {
+                include: [
+                    { model: User, as: 'user', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] }
+                ]
+            })
+
+            // Logs success
+            logger.info('Task comment updated successfully', { commentId, taskId, groupId, userId })
+
+            // Returns success response
+            return {
+                success: true,
+                message: TaskCommentCode.COMMENT_UPDATED,
+                code: 200,
+                comment: updatedComment!
+            }
+        } catch (error) {
+            // Logs error
+            logger.error('Task comment update failed', { error, groupId, taskId, commentId, updateData, userId })
+
+            // Throws formatted error
+            throw {
+                success: false,
+                message: TaskCommentCode.DATABASE_ERROR,
+                code: 400,
+                stack: error instanceof Error ? error : new Error('Database operation failed')
+            }
+        }
+    }
+
+    /**
+     * Deletes a task comment.
+     * 
+     * @param groupId - The UUID of the group
+     * @param taskId - The UUID of the task
+     * @param commentId - The UUID of the comment to delete
+     * @param userId - The UUID of the user performing the deletion
+     * @returns A response indicating successful deletion
+     * @throws TaskCommentError if the deletion process fails
+     */
+    async deleteTaskComment(
+        groupId: string,
+        taskId: string,
+        commentId: string,
+        userId: string
+    ): Promise<TaskCommentResponse<{ uuid: string }>> {
+        try {
+            // Validates that the task exists and belongs to the group
+            const task = await Task.findOne({
+                where: {
+                    uuid: taskId,
+                    group_id: groupId
+                }
+            })
+
+            if (!task) {
+                throw {
+                    success: false,
+                    message: TaskCommentCode.TASK_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Task not found in this group')
+                }
+            }
+
+            // Finds the comment
+            const comment = await TaskComment.findOne({
+                where: {
+                    uuid: commentId,
+                    task_id: taskId
+                }
+            })
+
+            if (!comment) {
+                throw {
+                    success: false,
+                    message: TaskCommentCode.COMMENT_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Comment not found for this task')
+                }
+            }
+
+            // Checks if the user owns the comment or has admin rights
+            if (comment.user_id !== userId) {
+                throw {
+                    success: false,
+                    message: TaskCommentCode.PERMISSION_DENIED,
+                    code: 403,
+                    stack: new Error('You can only delete your own comments')
+                }
+            }
+
+            // Deletes the comment
+            await comment.destroy()
+
+            // Logs success
+            logger.info('Task comment deleted successfully', { commentId, taskId, groupId, userId })
+
+            // Returns success response
+            return {
+                success: true,
+                message: TaskCommentCode.COMMENT_DELETED,
+                code: 200,
+                comment: { uuid: commentId }
+            }
+        } catch (error) {
+            // Logs error
+            logger.error('Task comment deletion failed', { error, groupId, taskId, commentId, userId })
+
+            // Throws formatted error
+            throw {
+                success: false,
+                message: TaskCommentCode.DATABASE_ERROR,
+                code: 400,
+                stack: error instanceof Error ? error : new Error('Database operation failed')
+            }
         }
     }
 }

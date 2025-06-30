@@ -112,6 +112,12 @@ export class Task extends Model<TaskAttributes, TaskCreationAttributes> implemen
             foreignKey: 'completed_by',
             as: 'completer'
         })
+
+        // Task has many comments
+        Task.hasMany(models.TaskComment, {
+            foreignKey: 'task_id',
+            as: 'comments'
+        })
     }
 }
 
