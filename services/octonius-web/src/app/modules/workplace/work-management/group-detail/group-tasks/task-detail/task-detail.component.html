@@ -1,110 +1,427 @@
-<div *ngIf="task" class="max-w-6xl mx-auto py-10 px-4">
-    <!-- Header: Breadcrumbs and Close -->
-    <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-2 text-sm">
-            <a routerLink="../" class="text-primary hover:underline">Tasks</a>
-            <span>/</span>
-            <span class="font-semibold">{{ task.title }}</span>
-        </div>
-    </div>
-    <!-- Main Content: Two Columns -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <!-- Left/Main Column -->
-        <div class="md:col-span-2 flex flex-col gap-6">
-            <div>
-                <h2 class="text-2xl font-bold mb-2">{{ task.title }}</h2>
-                <p class="text-base-content/80">
-                    This task involves creating a comprehensive layout that enhances user interaction and simplifies navigation. Focus on integrating features that allow seamless collaboration among team members.
-                </p>
-            </div>
-            <div class="flex items-center gap-4 text-sm border-y border-base-200 py-2">
-                <button class="btn btn-ghost btn-sm gap-2"><lucide-icon name="Heart" class="w-4 h-4"></lucide-icon> 3</button>
-                <button class="btn btn-ghost btn-sm gap-2"><lucide-icon name="MessageSquare" class="w-4 h-4"></lucide-icon> 3</button>
-                <span>Add a comment</span>
-                <div class="flex-grow"></div>
-                <button class="btn btn-ghost btn-sm btn-circle"><lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon></button>
-            </div>
-            <!-- Activity Section -->
-            <div class="flex flex-col gap-4">
-                <div class="tabs">
-                    <a class="tab tab-bordered tab-active">Activity</a>
-                    <a class="tab tab-bordered">Subtasks</a>
-                    <a class="tab tab-bordered">Files</a>
-                </div>
-                <div *ngFor="let activity of activities" class="flex items-start gap-3">
-                    <lucide-icon name="MessageSquareText" class="w-5 h-5 mt-1 text-base-content/50"></lucide-icon>
-                    <div class="flex-grow">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <div class="avatar w-6 h-6">
-                                    <img [src]="activity.author.avatarUrl" [alt]="activity.author.name" class="rounded-full" />
-                                </div>
-                                <p class="font-semibold text-sm">{{ activity.author.name }}</p>
-                            </div>
-                            <p class="text-xs text-base-content/60">{{ activity.timestamp | date:'medium' }}</p>
-                        </div>
-                        <div class="bg-base-200/50 rounded-lg p-3 mt-2">
-                            <h4 class="font-semibold mb-1">{{ activity.title }}</h4>
-                            <p class="text-sm text-base-content/80">{{ activity.content }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Right/Sidebar Column -->
-        <div class="flex flex-col gap-6 pt-2">
-            <div>
-                <h4 class="font-semibold text-sm mb-2 text-base-content/70">ASSIGNEE</h4>
-                <div class="flex flex-wrap items-center gap-2">
-                    <div class="badge badge-lg gap-2 pl-1 pr-3 py-4">
-                        <div class="avatar"><div class="w-6 rounded-full"><img [src]="task.assignee.avatar" [alt]="task.assignee.name"/></div></div>
-                        {{ task.assignee.name }}
-                        <lucide-icon name="X" class="w-3 h-3 cursor-pointer"></lucide-icon>
-                    </div>
-                    <button class="btn btn-sm btn-ghost btn-circle"><lucide-icon name="Plus" class="w-4 h-4"></lucide-icon></button>
-                </div>
-            </div>
-            <div>
-                <h4 class="font-semibold text-sm mb-2 text-base-content/70">DUE DATE</h4>
-                <div class="flex items-center gap-2 text-primary cursor-pointer">
-                    <lucide-icon name="Calendar" class="w-5 h-5"></lucide-icon>
-                    <span>{{ task.dueDate | date:'mediumDate' }}</span>
-                </div>
-            </div>
-            <div>
-                <h4 class="font-semibold text-sm mb-2 text-base-content/70">TASK STATUS</h4>
-                <div class="dropdown">
-                    <label tabindex="0" class="btn btn-outline btn-sm btn-warning gap-2">
-                        <lucide-icon name="CheckCircle" class="w-4 h-4"></lucide-icon> In progress
-                    </label>
-                </div>
-            </div>
-            <div>
-                <h4 class="font-semibold text-sm mb-2 text-base-content/70">CUSTOM FIELDS</h4>
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <div class="w-4 h-4 rounded-sm" style="background-color: #FB8C00"></div>
-                            <span class="text-sm">Stage</span>
-                        </div>
-                        <span class="badge badge-ghost badge-sm">pipeline</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <div class="w-4 h-4 rounded-sm" style="background-color: #E53935"></div>
-                            <span class="text-sm">Priority</span>
-                        </div>
-                        <span class="badge badge-ghost badge-sm">HIGH</span>
-                    </div>
-                    <button class="btn btn-ghost btn-sm justify-start pl-0 mt-1">
-                        <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon> Add Custom field
-                    </button>
-                </div>
-            </div>
-            <div>
-                <h4 class="font-semibold text-sm mb-2 text-base-content/70">TIME TRACKING</h4>
-                <p class="text-sm text-base-content/60">No time tracked yet</p>
-            </div>
-        </div>
-    </div>
+<div *ngIf="isLoading" class="max-w-6xl mx-auto py-10 px-4">
+  <div class="flex items-center justify-center min-h-96">
+    <div class="loading loading-spinner loading-lg"></div>
+    <span class="ml-3">Loading task details...</span>
+  </div>
 </div>
+
+<div *ngIf="!isLoading && task" class="max-w-6xl mx-auto py-6 px-4">
+  <!-- Header: Breadcrumbs -->
+  <div class="flex items-center gap-2 text-sm text-base-content/70 mb-6">
+    <a routerLink="../" class="hover:text-primary cursor-pointer">Tasks</a>
+    <span>/</span>
+    <span class="font-medium text-base-content">{{ task.title }}</span>
+  </div>
+
+  <!-- Main Content: Two Columns -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left/Main Column -->
+    <div class="lg:col-span-2 flex flex-col gap-6">
+      <!-- Task Title and Description -->
+      <div>
+        <div class="flex items-start justify-between mb-4">
+          <h1 class="text-2xl font-bold text-base-content">{{ task.title }}</h1>
+          <div class="flex gap-2">
+            <button class="btn btn-outline btn-sm" (click)="openEditModal()">
+              <lucide-icon name="Edit" class="w-4 h-4"></lucide-icon>
+              Edit
+            </button>
+            <button class="btn btn-error btn-outline btn-sm" (click)="openDeleteModal()">
+              <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
+              Delete
+            </button>
+          </div>
+        </div>
+        
+        <p class="text-base-content/80 leading-relaxed" *ngIf="task.description">
+          {{ task.description }}
+        </p>
+        <p class="text-base-content/60 italic" *ngIf="!task.description">
+          No description provided
+        </p>
+      </div>
+
+      <!-- Interaction Bar -->
+      <div class="flex items-center gap-6 py-3 border-y border-base-200">
+        <button class="flex items-center gap-2 text-sm hover:text-primary transition-colors">
+          <lucide-icon name="MessageSquare" class="w-4 h-4"></lucide-icon>
+          <span>{{ comments.length }}</span>
+        </button>
+        
+        <span class="text-sm text-base-content/60">Add a comment</span>
+        
+        <div class="flex-grow"></div>
+        
+        <button class="btn btn-ghost btn-sm btn-circle">
+          <lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon>
+        </button>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="flex flex-col gap-4">
+        <div class="flex gap-6 border-b border-base-200">
+          <button 
+            class="pb-3 px-1 text-sm font-medium border-b-2 transition-colors"
+            [ngClass]="{
+              'border-primary text-primary': activeTab === 'activity',
+              'border-transparent text-base-content/60': activeTab !== 'activity'
+            }"
+            (click)="switchTab('activity')">
+            Activity
+          </button>
+          <button 
+            class="pb-3 px-1 text-sm font-medium border-b-2 transition-colors"
+            [ngClass]="{
+              'border-primary text-primary': activeTab === 'subtasks',
+              'border-transparent text-base-content/60': activeTab !== 'subtasks'
+            }"
+            (click)="switchTab('subtasks')">
+            Subtasks
+          </button>
+          <button 
+            class="pb-3 px-1 text-sm font-medium border-b-2 transition-colors"
+            [ngClass]="{
+              'border-primary text-primary': activeTab === 'files',
+              'border-transparent text-base-content/60': activeTab !== 'files'
+            }"
+            (click)="switchTab('files')">
+            Files
+          </button>
+        </div>
+
+        <!-- Activity Tab Content -->
+        <div *ngIf="activeTab === 'activity'" class="space-y-6">
+          <!-- Comments List -->
+          <div *ngIf="isLoadingComments" class="flex justify-center py-8">
+            <div class="loading loading-spinner loading-md"></div>
+          </div>
+
+          <div *ngIf="!isLoadingComments && comments.length === 0" class="text-center py-8 text-base-content/60">
+            No comments yet. Be the first to add a comment!
+          </div>
+
+          <!-- Comment Items -->
+          <div *ngFor="let comment of comments" class="flex gap-3">
+            <div class="flex-shrink-0">
+              <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
+                <img [src]="comment.user?.avatar_url || 'https://i.pravatar.cc/150?u=' + comment.user?.uuid" 
+                     [alt]="getUserDisplayName(comment.user)" 
+                     class="w-full h-full object-cover" />
+              </div>
+            </div>
+            
+            <div class="flex-grow min-w-0">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="font-medium text-sm">{{ getUserDisplayName(comment.user) }}</span>
+                <span class="text-xs text-base-content/60">{{ comment.created_at | date:'MMM d, y h:mm a' }}</span>
+              </div>
+              
+              <div class="bg-base-100 rounded-lg p-4 border border-base-200">
+                <p class="text-sm text-base-content/80 leading-relaxed">{{ comment.content }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add Comment Section -->
+          <div class="mt-6">
+            <div class="flex gap-3">
+              <div class="flex-shrink-0">
+                <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
+                  <img [src]="currentUser?.avatar_url || 'https://i.pravatar.cc/150?u=' + currentUser?.uuid" 
+                       [alt]="getUserDisplayName(currentUser)" 
+                       class="w-full h-full object-cover" />
+                </div>
+              </div>
+              <div class="flex-grow">
+                <textarea 
+                  class="textarea textarea-bordered w-full resize-none" 
+                  placeholder="Add a comment..."
+                  [(ngModel)]="newComment"
+                  rows="3">
+                </textarea>
+                <div class="flex justify-end mt-2">
+                  <button 
+                    class="btn btn-primary btn-sm" 
+                    [disabled]="!newComment.trim() || isSubmittingComment"
+                    (click)="addComment()">
+                    <span *ngIf="isSubmittingComment" class="loading loading-spinner loading-xs"></span>
+                    {{ isSubmittingComment ? 'Adding...' : 'Comment' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subtasks Tab Content -->
+        <div *ngIf="activeTab === 'subtasks'" class="text-center py-12 text-base-content/60">
+          <lucide-icon name="CheckSquare" class="w-12 h-12 mx-auto mb-4 opacity-50"></lucide-icon>
+          <p>Subtasks feature coming soon!</p>
+        </div>
+
+        <!-- Files Tab Content -->
+        <div *ngIf="activeTab === 'files'" class="text-center py-12 text-base-content/60">
+          <lucide-icon name="Paperclip" class="w-12 h-12 mx-auto mb-4 opacity-50"></lucide-icon>
+          <p>File attachments feature coming soon!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right/Sidebar Column -->
+    <div class="space-y-6">
+      <!-- Assignee Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Assignee</h3>
+        <div class="space-y-2">
+          <!-- Current Assignee (if exists) -->
+          <div *ngIf="task.assignee" class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200">
+            <div class="w-6 h-6 rounded-full overflow-hidden bg-base-300">
+              <img [src]="task.assignee.avatar_url || 'https://i.pravatar.cc/150?u=' + task.assignee.uuid" 
+                   [alt]="getUserDisplayName(task.assignee)"
+                   class="w-full h-full object-cover" />
+            </div>
+            <span class="text-sm font-medium flex-grow">{{ getUserDisplayName(task.assignee) }}</span>
+            <button class="text-base-content/40 hover:text-base-content/80 transition-colors">
+              <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
+            </button>
+          </div>
+          
+          <!-- Mock additional assignees for demo (matching the image) -->
+          <div class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200">
+            <div class="w-6 h-6 rounded-full overflow-hidden bg-base-300">
+              <img src="https://i.pravatar.cc/150?u=martin" 
+                   alt="Martin Iglesias"
+                   class="w-full h-full object-cover" />
+            </div>
+            <span class="text-sm font-medium flex-grow">Martin Iglesias</span>
+            <button class="text-base-content/40 hover:text-base-content/80 transition-colors">
+              <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
+            </button>
+          </div>
+          
+          <div class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200">
+            <div class="w-6 h-6 rounded-full overflow-hidden bg-base-300">
+              <img src="https://i.pravatar.cc/150?u=lila" 
+                   alt="Lila Carter"
+                   class="w-full h-full object-cover" />
+            </div>
+            <span class="text-sm font-medium flex-grow">Lila Carter</span>
+            <button class="text-base-content/40 hover:text-base-content/80 transition-colors">
+              <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
+            </button>
+          </div>
+          
+          <!-- Add Assignee Button -->
+          <button class="flex items-center gap-2 p-2 text-base-content/60 hover:text-base-content/80 hover:bg-base-100 rounded-lg border border-dashed border-base-300 hover:border-base-400 transition-all w-full">
+            <div class="w-6 h-6 rounded-full bg-base-200 flex items-center justify-center">
+              <lucide-icon name="Plus" class="w-3 h-3"></lucide-icon>
+            </div>
+            <span class="text-sm">Add Assignee</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Due Date Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Due date</h3>
+        <div class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200" 
+             [ngClass]="{
+               'border-error bg-error/5': isOverdue(task.due_date)
+             }">
+          <div class="w-6 h-6 rounded flex items-center justify-center"
+               [ngClass]="{
+                 'bg-error': isOverdue(task.due_date),
+                 'bg-base-200': !isOverdue(task.due_date)
+               }">
+            <lucide-icon name="Calendar" class="w-3 h-3" 
+                        [ngClass]="{
+                          'text-white': isOverdue(task.due_date),
+                          'text-base-content/60': !isOverdue(task.due_date)
+                        }"></lucide-icon>
+          </div>
+          <span class="text-sm font-medium" 
+                [ngClass]="{'text-error': isOverdue(task.due_date)}">
+            {{ formatDate(task.due_date) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Task Status Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Task status</h3>
+        <div class="dropdown dropdown-end w-full">
+          <label tabindex="0" class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200 cursor-pointer hover:bg-base-50 transition-colors w-full">
+            <div class="w-6 h-6 rounded flex items-center justify-center"
+                 [class.bg-warning]="task.status === 'in_progress'"
+                 [class.bg-info]="task.status === 'todo'"
+                 [class.bg-success]="task.status === 'done'"
+                 [class.bg-secondary]="task.status === 'review'">
+              <lucide-icon name="Circle" class="w-3 h-3 text-white"></lucide-icon>
+            </div>
+            <span class="text-sm font-medium flex-grow">{{ getStatusLabel(task.status) }}</span>
+            <lucide-icon name="ChevronDown" class="w-3 h-3 text-base-content/40"></lucide-icon>
+          </label>
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-200">
+            <li><a (click)="updateTaskStatus('todo')" [class.active]="task.status === 'todo'">To Do</a></li>
+            <li><a (click)="updateTaskStatus('in_progress')" [class.active]="task.status === 'in_progress'">In Progress</a></li>
+            <li><a (click)="updateTaskStatus('review')" [class.active]="task.status === 'review'">Review</a></li>
+            <li><a (click)="updateTaskStatus('done')" [class.active]="task.status === 'done'">Done</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Custom Fields Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Custom fields</h3>
+        <div class="space-y-2">
+          <!-- Stage Field -->
+          <div class="flex items-center justify-between p-2 bg-base-100 rounded-lg border border-base-200">
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded-sm bg-warning"></div>
+              <span class="text-sm font-medium">Stage</span>
+            </div>
+            <div class="dropdown dropdown-end">
+              <label tabindex="0" class="flex items-center gap-1 text-sm text-base-content/60 cursor-pointer hover:text-base-content/80">
+                <span>pipeline</span>
+                <lucide-icon name="ChevronDown" class="w-3 h-3"></lucide-icon>
+              </label>
+              <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-32 border border-base-200">
+                <li><a>pipeline</a></li>
+                <li><a>design</a></li>
+                <li><a>development</a></li>
+                <li><a>testing</a></li>
+              </ul>
+            </div>
+          </div>
+          
+          <!-- Priority Field -->
+          <div class="flex items-center justify-between p-2 bg-base-100 rounded-lg border border-base-200">
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded-sm bg-error"></div>
+              <span class="text-sm font-medium">Priority</span>
+            </div>
+            <div class="dropdown dropdown-end">
+              <label tabindex="0" class="flex items-center gap-1 text-sm text-base-content/60 cursor-pointer hover:text-base-content/80">
+                <span>{{ getPriorityLabel(task.priority).toUpperCase() }}</span>
+                <lucide-icon name="ChevronDown" class="w-3 h-3"></lucide-icon>
+              </label>
+              <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-32 border border-base-200">
+                <li><a (click)="updateTaskPriority('low')">LOW</a></li>
+                <li><a (click)="updateTaskPriority('medium')">MEDIUM</a></li>
+                <li><a (click)="updateTaskPriority('high')">HIGH</a></li>
+                <li><a (click)="updateTaskPriority('urgent')">URGENT</a></li>
+              </ul>
+            </div>
+          </div>
+          
+          <!-- Add Custom Field Button -->
+          <button class="flex items-center gap-2 p-2 text-base-content/60 hover:text-base-content/80 hover:bg-base-100 rounded-lg border border-dashed border-base-300 hover:border-base-400 transition-all w-full">
+            <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon>
+            <span class="text-sm">Add Custom field</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Time Tracking Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Time tracking</h3>
+        <div *ngIf="task.metadata?.estimated_hours || task.metadata?.actual_hours" class="space-y-1">
+          <div *ngIf="task.metadata.estimated_hours" class="text-sm">
+            Estimated: {{ task.metadata.estimated_hours }}h
+          </div>
+          <div *ngIf="task.metadata.actual_hours" class="text-sm">
+            Actual: {{ task.metadata.actual_hours }}h
+          </div>
+        </div>
+        <p *ngIf="!task.metadata?.estimated_hours && !task.metadata?.actual_hours" 
+           class="text-sm text-base-content/60">
+          No time tracked yet
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Task Modal -->
+<div class="modal" [class.modal-open]="showEditModal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">Edit Task</h3>
+    
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Title *</span>
+      </label>
+      <input type="text" class="input input-bordered" [(ngModel)]="editForm.title" placeholder="Task title">
+    </div>
+
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Description</span>
+      </label>
+      <textarea class="textarea textarea-bordered" [(ngModel)]="editForm.description" 
+                placeholder="Task description" rows="3"></textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Priority</span>
+        </label>
+        <select class="select select-bordered" [(ngModel)]="editForm.priority">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </div>
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Status</span>
+        </label>
+        <select class="select select-bordered" [(ngModel)]="editForm.status">
+          <option value="todo">To Do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="review">Review</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Due Date</span>
+      </label>
+      <input type="date" class="input input-bordered" [(ngModel)]="editForm.due_date">
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" [disabled]="!editForm.title.trim() || isSaving" (click)="saveTask()">
+        <span *ngIf="isSaving" class="loading loading-spinner loading-xs"></span>
+        {{ isSaving ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal" [class.modal-open]="showDeleteModal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-error">Delete Task</h3>
+    <p class="py-4">Are you sure you want to delete "{{ task?.title }}"? This action cannot be undone.</p>
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-error" (click)="deleteTask()">Delete Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Error State -->
+<div *ngIf="!isLoading && !task" class="max-w-6xl mx-auto py-10 px-4">
+  <div class="text-center">
+    <h2 class="text-2xl font-bold mb-4">Task Not Found</h2>
+    <p class="text-base-content/70 mb-6">The task you're looking for doesn't exist or has been deleted.</p>
+    <button class="btn btn-primary" routerLink="../">Back to Tasks</button>
+  </div>
+</div> 

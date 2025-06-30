@@ -122,5 +122,40 @@ export class TaskRoute {
                     this.task_controller.moveTask(req, res)
                 }
             )
+
+        // Task comment routes
+        this.router
+            // Get task comments
+            .get('/:task_id/comments',
+                verifyAccessToken,
+                isLoggedIn,
+                (req: Request, res: Response) => {
+                    this.task_controller.getTaskComments(req, res)
+                }
+            )
+            // Create task comment
+            .post('/:task_id/comments',
+                verifyAccessToken,
+                isLoggedIn,
+                (req: Request, res: Response) => {
+                    this.task_controller.createTaskComment(req, res)
+                }
+            )
+            // Update task comment
+            .put('/:task_id/comments/:comment_id',
+                verifyAccessToken,
+                isLoggedIn,
+                (req: Request, res: Response) => {
+                    this.task_controller.updateTaskComment(req, res)
+                }
+            )
+            // Delete task comment
+            .delete('/:task_id/comments/:comment_id',
+                verifyAccessToken,
+                isLoggedIn,
+                (req: Request, res: Response) => {
+                    this.task_controller.deleteTaskComment(req, res)
+                }
+            )
     }
 } 

@@ -729,4 +729,326 @@ export class TaskController {
             })
         }
     }
+
+    /**
+     * Gets all comments for a specific task.
+     * 
+     * @param req - Express request object
+     * @param res - Express response object
+     * @returns Task comments or error response
+     */
+    async getTaskComments(req: Request, res: Response): Promise<Response> {
+        const startTime = Date.now()
+        
+        try {
+            logger.info('Fetching task comments', {
+                method: req.method,
+                path: req.path,
+                params: req.params,
+                ip: req.ip
+            })
+
+            // Extracts data from request
+            const { group_id, task_id } = req.params
+
+            // Retrieves task comments using the service
+            const result = await this.taskService.getTaskComments(group_id, task_id)
+
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Log successful retrieval
+            logger.info('Task comments retrieved successfully', {
+                taskId: task_id,
+                groupId: group_id,
+                commentCount: result.comments?.length || 0,
+                responseTime: `${responseTime}ms`,
+                statusCode: 200
+            })
+
+            // Returns success response with comments
+            return res.status(200).json({
+                success: true,
+                data: result.comments,
+                message: result.message,
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        } catch (error: any) {
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Logs the error for debugging
+            logger.error('Error in getTaskComments controller', {
+                error: error.message || 'Unknown error',
+                stack: error.stack,
+                responseTime: `${responseTime}ms`,
+                statusCode: error.code || 500,
+                params: req.params
+            })
+
+            // Returns error response
+            return res.status(error.code || 500).json({
+                success: false,
+                message: error.message || 'Failed to retrieve task comments',
+                error: error.stack?.message || 'Unknown error',
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        }
+    }
+
+    /**
+     * Creates a new comment for a task.
+     * 
+     * @param req - Express request object containing comment data
+     * @param res - Express response object
+     * @returns Created comment or error response
+     */
+    async createTaskComment(req: Request, res: Response): Promise<Response> {
+        const startTime = Date.now()
+        
+        try {
+            logger.info('Creating task comment', {
+                method: req.method,
+                path: req.path,
+                params: req.params,
+                userId: req.user?.uuid,
+                ip: req.ip
+            })
+
+            // Extracts data from request
+            const { group_id, task_id } = req.params
+            const commentData = req.body
+            const userId = req.user!.uuid // Middleware ensures user exists
+
+            // Validates required fields
+            if (!commentData.content?.trim()) {
+                const responseTime = Date.now() - startTime
+                logger.warn('Task comment creation failed - content required', {
+                    responseTime: `${responseTime}ms`,
+                    statusCode: 400
+                })
+
+                return res.status(400).json({
+                    success: false,
+                    message: 'Comment content is required',
+                    meta: {
+                        responseTime: `${responseTime}ms`
+                    }
+                })
+            }
+
+            // Creates comment using the service
+            const result = await this.taskService.createTaskComment(group_id, task_id, commentData, userId)
+
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Log successful creation
+            logger.info('Task comment created successfully', {
+                commentId: result.comment?.uuid,
+                taskId: task_id,
+                groupId: group_id,
+                responseTime: `${responseTime}ms`,
+                statusCode: 201
+            })
+
+            // Returns success response with created comment
+            return res.status(201).json({
+                success: true,
+                data: result.comment,
+                message: result.message,
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        } catch (error: any) {
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Logs the error for debugging
+            logger.error('Error in createTaskComment controller', {
+                error: error.message || 'Unknown error',
+                stack: error.stack,
+                responseTime: `${responseTime}ms`,
+                statusCode: error.code || 500,
+                body: req.body
+            })
+
+            // Returns error response
+            return res.status(error.code || 500).json({
+                success: false,
+                message: error.message || 'Failed to create task comment',
+                error: error.stack?.message || 'Unknown error',
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        }
+    }
+
+    /**
+     * Updates an existing task comment.
+     * 
+     * @param req - Express request object containing update data
+     * @param res - Express response object
+     * @returns Updated comment or error response
+     */
+    async updateTaskComment(req: Request, res: Response): Promise<Response> {
+        const startTime = Date.now()
+        
+        try {
+            logger.info('Updating task comment', {
+                method: req.method,
+                path: req.path,
+                params: req.params,
+                userId: req.user?.uuid,
+                ip: req.ip
+            })
+
+            // Extracts data from request
+            const { group_id, task_id, comment_id } = req.params
+            const updateData = req.body
+            const userId = req.user!.uuid // Middleware ensures user exists
+
+            // Validates required fields
+            if (!updateData.content?.trim()) {
+                const responseTime = Date.now() - startTime
+                logger.warn('Task comment update failed - content required', {
+                    responseTime: `${responseTime}ms`,
+                    statusCode: 400
+                })
+
+                return res.status(400).json({
+                    success: false,
+                    message: 'Comment content is required',
+                    meta: {
+                        responseTime: `${responseTime}ms`
+                    }
+                })
+            }
+
+            // Updates comment using the service
+            const result = await this.taskService.updateTaskComment(group_id, task_id, comment_id, updateData, userId)
+
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Log successful update
+            logger.info('Task comment updated successfully', {
+                commentId: comment_id,
+                taskId: task_id,
+                groupId: group_id,
+                responseTime: `${responseTime}ms`,
+                statusCode: 200
+            })
+
+            // Returns success response with updated comment
+            return res.status(200).json({
+                success: true,
+                data: result.comment,
+                message: result.message,
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        } catch (error: any) {
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Logs the error for debugging
+            logger.error('Error in updateTaskComment controller', {
+                error: error.message || 'Unknown error',
+                stack: error.stack,
+                responseTime: `${responseTime}ms`,
+                statusCode: error.code || 500,
+                params: req.params,
+                body: req.body
+            })
+
+            // Returns error response
+            return res.status(error.code || 500).json({
+                success: false,
+                message: error.message || 'Failed to update task comment',
+                error: error.stack?.message || 'Unknown error',
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        }
+    }
+
+    /**
+     * Deletes a task comment.
+     * 
+     * @param req - Express request object
+     * @param res - Express response object
+     * @returns Success or error response
+     */
+    async deleteTaskComment(req: Request, res: Response): Promise<Response> {
+        const startTime = Date.now()
+        
+        try {
+            logger.info('Deleting task comment', {
+                method: req.method,
+                path: req.path,
+                params: req.params,
+                userId: req.user?.uuid,
+                ip: req.ip
+            })
+
+            // Extracts data from request
+            const { group_id, task_id, comment_id } = req.params
+            const userId = req.user!.uuid // Middleware ensures user exists
+
+            // Deletes comment using the service
+            const result = await this.taskService.deleteTaskComment(group_id, task_id, comment_id, userId)
+
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Log successful deletion
+            logger.info('Task comment deleted successfully', {
+                commentId: comment_id,
+                taskId: task_id,
+                groupId: group_id,
+                responseTime: `${responseTime}ms`,
+                statusCode: 200
+            })
+
+            // Returns success response
+            return res.status(200).json({
+                success: true,
+                message: result.message,
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        } catch (error: any) {
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Logs the error for debugging
+            logger.error('Error in deleteTaskComment controller', {
+                error: error.message || 'Unknown error',
+                stack: error.stack,
+                responseTime: `${responseTime}ms`,
+                statusCode: error.code || 500,
+                params: req.params
+            })
+
+            // Returns error response
+            return res.status(error.code || 500).json({
+                success: false,
+                message: error.message || 'Failed to delete task comment',
+                error: error.stack?.message || 'Unknown error',
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        }
+    }
 } 

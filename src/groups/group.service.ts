@@ -5,7 +5,7 @@ import { GroupMembership } from './group-membership.model'
 import { User } from '../users/user.model'
 import { Workplace } from '../workplaces/workplace.model'
 import { GroupCode } from './group.code'
-import { GroupResponse, GroupsResponse, GroupError } from './group.type'
+import { GroupResponse, GroupsResponse, GroupError, GroupMembersResponse } from './group.type'
 import logger from '../logger'
 import taskService from './tasks/task.service'
 
@@ -597,6 +597,348 @@ export class GroupService {
             }
         } catch (error) {
             logger.error('Error removing member from group:', error)
+            return {
+                success: false,
+                message: GroupCode.DATABASE_ERROR,
+                code: 500,
+                stack: error as Error
+            }
+        }
+    }
+
+    /**
+     * Get all members of a group
+     */
+    static async getGroupMembers(group_id: string, user_id: string): Promise<GroupMembersResponse<GroupMembership[]> | GroupError> {
+        try {
+            const group = await Group.findOne({
+                where: {
+                    uuid: group_id,
+                    is_active: true
+                }
+            })
+
+            if (!group) {
+                return {
+                    success: false,
+                    message: GroupCode.GROUP_NOT_FOUND,
+                    code: 404,
+                    stack: new Error(GroupCode.GROUP_NOT_FOUND)
+                }
+            }
+
+            // Check if user has access to view members
+            const userMembership = await GroupMembership.findOne({
+                where: {
+                    group_id,
+                    user_id,
+                    status: 'active'
+                }
+            })
+
+            if (!userMembership) {
+                return {
+                    success: false,
+                    message: GroupCode.INSUFFICIENT_PERMISSIONS,
+                    code: 403,
+                    stack: new Error(GroupCode.INSUFFICIENT_PERMISSIONS)
+                }
+            }
+
+            const members = await GroupMembership.findAll({
+                where: {
+                    group_id,
+                    status: 'active'
+                },
+                include: [
+                    {
+                        model: User,
+                        as: 'user',
+                        attributes: ['uuid', 'first_name', 'last_name', 'email', 'avatar_url']
+                    }
+                ],
+                order: [['created_at', 'ASC']]
+            })
+
+            logger.info(`Retrieved ${members.length} members for group: ${group_id}`)
+
+            return {
+                success: true,
+                message: GroupCode.GROUP_MEMBERS_FOUND,
+                code: 200,
+                members: members
+            }
+        } catch (error) {
+            logger.error('Error retrieving group members:', error)
+            return {
+                success: false,
+                message: GroupCode.DATABASE_ERROR,
+                code: 500,
+                stack: error as Error
+            }
+        }
+    }
+
+    /**
+     * Update member role
+     */
+    static async updateMemberRole(group_id: string, member_id: string, new_role: 'admin' | 'member' | 'viewer', updated_by: string): Promise<GroupResponse<GroupMembership> | GroupError> {
+        try {
+            const group = await Group.findOne({
+                where: {
+                    uuid: group_id,
+                    is_active: true
+                }
+            })
+
+            if (!group) {
+                return {
+                    success: false,
+                    message: GroupCode.GROUP_NOT_FOUND,
+                    code: 404,
+                    stack: new Error(GroupCode.GROUP_NOT_FOUND)
+                }
+            }
+
+            // Check if updater has permission
+            const updaterMembership = await GroupMembership.findOne({
+                where: {
+                    group_id,
+                    user_id: updated_by,
+                    role: 'admin',
+                    status: 'active'
+                }
+            })
+
+            if (!updaterMembership) {
+                return {
+                    success: false,
+                    message: GroupCode.INSUFFICIENT_PERMISSIONS,
+                    code: 403,
+                    stack: new Error(GroupCode.INSUFFICIENT_PERMISSIONS)
+                }
+            }
+
+            // Find the member to update
+            const membership = await GroupMembership.findOne({
+                where: {
+                    uuid: member_id,
+                    group_id,
+                    status: 'active'
+                },
+                include: [
+                    {
+                        model: User,
+                        as: 'user',
+                        attributes: ['uuid', 'first_name', 'last_name', 'email', 'avatar_url']
+                    }
+                ]
+            })
+
+            if (!membership) {
+                return {
+                    success: false,
+                    message: GroupCode.MEMBER_NOT_IN_GROUP,
+                    code: 404,
+                    stack: new Error(GroupCode.MEMBER_NOT_IN_GROUP)
+                }
+            }
+
+            // Update role and permissions
+            await membership.update({
+                role: new_role,
+                permissions: this.getDefaultPermissions(new_role)
+            })
+
+            logger.info(`Member role updated: ${member_id} to ${new_role} in group: ${group_id}`)
+
+            return {
+                success: true,
+                message: GroupCode.GROUP_MEMBER_UPDATED,
+                code: 200,
+                group: membership
+            }
+        } catch (error) {
+            logger.error('Error updating member role:', error)
+            return {
+                success: false,
+                message: GroupCode.DATABASE_ERROR,
+                code: 500,
+                stack: error as Error
+            }
+        }
+    }
+
+    /**
+     * Invite member by email (placeholder - would integrate with email service)
+     */
+    static async inviteMember(group_id: string, email: string, role: 'admin' | 'member' | 'viewer', invited_by: string, message?: string): Promise<GroupResponse<any> | GroupError> {
+        try {
+            const group = await Group.findOne({
+                where: {
+                    uuid: group_id,
+                    is_active: true
+                }
+            })
+
+            if (!group) {
+                return {
+                    success: false,
+                    message: GroupCode.GROUP_NOT_FOUND,
+                    code: 404,
+                    stack: new Error(GroupCode.GROUP_NOT_FOUND)
+                }
+            }
+
+            // Check if inviter has permission
+            const inviterMembership = await GroupMembership.findOne({
+                where: {
+                    group_id,
+                    user_id: invited_by,
+                    status: 'active'
+                }
+            })
+
+            if (!inviterMembership || !inviterMembership.permissions.can_add_members) {
+                return {
+                    success: false,
+                    message: GroupCode.INSUFFICIENT_PERMISSIONS,
+                    code: 403,
+                    stack: new Error(GroupCode.INSUFFICIENT_PERMISSIONS)
+                }
+            }
+
+            // Check if user with this email already exists and is a member
+            const existingUser = await User.findOne({
+                where: { email }
+            })
+
+            if (existingUser) {
+                const existingMembership = await GroupMembership.findOne({
+                    where: {
+                        group_id,
+                        user_id: existingUser.uuid,
+                        status: 'active'
+                    }
+                })
+
+                if (existingMembership) {
+                    return {
+                        success: false,
+                        message: GroupCode.MEMBER_ALREADY_IN_GROUP,
+                        code: 409,
+                        stack: new Error(GroupCode.MEMBER_ALREADY_IN_GROUP)
+                    }
+                }
+            }
+
+            // For now, just return success - in a real implementation, you would:
+            // 1. Create an invitation record
+            // 2. Send email with invitation link
+            // 3. Handle invitation acceptance flow
+
+            logger.info(`Invitation sent to ${email} for group: ${group_id} by: ${invited_by}`)
+
+            return {
+                success: true,
+                message: GroupCode.GROUP_INVITATION_SENT,
+                code: 200,
+                group: {
+                    email,
+                    role,
+                    group_id,
+                    invited_by,
+                    message,
+                    invited_at: new Date().toISOString()
+                }
+            }
+        } catch (error) {
+            logger.error('Error inviting member:', error)
+            return {
+                success: false,
+                message: GroupCode.DATABASE_ERROR,
+                code: 500,
+                stack: error as Error
+            }
+        }
+    }
+
+    /**
+     * Get pending invitations (placeholder)
+     */
+    static async getPendingInvitations(group_id: string, user_id: string): Promise<GroupResponse<any[]> | GroupError> {
+        try {
+            const group = await Group.findOne({
+                where: {
+                    uuid: group_id,
+                    is_active: true
+                }
+            })
+
+            if (!group) {
+                return {
+                    success: false,
+                    message: GroupCode.GROUP_NOT_FOUND,
+                    code: 404,
+                    stack: new Error(GroupCode.GROUP_NOT_FOUND)
+                }
+            }
+
+            // Check if user has permission to view invitations
+            const membership = await GroupMembership.findOne({
+                where: {
+                    group_id,
+                    user_id,
+                    role: 'admin',
+                    status: 'active'
+                }
+            })
+
+            if (!membership) {
+                return {
+                    success: false,
+                    message: GroupCode.INSUFFICIENT_PERMISSIONS,
+                    code: 403,
+                    stack: new Error(GroupCode.INSUFFICIENT_PERMISSIONS)
+                }
+            }
+
+            // For now, return empty array - in real implementation, query invitation table
+            const invitations: any[] = []
+
+            return {
+                success: true,
+                message: GroupCode.GROUP_INVITATIONS_FOUND,
+                code: 200,
+                group: invitations
+            }
+        } catch (error) {
+            logger.error('Error retrieving invitations:', error)
+            return {
+                success: false,
+                message: GroupCode.DATABASE_ERROR,
+                code: 500,
+                stack: error as Error
+            }
+        }
+    }
+
+    /**
+     * Cancel invitation (placeholder)
+     */
+    static async cancelInvitation(group_id: string, invitation_id: string, user_id: string): Promise<GroupResponse<void> | GroupError> {
+        try {
+            // For now, just return success - in real implementation, update invitation status
+            logger.info(`Invitation cancelled: ${invitation_id} for group: ${group_id} by: ${user_id}`)
+
+            return {
+                success: true,
+                message: GroupCode.GROUP_INVITATION_CANCELLED,
+                code: 200,
+                group: undefined
+            }
+        } catch (error) {
+            logger.error('Error cancelling invitation:', error)
             return {
                 success: false,
                 message: GroupCode.DATABASE_ERROR,

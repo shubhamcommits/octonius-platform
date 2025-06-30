@@ -11,6 +11,10 @@ export enum GroupCode {
     GROUP_MEMBER_ADDED = 'Member has been successfully added to the work group',
     GROUP_MEMBER_REMOVED = 'Member has been successfully removed from the work group',
     GROUP_MEMBER_UPDATED = 'Member role has been successfully updated in the work group',
+    GROUP_MEMBERS_FOUND = 'Group members have been successfully retrieved',
+    GROUP_INVITATION_SENT = 'Group invitation has been successfully sent',
+    GROUP_INVITATIONS_FOUND = 'Group invitations have been successfully retrieved',
+    GROUP_INVITATION_CANCELLED = 'Group invitation has been successfully cancelled',
 
     // Error codes (4xx)
     GROUP_NOT_FOUND = 'The requested work group could not be found',

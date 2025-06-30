@@ -91,8 +91,8 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
   // View switching
   switchView(view: 'board' | 'list' | 'timeline'): void {
     this.currentView = view;
-    if (view !== 'board') {
-      this.toastService.info(`${view.charAt(0).toUpperCase() + view.slice(1)} view coming soon!`);
+    if (view === 'timeline') {
+      this.toastService.info('Timeline view coming soon!');
     }
   }
 
@@ -442,5 +442,12 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
       default:
         return status;
     }
+  }
+
+  getAllTasks(): Task[] {
+    if (!this.board) return [];
+    return this.board.columns.reduce((allTasks: Task[], column) => {
+      return allTasks.concat(column.tasks);
+    }, []);
   }
 }

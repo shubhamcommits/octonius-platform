@@ -80,6 +80,13 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
             sourceKey: 'uuid',
             as: 'lounge_stories'
         })
+
+        // User has many task comments
+        User.hasMany(models.TaskComment, {
+            foreignKey: 'user_id',
+            sourceKey: 'uuid',
+            as: 'task_comments'
+        })
     }
 }
 

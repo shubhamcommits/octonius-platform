@@ -67,10 +67,40 @@ export class GroupRoute {
             GroupController.addMember(req, res)
         })
 
+        // Get all members of a group
+        // GET /api/workplace/groups/:group_id/members
+        this.router.get('/:group_id/members', (req: Request, res: Response) => {
+            GroupController.getMembers(req, res)
+        })
+
+        // Update member role
+        // PUT /api/workplace/groups/:group_id/members/:member_id
+        this.router.put('/:group_id/members/:member_id', (req: Request, res: Response) => {
+            GroupController.updateMemberRole(req, res)
+        })
+
         // Remove a member from a group
         // DELETE /api/workplace/groups/:group_id/members/:user_id
         this.router.delete('/:group_id/members/:user_id', (req: Request, res: Response) => {
             GroupController.removeMember(req, res)
+        })
+
+        // Invite member by email
+        // POST /api/workplace/groups/:group_id/invite
+        this.router.post('/:group_id/invite', (req: Request, res: Response) => {
+            GroupController.inviteMember(req, res)
+        })
+
+        // Get pending invitations
+        // GET /api/workplace/groups/:group_id/invitations
+        this.router.get('/:group_id/invitations', (req: Request, res: Response) => {
+            GroupController.getPendingInvitations(req, res)
+        })
+
+        // Cancel invitation
+        // DELETE /api/workplace/groups/:group_id/invitations/:invitation_id
+        this.router.delete('/:group_id/invitations/:invitation_id', (req: Request, res: Response) => {
+            GroupController.cancelInvitation(req, res)
         })
 
         // Mount activity sub-route
