@@ -7,6 +7,7 @@ import { Workplace } from '../workplaces/workplace.model'
 import { GroupCode } from './group.code'
 import { GroupResponse, GroupsResponse, GroupError } from './group.type'
 import logger from '../logger'
+import taskService from './tasks/task.service'
 
 /**
  * Group Service Class
@@ -79,6 +80,9 @@ export class GroupService {
                     can_view_analytics: true
                 }
             })
+
+            // Create default task columns for the group
+            await taskService.createDefaultColumns(group.uuid, groupData.created_by)
 
             logger.info(`Group created: ${group.uuid} by user: ${groupData.created_by}`)
 
