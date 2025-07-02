@@ -68,8 +68,8 @@
 
     <!-- Files List -->
     <div class="space-y-2">
-      <div *ngFor="let file of filteredFiles" 
-           class="flex items-center justify-between p-4 hover:bg-base-200 rounded-lg transition-colors cursor-pointer" 
+      <div *ngFor="let file of filteredFiles; let i = index" 
+           class="flex items-center justify-between p-4 hover:bg-base-200 rounded-lg transition-colors cursor-pointer relative" 
            (click)="onFileClick(file)">
         <div class="flex items-center gap-4">
           <lucide-icon [name]="getDisplayIcon(file)" class="w-6 h-6 text-base-content/70"></lucide-icon>
@@ -88,6 +88,43 @@
                 {{getAvatarInitials(file)}}
               </span>
             </div>
+          </div>
+          
+          <!-- Three-dots menu -->
+          <div class="dropdown dropdown-end">
+            <div tabindex="0" 
+                 role="button" 
+                 class="btn btn-ghost btn-circle btn-sm hover:bg-base-300"
+                 (click)="$event.stopPropagation()">
+              <lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon>
+            </div>
+            <ul tabindex="0" 
+                class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow-lg border border-base-300">
+              <!-- Preview Option -->
+              <li>
+                <a (click)="onPreviewFile(file); $event.stopPropagation()" 
+                   class="flex items-center gap-3 px-3 py-2 hover:bg-base-200 rounded-lg">
+                  <lucide-icon name="Eye" class="w-4 h-4"></lucide-icon>
+                  <span>Preview</span>
+                </a>
+              </li>
+              <!-- Download Option -->
+              <li>
+                <a (click)="onDownloadFile(file); $event.stopPropagation()" 
+                   class="flex items-center gap-3 px-3 py-2 hover:bg-base-200 rounded-lg">
+                  <lucide-icon name="Download" class="w-4 h-4"></lucide-icon>
+                  <span>Download</span>
+                </a>
+              </li>
+              <!-- Delete Option -->
+              <li>
+                <a (click)="onDeleteFile(file); $event.stopPropagation()" 
+                   class="flex items-center gap-3 px-3 py-2 hover:bg-error/10 text-error rounded-lg">
+                  <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
+                  <span>Delete</span>
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -109,4 +146,51 @@
       </div>
     </div>
   </ng-container>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal transition-all duration-300" [class.modal-open]="showDeleteModal">
+    <div class="modal-box relative animate-bounce-in">
+      <!-- Close button -->
+      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" (click)="closeDeleteModal()">
+        <lucide-icon name="X" class="w-4 h-4"></lucide-icon>
+      </button>
+      
+      <!-- Header -->
+      <h3 class="font-bold text-lg flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 rounded-full bg-warning/20 flex items-center justify-center">
+          <lucide-icon name="AlertTriangle" class="w-6 h-6 text-warning"></lucide-icon>
+        </div>
+        <span>Confirm Deletion</span>
+      </h3>
+      
+      <!-- Content -->
+      <div class="py-2">
+        <p class="text-base-content/80 mb-2">
+          Are you sure you want to delete this file?
+        </p>
+        <div class="bg-base-200 rounded-lg p-3 mb-4" *ngIf="fileToDelete">
+          <div class="flex items-center gap-3">
+            <lucide-icon [name]="getDisplayIcon(fileToDelete)" class="w-5 h-5 text-base-content/70"></lucide-icon>
+            <span class="font-medium">{{fileToDelete.name}}</span>
+          </div>
+        </div>
+        <div class="alert alert-warning">
+          <lucide-icon name="AlertTriangle" class="w-5 h-5"></lucide-icon>
+          <span class="text-sm">This action cannot be undone.</span>
+        </div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="modal-action">
+        <button class="btn btn-ghost" (click)="closeDeleteModal()">
+          Cancel
+        </button>
+        <button class="btn btn-error" (click)="confirmDelete()">
+          <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
+          Delete File
+        </button>
+      </div>
+    </div>
+    <div class="modal-backdrop backdrop-blur-sm" (click)="closeDeleteModal()"></div>
+  </div>
 </div> 

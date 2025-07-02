@@ -72,7 +72,8 @@ import { LucideAngularModule,
   Circle,
   Mail,
   Eye,
-  Save
+  Save,
+  Download
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -156,7 +157,8 @@ import { TopbarComponent } from './components/topbar/topbar.component'
       Circle,
       Mail,
       Eye,
-      Save
+      Save,
+      Download
     })
   ],
   exports: [

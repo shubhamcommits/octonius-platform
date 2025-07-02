@@ -138,5 +138,14 @@ export class FileRoute {
                 this.file_controller.getFileDownloadUrl(req, res)
             }
         )
+
+        // Delete a file by ID (requires auth)
+        this.router.delete('/:id', 
+            verifyAccessToken, 
+            isLoggedIn,
+            (req: Request, res: Response) => {
+                this.file_controller.deleteFile(req, res)
+            }
+        )
     }
 } 

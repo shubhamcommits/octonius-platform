@@ -271,7 +271,9 @@ module "app_runner" {
     JWT_ACCESS_KEY        = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_KEY::"
     JWT_ACCESS_TIME       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_TIME::"
     JWT_REFRESH_KEY       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_KEY::"
-    JWT_REFRESH_TIME      = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_TIME::"
+    JWT_REFRESH_TIME      = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_TIME::",
+    CDN_BASE_URL          = "${data.aws_secretsmanager_secret.platform_env.arn}:CDN_BASE_URL::",
+    S3_BUCKET_NAME        = "${data.aws_secretsmanager_secret.platform_env.arn}:S3_BUCKET_NAME::",
     DB_PASS               = "${module.rds.secret_arn}:password::"
   }
 
