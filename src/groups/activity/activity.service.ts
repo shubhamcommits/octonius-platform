@@ -3,6 +3,9 @@ import { CreateGroupActivityPostInput, UpdateGroupActivityPostInput } from './ac
 import logger from '../../logger';
 import { User } from '../../users/user.model';
 
+// Import Cache Service
+import { CacheService } from '../../shared/cache.service';
+
 export class GroupActivityService {
   async list(group_id: string) {
     // Validate group_id parameter
@@ -10,10 +13,17 @@ export class GroupActivityService {
       logger.error('GroupActivityService.list: group_id is undefined or null', { group_id });
       throw new Error('Group ID is required');
     }
+
+    // Check cache first
+    const cachedPosts = await CacheService.getActivityFeed(group_id);
+    if (cachedPosts) {
+      logger.info('Activity posts retrieved from cache', { group_id });
+      return cachedPosts;
+    }
     
     logger.info('GroupActivityService.list: Executing query', { group_id });
     
-    return GroupActivityPost.findAll({ 
+    const posts = await GroupActivityPost.findAll({ 
       where: { group_id }, 
       order: [['created_at', 'DESC']],
       include: [
@@ -24,6 +34,12 @@ export class GroupActivityService {
         }
       ]
     });
+
+    // Cache the results
+    await CacheService.setActivityFeed(group_id, posts);
+    logger.info('Activity posts cached successfully', { group_id, count: posts.length });
+
+    return posts;
   }
 
   async get(group_id: string, uuid: string) {
@@ -40,22 +56,41 @@ export class GroupActivityService {
   }
 
   async create(group_id: string, user_id: string, input: CreateGroupActivityPostInput) {
-    return GroupActivityPost.create({
+    const post = await GroupActivityPost.create({
       group_id,
       user_id,
       content: input.content,
     });
+
+    // Invalidate activity feed cache
+    await CacheService.invalidateActivityFeed(group_id);
+    logger.info('Activity feed cache invalidated after post creation', { group_id, post_id: post.uuid });
+
+    return post;
   }
 
   async update(group_id: string, uuid: string, input: UpdateGroupActivityPostInput) {
     const post = await GroupActivityPost.findOne({ where: { group_id, uuid } });
     if (!post) return null;
     await post.update(input);
+
+    // Invalidate activity feed cache
+    await CacheService.invalidateActivityFeed(group_id);
+    await CacheService.invalidateActivityPost(uuid);
+    logger.info('Activity caches invalidated after post update', { group_id, post_id: uuid });
+
     return post;
   }
 
   async delete(group_id: string, uuid: string) {
-    return GroupActivityPost.destroy({ where: { group_id, uuid } });
+    const result = await GroupActivityPost.destroy({ where: { group_id, uuid } });
+    
+    // Invalidate activity feed cache
+    await CacheService.invalidateActivityFeed(group_id);
+    await CacheService.invalidateActivityPost(uuid);
+    logger.info('Activity caches invalidated after post deletion', { group_id, post_id: uuid });
+
+    return result;
   }
 
   async like(post_id: string, user_id: string) {

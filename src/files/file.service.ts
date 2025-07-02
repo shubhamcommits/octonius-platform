@@ -13,6 +13,9 @@ import * as fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import fetch, { Response } from 'node-fetch'
 
+// Import Cache Service
+import { CacheService } from '../shared/cache.service'
+
 interface FileCreationData {
     name: string
     type: 'note' | 'file'
@@ -101,6 +104,12 @@ export class FileService {
                 group_id: resolvedGroupId,
                 last_modified: data.last_modified || new Date(),
             })
+
+            // Invalidate file-related caches
+            await CacheService.invalidateFileList(data.user_id, data.workplace_id)
+            await CacheService.invalidateMySpaceFiles(data.user_id, data.workplace_id)
+            logger.info('File caches invalidated after creation', { fileId: file.id, groupId: resolvedGroupId })
+
             logger.info('File created successfully', { fileId: file.id, groupId: resolvedGroupId })
             return {
                 success: true,
@@ -178,6 +187,18 @@ export class FileService {
      */
     async getFilesByUserAndWorkplace(user_id: string, workplace_id: string, group_id?: string): Promise<FilesResponse<File[]>> {
         try {
+            // Check cache first
+            const cachedFiles = await CacheService.getFileList(user_id, workplace_id, group_id)
+            if (cachedFiles) {
+                logger.info('Files retrieved from cache', { user_id, workplace_id, group_id })
+                return {
+                    success: true,
+                    message: cachedFiles.length ? FileCode.FILES_FOUND : FileCode.FILES_NOT_FOUND,
+                    code: 200,
+                    files: cachedFiles
+                }
+            }
+
             let whereClause: any = {
                 workplace_id
             };
@@ -247,6 +268,10 @@ export class FileService {
                 };
             });
 
+            // Cache the results
+            await CacheService.setFileList(user_id, workplace_id, transformedFiles, group_id)
+            logger.info('Files cached successfully', { user_id, workplace_id, group_id, count: transformedFiles.length })
+
             return {
                 success: true,
                 message: files.length ? FileCode.FILES_FOUND : FileCode.FILES_NOT_FOUND,
@@ -269,19 +294,39 @@ export class FileService {
      */
     async getMySpaceFiles(user_id: string, workplace_id: string): Promise<FilesResponse<File[]>> {
         try {
+            // Check cache first
+            const cachedFiles = await CacheService.getMySpaceFiles(user_id, workplace_id)
+            if (cachedFiles) {
+                logger.info('MySpace files retrieved from cache', { user_id, workplace_id })
+                return {
+                    success: true,
+                    message: cachedFiles.length ? FileCode.FILES_FOUND : FileCode.FILES_NOT_FOUND,
+                    code: 200,
+                    files: cachedFiles
+                }
+            }
+
             // Get user's private group
             const privateGroup = await this.privateGroupService.getPrivateGroupForUser(user_id, workplace_id);
             if (!privateGroup) {
-                // No private group exists yet, return empty
+                // No private group exists yet, return empty and cache the empty result
+                const emptyResult: File[] = []
+                await CacheService.setMySpaceFiles(user_id, workplace_id, emptyResult)
                 return {
                     success: true,
                     message: FileCode.FILES_NOT_FOUND,
                     code: 200,
-                    files: []
+                    files: emptyResult
                 };
             }
 
-            return this.getFilesByUserAndWorkplace(user_id, workplace_id, privateGroup.uuid);
+            const result = await this.getFilesByUserAndWorkplace(user_id, workplace_id, privateGroup.uuid);
+            
+            // Cache MySpace files separately for quick access
+            await CacheService.setMySpaceFiles(user_id, workplace_id, result.files)
+            logger.info('MySpace files cached successfully', { user_id, workplace_id, count: result.files.length })
+
+            return result;
         } catch (error) {
             logger.error('MySpace files retrieval failed', { error, user_id, workplace_id })
             throw {
@@ -346,6 +391,12 @@ export class FileService {
                 group_id: resolvedGroupId,
                 last_modified: data.last_modified || new Date(),
             })
+
+            // Invalidate file-related caches
+            await CacheService.invalidateFileList(data.user_id, data.workplace_id)
+            await CacheService.invalidateMySpaceFiles(data.user_id, data.workplace_id)
+            logger.info('File caches invalidated after note creation', { noteId: note.id, groupId: resolvedGroupId })
+
             logger.info('Note created successfully', { noteId: note.id, groupId: resolvedGroupId })
             return {
                 success: true,
@@ -446,6 +497,11 @@ export class FileService {
                 ...data,
                 last_modified: new Date()
             });
+
+            // Invalidate file-related caches
+            await CacheService.invalidateFileList(userId, note.workplace_id)
+            await CacheService.invalidateMySpaceFiles(userId, note.workplace_id)
+            logger.info('File caches invalidated after note update', { noteId: id })
 
             // Fetch updated note with user info
             const updatedNote = await File.findByPk(id, {
@@ -792,6 +848,11 @@ export class FileService {
                 cdn_url: this.s3Service.getCDNUrl(fileKey) // Add CDN URL for public access
             };
 
+            // Invalidate file-related caches
+            await CacheService.invalidateFileList(userId, workplaceId)
+            await CacheService.invalidateMySpaceFiles(userId, workplaceId)
+            logger.info('File caches invalidated after upload completion', { fileId: fileRecord.id })
+
             logger.info('File upload completed', { 
                 fileId: fileRecord.id,
                 fileKey,
@@ -958,6 +1019,11 @@ export class FileService {
 
             // Delete file record from database
             await file.destroy();
+
+            // Invalidate file-related caches
+            await CacheService.invalidateFileList(userId, file.workplace_id)
+            await CacheService.invalidateMySpaceFiles(userId, file.workplace_id)
+            logger.info('File caches invalidated after deletion', { fileId, fileName: file.name })
 
             logger.info('File deleted successfully', { 
                 fileId,

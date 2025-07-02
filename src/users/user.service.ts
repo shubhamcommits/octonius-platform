@@ -19,6 +19,9 @@ import { UserResponse, UsersResponse } from './user.type'
 // Import Private Group Service
 import { PrivateGroupService } from '../groups/private-group.service'
 
+// Import Cache Service
+import { CacheService } from '../shared/cache.service'
+
 /**
  * Interface defining the required and optional fields when creating a new user.
  * This ensures type safety and helps with code completion in the IDE.
@@ -62,6 +65,10 @@ export class UserService {
                 ...userData,
                 active: userData.active ?? true
             })
+
+            // Cache the new user
+            await CacheService.setUserProfile(user.uuid, user)
+            logger.info('New user cached successfully', { userId: user.uuid })
 
             // Logs success
             logger.info('User account creation successful', { userId: user.uuid })
@@ -116,6 +123,20 @@ export class UserService {
      */
     async getById(uuid: string, include: string[] = []): Promise<UserResponse<User>> {
         try {
+            // Check cache first (only for simple queries without includes)
+            if (include.length === 0) {
+                const cachedUser = await CacheService.getUserProfile(uuid)
+                if (cachedUser) {
+                    logger.info('User retrieved from cache', { userId: uuid })
+                    return {
+                        success: true,
+                        message: UserCode.USER_FOUND,
+                        code: 200,
+                        user: cachedUser
+                    }
+                }
+            }
+
             // Queries the database for a user with the specified UUID
             const user = await User.findByPk(uuid, {
                 include: this.getIncludeOptions(include)
@@ -129,6 +150,12 @@ export class UserService {
                     code: 404,
                     stack: new Error('User account not found in the database')
                 }
+            }
+
+            // Cache the result (only for simple queries without includes)
+            if (include.length === 0) {
+                await CacheService.setUserProfile(uuid, user)
+                logger.info('User cached successfully', { userId: uuid })
             }
 
             // Returns success response
@@ -273,6 +300,10 @@ export class UserService {
             // Updates the user record with the provided data
             await user.update(userData)
 
+            // Invalidate user-related cache
+            await CacheService.invalidateUserData(uuid)
+            logger.info('User cache invalidated after update', { userId: uuid })
+
             // Logs success
             logger.info('User account update successful', { userId: user.uuid })
 
@@ -321,6 +352,10 @@ export class UserService {
 
             // Permanently deletes the user record
             await user.destroy()
+
+            // Invalidate user-related cache
+            await CacheService.invalidateUserData(uuid)
+            logger.info('User cache invalidated after deletion', { userId: uuid })
 
             // Logs success
             logger.info('User account deletion successful', { userId: uuid })
