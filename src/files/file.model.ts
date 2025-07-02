@@ -13,6 +13,7 @@ export class File extends Model {
   declare content?: any;
   declare size?: number;
   declare mime_type?: string;
+  declare cdn_url?: string;
   declare last_modified: Date;
   declare created_at: Date;
   declare updated_at: Date;
@@ -90,6 +91,10 @@ File.init(
       allowNull: true,
     },
     mime_type: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    cdn_url: {
       type: DataTypes.STRING,
       allowNull: true,
     },

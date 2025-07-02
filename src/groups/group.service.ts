@@ -1,14 +1,13 @@
 // Import Required Modules
-import { Op, WhereOptions, IncludeOptions } from 'sequelize'
-import { Group } from './group.model'
-import { GroupMembership } from './group-membership.model'
-import { User } from '../users/user.model'
-import { Workplace } from '../workplaces/workplace.model'
-import { GroupCode } from './group.code'
-import { GroupResponse, GroupsResponse, GroupError, GroupMembersResponse } from './group.type'
 import logger from '../logger'
 import taskService from './tasks/task.service'
+import { Group } from './group.model'
+import { GroupMembership } from './group-membership.model'
+import { GroupCode } from './group.code'
+import { User } from '../users/user.model'
 import { DEFAULT_AVATAR_URL } from '../config/constants'
+import { GroupResponse, GroupsResponse, GroupError, GroupMembersResponse } from './group.type'
+import { Op, WhereOptions, IncludeOptions } from 'sequelize'
 
 /**
  * Group Service Class
@@ -128,16 +127,27 @@ export class GroupService {
                 }
             ]
 
+            // Only return groups where the user is an active member
             const groups = await Group.findAll({
                 where: {
                     workplace_id,
-                    is_active: true
+                    is_active: true,
+                    type: 'regular',
+                    uuid: {
+                        [Op.in]: await GroupMembership.findAll({
+                            where: {
+                                user_id: user_id,
+                                status: 'active'
+                            },
+                            attributes: ['group_id']
+                        }).then(memberships => memberships.map(m => m.group_id))
+                    }
                 },
                 include: includeOptions,
                 order: [['created_at', 'DESC']]
             })
 
-            logger.info(`Retrieved ${groups.length} groups for workplace: ${workplace_id}`)
+            logger.info(`Retrieved ${groups.length} groups for workplace: ${workplace_id} (user: ${user_id})`)
 
             return {
                 success: true,
@@ -161,6 +171,24 @@ export class GroupService {
      */
     static async getGroupById(group_id: string, user_id: string): Promise<GroupResponse<Group> | GroupError> {
         try {
+            // First check if user is a member of this group
+            const membership = await GroupMembership.findOne({
+                where: {
+                    group_id: group_id,
+                    user_id: user_id,
+                    status: 'active'
+                }
+            })
+
+            if (!membership) {
+                return {
+                    success: false,
+                    message: GroupCode.INSUFFICIENT_PERMISSIONS,
+                    code: 403,
+                    stack: new Error(GroupCode.INSUFFICIENT_PERMISSIONS)
+                }
+            }
+
             const group = await Group.findOne({
                 where: {
                     uuid: group_id,
@@ -372,11 +400,25 @@ export class GroupService {
      */
     static async searchGroups(workplace_id: string, searchTerm: string, user_id: string): Promise<GroupsResponse<Group[]> | GroupError> {
         try {
+            // Get group IDs where user is an active member first
+            const userGroupIds = await GroupMembership.findAll({
+                where: {
+                    user_id: user_id,
+                    status: 'active'
+                },
+                attributes: ['group_id']
+            }).then(memberships => memberships.map(m => m.group_id))
+
             const whereCondition: WhereOptions = {
                 workplace_id,
                 is_active: true,
+                type: 'regular',
                 name: {
                     [Op.iLike]: `%${searchTerm}%`
+                },
+                // Only search in groups where user is a member
+                uuid: {
+                    [Op.in]: userGroupIds
                 }
             }
 
@@ -403,7 +445,7 @@ export class GroupService {
                 order: [['name', 'ASC']]
             })
 
-            logger.info(`Searched groups for term: ${searchTerm} in workplace: ${workplace_id}`)
+            logger.info(`Searched groups for term: ${searchTerm} in workplace: ${workplace_id} (user: ${user_id})`)
 
             return {
                 success: true,

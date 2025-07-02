@@ -258,6 +258,10 @@ export class FileService {
   downloadFileSecure(fileId: string): Observable<{ blob: Blob; fileName: string; cdnUrl?: string }> {
     return this.getFileDownloadUrl(fileId).pipe(
       switchMap(response => {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to get download URL');
+        }
+
         if (response.data.type === 'note') {
           // For notes, return content as JSON blob
           const content = JSON.stringify(response.data.content, null, 2);
@@ -270,15 +274,62 @@ export class FileService {
               blob,
               fileName: response.data.file_name,
               cdnUrl: response.data.cdn_url
-            }))
+            })),
+            catchError(downloadError => {
+              console.error('Error fetching file from download URL:', {
+                url: response.data.download_url,
+                error: downloadError,
+                status: downloadError.status,
+                statusText: downloadError.statusText,
+                errorBlob: downloadError.error
+              });
+              
+              // Try to read the error response (might be XML from S3)
+              if (downloadError.error instanceof Blob) {
+                return from(downloadError.error.text()).pipe(
+                  switchMap((errorText: unknown) => {
+                    const errorString = String(errorText);
+                    console.error('S3 Error Response:', errorString);
+                    let errorMessage = `Failed to download file (${downloadError.status})`;
+                    
+                    // Try to parse XML error from S3
+                    if (errorString && errorString.includes('<Error>')) {
+                      const codeMatch = errorString.match(/<Code>(.*?)<\/Code>/);
+                      const messageMatch = errorString.match(/<Message>(.*?)<\/Message>/);
+                      if (codeMatch && messageMatch) {
+                        errorMessage = `S3 Error: ${codeMatch[1]} - ${messageMatch[1]}`;
+                      }
+                    }
+                    
+                    throw new Error(errorMessage);
+                  }),
+                  catchError(() => {
+                    throw new Error(`Failed to download file: ${downloadError.status} ${downloadError.statusText}`);
+                  })
+                );
+              } else {
+                throw new Error(`Failed to download file: ${downloadError.status || downloadError.message}`);
+              }
+            })
           );
         } else {
-          throw new Error('No download URL available');
+          throw new Error('No download URL available for this file');
         }
       }),
       catchError(error => {
-        console.error('Error downloading file:', error);
-        return throwError(() => error);
+        console.error('Error in secure download process:', error);
+        
+        // Provide more detailed error information
+        let errorMessage = 'Failed to download file';
+        if (error.error?.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        } else if (error.status) {
+          errorMessage = `Server error (${error.status}): ${error.statusText || 'Unknown error'}`;
+        }
+        
+        return throwError(() => new Error(errorMessage));
       })
     );
   }
@@ -346,5 +397,23 @@ export class FileService {
    */
   uploadGroupFile(file: globalThis.File, group_id: string): Observable<File> {
     return this.uploadFile(file, group_id);
+  }
+
+  /**
+   * Delete a file
+   */
+  deleteFile(fileId: string): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/${fileId}`).pipe(
+      map(response => {
+        if (response.success) {
+          return response.data;
+        }
+        throw new Error(response.message || 'Delete failed');
+      }),
+      catchError(error => {
+        console.error('Error deleting file:', error);
+        return throwError(() => error);
+      })
+    );
   }
 } 

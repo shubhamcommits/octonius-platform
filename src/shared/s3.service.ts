@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { v4 as uuidv4 } from 'uuid'
 import logger from '../logger'
@@ -35,26 +35,52 @@ export class S3Service {
     }
 
     /**
-     * Generate a presigned URL for file upload
-     * @param fileName - Original file name
-     * @param fileType - MIME type of the file
-     * @param userId - User ID for folder organization
-     * @param workplaceId - Workplace ID for folder organization
-     * @param expiresIn - URL expiration time in seconds (default: 15 minutes)
-     * @returns Upload intent with presigned URL and file key
+     * Generate a presigned URL for file upload with smart folder organization
      */
     async createUploadIntent(
         fileName: string, 
         fileType: string, 
         userId: string, 
         workplaceId: string,
+        groupId?: string,
+        fileCategory?: 'avatar' | 'logo' | 'private' | 'document' | null,
         expiresIn: number = 900 // 15 minutes
     ): Promise<UploadIntent> {
         try {
-            // Generate unique file key with organized folder structure
-            const fileExtension = fileName.split('.').pop() || ''
+            // Generate unique file key with smart folder organization
+            const fileExtension = fileName.split('.').pop()?.toLowerCase() || ''
             const uniqueFileName = `${uuidv4()}.${fileExtension}`
-            const fileKey = `workplaces/${workplaceId}/files/${uniqueFileName}`
+            
+            // Smart folder structure based on usage
+            let folder: string
+            if (fileCategory === 'avatar' && !groupId) {
+                folder = `users/${userId}/avatar`
+            } else if (fileCategory === 'avatar' && groupId) {
+                folder = `workplaces/${workplaceId}/groups/${groupId}/avatar`
+            } else if (fileCategory === 'logo') {
+                folder = `workplaces/${workplaceId}/branding`
+            } else if (fileCategory === 'private' || (!groupId && !fileCategory)) {
+                folder = `workplaces/${workplaceId}/users/${userId}/files`
+            } else if (groupId) {
+                folder = `workplaces/${workplaceId}/groups/${groupId}/files`
+            } else {
+                folder = `workplaces/${workplaceId}/files`
+            }
+
+            // Add subfolders based on file type for better organization
+            if (fileCategory !== 'avatar' && fileCategory !== 'logo') {
+                if (fileType.startsWith('image/')) {
+                    folder += '/images'
+                } else if (fileType.startsWith('video/')) {
+                    folder += '/videos'
+                } else if (fileType.startsWith('audio/')) {
+                    folder += '/audio'
+                } else if (fileType === 'application/pdf' || fileType.includes('document') || fileType.includes('text')) {
+                    folder += '/documents'
+                }
+            }
+
+            const fileKey = `${folder}/${uniqueFileName}`
 
             // Create the put object command
             const putObjectCommand = new PutObjectCommand({
@@ -65,7 +91,10 @@ export class S3Service {
                     'original-name': fileName,
                     'user-id': userId,
                     'workplace-id': workplaceId,
-                    'uploaded-at': new Date().toISOString()
+                    'group-id': groupId || '',
+                    'category': fileCategory || 'file',
+                    'uploaded-at': new Date().toISOString(),
+                    'file-extension': fileExtension
                 }
             })
 
@@ -75,11 +104,14 @@ export class S3Service {
             })
 
             logger.info('S3 upload intent created', { 
-                fileKey, 
+                fileKey,
+                folder, 
                 fileName, 
                 fileType, 
                 userId, 
                 workplaceId,
+                groupId,
+                fileCategory,
                 expiresIn 
             })
 
@@ -95,9 +127,35 @@ export class S3Service {
                 fileName, 
                 fileType, 
                 userId, 
-                workplaceId 
+                workplaceId,
+                groupId,
+                fileCategory
             })
             throw new Error('Failed to create upload intent')
+        }
+    }
+
+    /**
+     * Check if a file exists in S3
+     * @param fileKey - S3 file key
+     * @returns True if file exists, false otherwise
+     */
+    async fileExists(fileKey: string): Promise<boolean> {
+        try {
+            const headCommand = new HeadObjectCommand({
+                Bucket: this.bucketName,
+                Key: fileKey
+            })
+
+            await this.s3Client.send(headCommand)
+            return true
+        } catch (error: any) {
+            if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+                return false
+            }
+            // For other errors, log and return false
+            logger.warn('Error checking file existence in S3', { fileKey, error: error.message })
+            return false
         }
     }
 
@@ -109,6 +167,16 @@ export class S3Service {
      */
     async createDownloadIntent(fileKey: string, expiresIn: number = 3600): Promise<DownloadIntent> {
         try {
+            // First check if file exists
+            const exists = await this.fileExists(fileKey)
+            if (!exists) {
+                logger.error('File does not exist in S3', { 
+                    fileKey, 
+                    bucket: this.bucketName 
+                })
+                throw new Error(`File not found in S3: ${fileKey}`)
+            }
+
             const getObjectCommand = new GetObjectCommand({
                 Bucket: this.bucketName,
                 Key: fileKey
@@ -118,15 +186,24 @@ export class S3Service {
                 expiresIn 
             })
 
-            logger.info('S3 download intent created', { fileKey, expiresIn })
+            logger.info('S3 download intent created', { 
+                fileKey, 
+                bucket: this.bucketName,
+                expiresIn,
+                urlPrefix: downloadUrl.substring(0, 100) + '...'
+            })
 
             return {
                 downloadUrl,
                 expiresIn
             }
-        } catch (error) {
-            logger.error('Failed to create S3 download intent', { error, fileKey })
-            throw new Error('Failed to create download intent')
+        } catch (error: any) {
+            logger.error('Failed to create S3 download intent', { 
+                error: error.message,
+                fileKey,
+                bucket: this.bucketName
+            })
+            throw new Error(`Failed to create download intent: ${error.message}`)
         }
     }
 
@@ -155,7 +232,15 @@ export class S3Service {
      * @returns CDN URL
      */
     getCDNUrl(fileKey: string): string {
-        return `${CDN_BASE_URL}/${fileKey}`
+        // If already a full URL, return as is
+        if (fileKey.startsWith('http')) {
+            return fileKey;
+        }
+        
+        // Remove leading slash if present
+        const cleanKey = fileKey.startsWith('/') ? fileKey.substring(1) : fileKey;
+        
+        return `${CDN_BASE_URL}/${cleanKey}`;
     }
 
     /**

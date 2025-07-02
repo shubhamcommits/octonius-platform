@@ -11,6 +11,7 @@ import logger from '../logger'
 import * as path from 'path'
 import * as fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
+import fetch, { Response } from 'node-fetch'
 
 interface FileCreationData {
     name: string
@@ -296,6 +297,41 @@ export class FileService {
         return name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2) || 'U';
     }
 
+    /**
+     * Infer file category based on filename, type, and context
+     */
+    private inferFileCategory(fileName: string, fileType: string, groupId?: string): 'avatar' | 'logo' | 'private' | 'document' | null {
+        const lowerFileName = fileName.toLowerCase();
+        
+        // Check for avatar files
+        if (lowerFileName.includes('avatar') || lowerFileName.includes('profile')) {
+            return 'avatar';
+        }
+        
+        // Check for logo files
+        if (lowerFileName.includes('logo') || lowerFileName.includes('brand')) {
+            return 'logo';
+        }
+        
+        // Check for documents
+        if (fileType === 'application/pdf' || 
+            fileType.includes('document') || 
+            fileType.includes('sheet') ||
+            fileType.includes('presentation') ||
+            lowerFileName.includes('document') ||
+            lowerFileName.includes('report')) {
+            return 'document';
+        }
+        
+        // If no group ID, assume private file
+        if (!groupId) {
+            return 'private';
+        }
+        
+        // Default to null for regular group files
+        return null;
+    }
+
     async createNote(data: FileCreationData): Promise<FileResponse<File>> {
         try {
             // Resolve the group for this note
@@ -530,18 +566,48 @@ export class FileService {
                 };
             }
 
-            // For files, read from disk
-            const filePath = path.join(this.uploadDir, file.content?.filePath || '');
-            if (!fs.existsSync(filePath)) {
-                throw { message: 'File not found on disk', code: 404 };
+            // For S3 files, use S3 download
+            if (file.content?.s3Key) {
+                try {
+                    const downloadIntent = await this.s3Service.createDownloadIntent(file.content.s3Key);
+                    
+                    // Fetch file from S3 using presigned URL
+                    const response: Response = await fetch(downloadIntent.downloadUrl);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch file from S3: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const data = Buffer.from(arrayBuffer);
+                    
+                    return {
+                        data,
+                        fileName: file.name,
+                        contentType: file.mime_type || 'application/octet-stream'
+                    };
+                } catch (s3Error) {
+                    logger.error('S3 download failed, checking local fallback', { fileId, s3Key: file.content.s3Key, error: s3Error });
+                    throw { message: 'Failed to download file from S3', code: 404 };
+                }
             }
 
-            const data = fs.readFileSync(filePath);
-            return {
-                data,
-                fileName: file.name,
-                contentType: file.mime_type || 'application/octet-stream'
-            };
+            // For legacy local files, read from disk
+            if (file.content?.filePath) {
+                const filePath = path.join(this.uploadDir, file.content.filePath);
+                if (!fs.existsSync(filePath)) {
+                    throw { message: 'File not found on disk', code: 404 };
+                }
+
+                const data = fs.readFileSync(filePath);
+                return {
+                    data,
+                    fileName: file.name,
+                    contentType: file.mime_type || 'application/octet-stream'
+                };
+            }
+
+            // If no storage method is found
+            throw { message: 'File storage information not found', code: 404 };
         } catch (error: any) {
             logger.error('File download failed', { error: error.message, fileId, userId });
             throw { message: error.message, code: error.code || 500 };
@@ -611,12 +677,15 @@ export class FileService {
             // Resolve the group for this file
             const resolvedGroupId = await this.resolveGroupForFile(userId, workplaceId, groupId);
 
-            // Create S3 upload intent
+            // Create S3 upload intent with smart organization
+            const fileCategory = this.inferFileCategory(fileName, fileType, groupId)
             const uploadIntent = await this.s3Service.createUploadIntent(
                 fileName,
                 fileType,
                 userId,
-                workplaceId
+                workplaceId,
+                resolvedGroupId,
+                fileCategory
             );
 
             // Get file type and icon
@@ -707,6 +776,7 @@ export class FileService {
                     s3Bucket: this.s3Service['bucketName'],
                     uploadType: 's3'
                 },
+                cdn_url: this.s3Service.getCDNUrl(fileKey), // Store CDN URL directly
                 last_modified: new Date()
             });
 
@@ -785,27 +855,125 @@ export class FileService {
 
             // For S3 files, generate download URL
             if (file.content?.s3Key) {
-                const downloadIntent = await this.s3Service.createDownloadIntent(file.content.s3Key);
-                
-                return {
-                    success: true,
-                    data: {
-                        type: 'file',
-                        download_url: downloadIntent.downloadUrl,
-                        cdn_url: this.s3Service.getCDNUrl(file.content.s3Key),
-                        file_name: file.name,
-                        file_type: file.mime_type,
-                        file_size: file.size,
-                        expires_in: downloadIntent.expiresIn
-                    },
-                    message: 'Download URL generated'
-                };
+                logger.info('Generating S3 download URL', { 
+                    fileId, 
+                    s3Key: file.content.s3Key,
+                    fileName: file.name,
+                    fileSize: file.size,
+                    mimeType: file.mime_type,
+                    uploadType: file.content.uploadType,
+                    bucket: file.content.s3Bucket
+                });
+
+                try {
+                    const downloadIntent = await this.s3Service.createDownloadIntent(file.content.s3Key);
+                    
+                    logger.info('S3 download URL generated successfully', { 
+                        fileId, 
+                        downloadUrl: downloadIntent.downloadUrl.substring(0, 100) + '...' // Log partial URL for debugging
+                    });
+
+                    return {
+                        success: true,
+                        data: {
+                            type: 'file',
+                            download_url: downloadIntent.downloadUrl,
+                            cdn_url: this.s3Service.getCDNUrl(file.content.s3Key),
+                            file_name: file.name,
+                            file_type: file.mime_type,
+                            file_size: file.size,
+                            expires_in: downloadIntent.expiresIn
+                        },
+                        message: 'Download URL generated'
+                    };
+                } catch (s3Error) {
+                    logger.error('Failed to generate S3 download URL', { 
+                        fileId, 
+                        s3Key: file.content.s3Key,
+                        error: s3Error
+                    });
+                    throw { message: `Failed to generate download URL for S3 file: ${s3Error}`, code: 500 };
+                }
             }
 
             // Fallback for legacy local files
             throw { message: 'File not found in storage', code: 404 };
         } catch (error: any) {
             logger.error('Failed to get download URL', { 
+                error: error.message,
+                fileId,
+                userId
+            });
+            throw { message: error.message, code: error.code || 500 };
+        }
+    }
+
+    /**
+     * Delete a file and its associated storage
+     * @param fileId - File ID
+     * @param userId - User ID
+     * @returns Success message
+     */
+    async deleteFile(fileId: string, userId: string): Promise<{ success: boolean; data: any; message: string }> {
+        try {
+            const file = await File.findByPk(fileId);
+            if (!file) {
+                throw { message: 'File not found', code: 404 };
+            }
+
+            // Validate user has access to the file's group
+            const hasAccess = await this.validateGroupAccess(userId, file.group_id);
+            if (!hasAccess) {
+                throw { message: 'Access denied to file', code: 403 };
+            }
+
+            // For S3 files, delete from S3
+            if (file.content?.s3Key) {
+                try {
+                    await this.s3Service.deleteFile(file.content.s3Key);
+                    logger.info('File deleted from S3', { fileId, s3Key: file.content.s3Key });
+                } catch (s3Error) {
+                    logger.warn('Failed to delete file from S3, but continuing with database deletion', { 
+                        fileId, 
+                        s3Key: file.content.s3Key,
+                        error: s3Error
+                    });
+                }
+            }
+
+            // For legacy local files, delete from disk
+            if (file.content?.filePath) {
+                try {
+                    const filePath = path.join(this.uploadDir, file.content.filePath);
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                        logger.info('File deleted from disk', { fileId, filePath: file.content.filePath });
+                    }
+                } catch (diskError) {
+                    logger.warn('Failed to delete file from disk, but continuing with database deletion', { 
+                        fileId, 
+                        filePath: file.content.filePath,
+                        error: diskError
+                    });
+                }
+            }
+
+            // Delete file record from database
+            await file.destroy();
+
+            logger.info('File deleted successfully', { 
+                fileId,
+                fileName: file.name,
+                userId
+            });
+
+            return {
+                success: true,
+                data: { fileId, fileName: file.name },
+                message: 'File deleted successfully'
+            };
+        } catch (error: any) {
+            logger.error('Failed to delete file', { 
                 error: error.message,
                 fileId,
                 userId

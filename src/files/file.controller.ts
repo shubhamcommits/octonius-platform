@@ -522,4 +522,53 @@ export class FileController {
             });
         }
     }
+
+    async deleteFile(req: Request, res: Response): Promise<Response> {
+        const startTime = Date.now();
+        try {
+            logger.info('Deleting file', { method: req.method, path: req.path, params: req.params, ip: req.ip });
+            
+            const { id } = req.params;
+            const userId = (req as any).user?.uuid;
+            
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User authentication required',
+                    meta: { responseTime: '0ms' }
+                });
+            }
+
+            const result = await this.fileService.deleteFile(id, userId);
+            const responseTime = Date.now() - startTime;
+            
+            logger.info('File deleted successfully', { 
+                fileId: id,
+                responseTime: `${responseTime}ms`,
+                statusCode: 200
+            });
+
+            return res.status(200).json({
+                success: true,
+                data: result.data,
+                message: result.message,
+                meta: { responseTime: `${responseTime}ms` }
+            });
+        } catch (error: any) {
+            const responseTime = Date.now() - startTime;
+            logger.error('Error in deleteFile controller', { 
+                error: error.message,
+                stack: error.stack,
+                responseTime: `${responseTime}ms`,
+                statusCode: error.code || 500,
+                params: req.params
+            });
+            return res.status(error.code || 500).json({
+                success: false,
+                message: error.message,
+                error: error.stack,
+                meta: { responseTime: `${responseTime}ms` }
+            });
+        }
+    }
 } 

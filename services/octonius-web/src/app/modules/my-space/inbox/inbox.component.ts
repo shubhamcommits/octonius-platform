@@ -81,20 +81,20 @@ export class InboxComponent implements OnInit, OnDestroy {
 
   getRecentActivityEmptyStateImage(): string {
     return this.currentTheme === 'night' 
-      ? 'https://media.octonius.com/assets/placeholder_recent-activity-dark.png'
-      : 'https://media.octonius.com/assets/placeholder_recent-activity.png'
+      ? 'https://media.octonius.com/assets/placeholder_recent-activity-dark.svg'
+      : 'https://media.octonius.com/assets/placeholder_recent-activity.svg'
   }
 
   getMessagesEmptyStateImage(): string {
     return this.currentTheme === 'night' 
-      ? 'https://media.octonius.com/assets/no-messages-light.svg'
-      : 'https://media.octonius.com/assets/no-messages-dark.svg'
+      ? 'https://media.octonius.com/assets/placeholder_messages-dark.svg'
+      : 'https://media.octonius.com/assets/placeholder_messages.svg'
   }
 
   getLoungeNewsEmptyStateImage(): string {
     return this.currentTheme === 'night' 
-      ? 'https://media.octonius.com/assets/no-lounge-light.svg'
-      : 'https://media.octonius.com/assets/no-lounge-dark.svg'
+      ? 'https://media.octonius.com/assets/placeholder_lounge-dark.svg'
+      : 'https://media.octonius.com/assets/placeholder_lounge.svg'
   }
 
   loadData(): void {

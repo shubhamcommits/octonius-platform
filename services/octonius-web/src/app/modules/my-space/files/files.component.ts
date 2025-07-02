@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core'
+import { Component, OnInit, HostListener } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { RouterModule, Router } from '@angular/router'
 import { FormsModule } from '@angular/forms'
@@ -228,7 +228,12 @@ export class FilesComponent implements OnInit {
     return icons[type] || icons['default']
   }
 
-  getDisplayIcon(file: File): string {
+  getDisplayIcon(file: File | null): string {
+    // Handle null case
+    if (!file) {
+      return 'file';
+    }
+    
     // For notes, use the note icon
     if (file.type === 'note') {
       return 'file-pen-line';
@@ -310,34 +315,203 @@ export class FilesComponent implements OnInit {
     try {
       this.toastService.info(`Downloading ${file.name}...`);
       
-      // For S3 files, use the secure download method
-      if (file.content?.uploadType === 's3' || file.cdn_url) {
-        const result = await firstValueFrom(this.fileService.downloadFileSecure(file.id))
-        const url = window.URL.createObjectURL(result.blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = result.fileName
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-        this.toastService.success(`Downloaded ${file.name}`)
-      } else {
-        // Fallback for legacy files
-        const blob = await firstValueFrom(this.fileService.downloadFile(file.id))
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = file.name
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-        this.toastService.success(`Downloaded ${file.name}`)
+      // Always use secure download method for better compatibility
+      const result = await firstValueFrom(this.fileService.downloadFileSecure(file.id));
+      const url = window.URL.createObjectURL(result.blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      this.toastService.success(`Downloaded ${file.name}`);
+    } catch (err: any) {
+      let errorMessage = 'Failed to download file. Please try again.';
+      
+      // Extract more meaningful error message
+      if (err?.error?.message) {
+        errorMessage = err.error.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
       }
-    } catch (err) {
-      this.toastService.error('Failed to download file. Please try again.')
-      console.error('Error downloading file:', err)
+      
+      this.toastService.error(errorMessage);
+      console.error('Error downloading file:', {
+        error: err,
+        fileName: file.name,
+        fileId: file.id,
+        fileContent: file.content
+      });
+    }
+  }
+
+  /**
+   * Handle preview file action from dropdown menu
+   */
+  onPreviewFile(file: File): void {
+    if (file.type === 'note') {
+      // For notes, navigate to editor
+      this.router.navigate(['/my-space/note-editor', file.id])
+    } else {
+      // For files, check if it's previewable
+      if (this.isPreviewable(file)) {
+        this.previewFile(file)
+      } else {
+        this.toastService.info('Preview not available for this file type. Use download instead.')
+      }
+    }
+  }
+
+  /**
+   * Handle download file action from dropdown menu
+   */
+  onDownloadFile(file: File): void {
+    this.downloadFile(file)
+  }
+
+  // Delete confirmation modal state
+  showDeleteModal = false;
+  fileToDelete: File | null = null;
+
+  /**
+   * Handle delete file action from dropdown menu
+   */
+  onDeleteFile(file: File): void {
+    this.fileToDelete = file;
+    this.showDeleteModal = true;
+  }
+
+  /**
+   * Confirm deletion from modal
+   */
+  confirmDelete(): void {
+    if (this.fileToDelete) {
+      this.deleteFile(this.fileToDelete);
+      this.closeDeleteModal();
+    }
+  }
+
+  /**
+   * Close delete confirmation modal
+   */
+  closeDeleteModal(): void {
+    this.showDeleteModal = false;
+    this.fileToDelete = null;
+  }
+
+  /**
+   * Handle keyboard events (Escape key to close modal)
+   */
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: KeyboardEvent): void {
+    if (this.showDeleteModal) {
+      this.closeDeleteModal();
+    }
+  }
+
+  /**
+   * Check if file is previewable (images, PDFs, text files)
+   */
+  private isPreviewable(file: File): boolean {
+    if (!file.mime_type) return false
+    
+    const previewableTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      'application/pdf',
+      'text/plain', 'text/markdown', 'text/csv',
+      'application/json'
+    ]
+    
+    return previewableTypes.includes(file.mime_type) || file.mime_type.startsWith('image/')
+  }
+
+  /**
+   * Preview file in new window/tab using CDN URL
+   */
+  private previewFile(file: File): void {
+    try {
+      // Convert S3 URL to CDN URL if needed
+      let previewUrl = file.cdn_url;
+      
+      if (!previewUrl && file.content?.s3Key) {
+        // Generate CDN URL from S3 key
+        previewUrl = this.convertS3ToCDNUrl(file.content.s3Key);
+      }
+      
+      if (previewUrl) {
+        // Use CDN URL for instant preview
+        window.open(previewUrl, '_blank');
+      } else {
+        // Fallback for legacy files without S3/CDN
+        this.toastService.info('Generating preview...');
+        firstValueFrom(this.fileService.getFileDownloadUrl(file.id)).then(response => {
+          if (response.data?.download_url) {
+            window.open(response.data.download_url, '_blank');
+          } else {
+            this.toastService.error('Could not generate preview URL');
+          }
+        }).catch(error => {
+          this.toastService.error('Failed to generate preview');
+          console.error('Preview error:', error);
+        });
+      }
+    } catch (error) {
+      this.toastService.error('Failed to preview file');
+      console.error('Preview error:', error);
+    }
+  }
+
+  /**
+   * Convert S3 URL to CDN URL
+   * From: https://s3.eu-central-1.amazonaws.com/media.octonius.com/workplaces/...
+   * To: https://media.octonius.com/workplaces/...
+   */
+  private convertS3ToCDNUrl(s3Key: string): string {
+    // If it's already a CDN URL, return as is
+    if (s3Key.includes('media.octonius.com') && !s3Key.includes('s3.eu-central-1.amazonaws.com')) {
+      return s3Key.startsWith('http') ? s3Key : `https://${s3Key}`;
+    }
+    
+    // Convert S3 key to CDN URL
+    const cdnBaseUrl = 'https://media.octonius.com';
+    
+    // Remove any S3 prefix if present
+    let cleanKey = s3Key;
+    if (s3Key.includes('s3.eu-central-1.amazonaws.com/media.octonius.com/')) {
+      cleanKey = s3Key.split('s3.eu-central-1.amazonaws.com/media.octonius.com/')[1];
+    } else if (s3Key.includes('media.octonius.com/')) {
+      cleanKey = s3Key.split('media.octonius.com/')[1];
+    }
+    
+    // Ensure the key starts with workplaces or users path
+    if (!cleanKey.startsWith('/')) {
+      cleanKey = '/' + cleanKey;
+    }
+    
+    return `${cdnBaseUrl}${cleanKey}`;
+  }
+
+  /**
+   * Delete file
+   */
+  private async deleteFile(file: File): Promise<void> {
+    try {
+      this.toastService.info(`Deleting ${file.name}...`)
+      
+      // Call delete API (you'll need to implement this in FileService)
+      await firstValueFrom(this.fileService.deleteFile(file.id))
+      
+      // Remove file from local arrays
+      this.files = this.files.filter(f => f.id !== file.id)
+      this.filteredFiles = this.filteredFiles.filter(f => f.id !== file.id)
+      
+      this.toastService.success(`${file.name} deleted successfully`)
+    } catch (error) {
+      this.toastService.error('Failed to delete file. Please try again.')
+      console.error('Delete error:', error)
     }
   }
 } 
