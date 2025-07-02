@@ -343,8 +343,6 @@ export class FileService {
 
             const note = await File.create({
                 ...data,
-                type: 'note',
-                icon: '📝',
                 group_id: resolvedGroupId,
                 last_modified: data.last_modified || new Date(),
             })

@@ -262,7 +262,7 @@ export class FilesComponent implements OnInit {
       this.toastService.success('Note created successfully!');
       
       // Navigate to note editor
-      this.router.navigate(['/my-space/note-editor', newNote.id]);
+              this.router.navigate(['/myspace/note-editor', newNote.id]);
     } catch (error) {
       this.toastService.error('Failed to create note. Please try again.');
       console.error('Error creating note:', error);
@@ -305,7 +305,7 @@ export class FilesComponent implements OnInit {
 
   onFileClick(file: File): void {
     if (file.type === 'note') {
-      this.router.navigate(['/my-space/note-editor', file.id])
+      this.router.navigate(['/myspace/note-editor', file.id])
     } else {
       this.downloadFile(file)
     }
@@ -354,7 +354,7 @@ export class FilesComponent implements OnInit {
   onPreviewFile(file: File): void {
     if (file.type === 'note') {
       // For notes, navigate to editor
-      this.router.navigate(['/my-space/note-editor', file.id])
+      this.router.navigate(['/myspace/note-editor', file.id])
     } else {
       // For files, check if it's previewable
       if (this.isPreviewable(file)) {

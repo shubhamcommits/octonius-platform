@@ -168,7 +168,25 @@ export class FileController {
         const startTime = Date.now()
         try {
             logger.info('Creating new note', { method: req.method, path: req.path, ip: req.ip })
-            const noteData = req.body
+            const userId = (req as any).user?.uuid
+            const workplaceId = (req as any).user?.current_workplace_id
+            
+            if (!userId || !workplaceId) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User authentication and workplace required',
+                    meta: { responseTime: '0ms' }
+                })
+            }
+
+            const noteData = {
+                ...req.body,
+                user_id: userId,
+                workplace_id: workplaceId,
+                type: 'note',
+                icon: '📝'
+            }
+            
             const result = await this.fileService.createNote(noteData)
             const responseTime = Date.now() - startTime
             logger.info('Note created successfully', { noteId: result.file.id, responseTime: `${responseTime}ms`, statusCode: 201 })
