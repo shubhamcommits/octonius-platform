@@ -16,17 +16,20 @@ import { UserCode } from './user.code'
 // Import User Types
 import { UserResponse, UsersResponse } from './user.type'
 
+// Import Private Group Service
+import { PrivateGroupService } from '../groups/private-group.service'
+
 /**
  * Interface defining the required and optional fields when creating a new user.
  * This ensures type safety and helps with code completion in the IDE.
+ * Note: This is a passwordless authentication system using OTP.
  */
 interface UserCreationData {
     email: string
-    password: string
-    first_name: string
-    last_name: string
-    role_id: string
-    phone: string
+    first_name?: string | null
+    last_name?: string | null
+    role_id?: string | null // Can be set later
+    phone?: string | null
     timezone: string
     language: string
     notification_preferences: {
@@ -43,6 +46,8 @@ interface UserCreationData {
  * This includes CRUD operations, workplace management, and user queries.
  */
 export class UserService {
+    private privateGroupService = new PrivateGroupService();
+
     /**
      * Creates a new user account in the system.
      * 
@@ -60,6 +65,25 @@ export class UserService {
 
             // Logs success
             logger.info('User account creation successful', { userId: user.uuid })
+
+            // Auto-create private group for the user if they have a workplace
+            if ((userData as any).current_workplace_id) {
+                try {
+                    const userName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.email || 'User';
+                    await this.privateGroupService.createPrivateGroupForUser(
+                        user.uuid, 
+                        (userData as any).current_workplace_id, 
+                        userName
+                    );
+                    logger.info('Private group created for new user', { userId: user.uuid });
+                } catch (groupError) {
+                    logger.warn('Failed to create private group for new user', { 
+                        userId: user.uuid, 
+                        error: groupError 
+                    });
+                    // Don't fail user creation if private group fails
+                }
+            }
 
             // Returns success response
             return {
@@ -470,6 +494,63 @@ export class UserService {
 
         // Returns the constructed include options
         return includeOptions
+    }
+
+    /**
+     * Ensures all existing users have private groups
+     * This can be called as part of a migration or startup process
+     */
+    async ensureAllUsersHavePrivateGroups(): Promise<void> {
+        try {
+            const users = await User.findAll({
+                where: {
+                    current_workplace_id: { $ne: null }
+                }
+            });
+
+            logger.info(`Checking private groups for ${users.length} users`);
+
+            for (const user of users) {
+                try {
+                    const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'User';
+                    await this.privateGroupService.ensurePrivateGroupExists(
+                        user.uuid, 
+                        user.current_workplace_id!, 
+                        userName
+                    );
+                } catch (error) {
+                    logger.warn('Failed to ensure private group for user', { 
+                        userId: user.uuid, 
+                        error 
+                    });
+                }
+            }
+
+            logger.info('Completed private group check for all users');
+        } catch (error) {
+            logger.error('Failed to ensure private groups for all users', { error });
+            throw error;
+        }
+    }
+
+    /**
+     * Creates a private group for a user when they join a workplace
+     */
+    async ensureUserHasPrivateGroup(userId: string, workplaceId: string): Promise<void> {
+        try {
+            const user = await User.findByPk(userId);
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'User';
+            await this.privateGroupService.ensurePrivateGroupExists(userId, workplaceId, userName);
+            
+            logger.info('Ensured private group exists for user', { userId, workplaceId });
+        } catch (error) {
+            logger.error('Failed to ensure private group for user', { error, userId, workplaceId });
+            throw error;
+        }
     }
 }
 

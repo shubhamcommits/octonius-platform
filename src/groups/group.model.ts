@@ -12,6 +12,7 @@ interface GroupAttributes {
     image_url: string | null
     workplace_id: string
     created_by: string
+    type: 'private' | 'regular'
     is_active: boolean
     settings: {
         allow_member_invites: boolean
@@ -29,7 +30,7 @@ interface GroupAttributes {
 }
 
 // Define group creation attributes
-interface GroupCreationAttributes extends Optional<GroupAttributes, 'uuid' | 'description' | 'image_url' | 'is_active' | 'settings' | 'metadata' | 'created_at' | 'updated_at'> {}
+interface GroupCreationAttributes extends Optional<GroupAttributes, 'uuid' | 'description' | 'image_url' | 'type' | 'is_active' | 'settings' | 'metadata' | 'created_at' | 'updated_at'> {}
 
 // Extend Sequelize Model Class
 export class Group extends Model<GroupAttributes, GroupCreationAttributes> implements GroupAttributes {
@@ -39,6 +40,7 @@ export class Group extends Model<GroupAttributes, GroupCreationAttributes> imple
     public image_url!: string | null
     public workplace_id!: string
     public created_by!: string
+    public type!: 'private' | 'regular'
     public is_active!: boolean
     public settings!: {
         allow_member_invites: boolean
@@ -137,6 +139,11 @@ Group.init({
         validate: {
             notEmpty: true
         }
+    },
+    type: {
+        type: DataTypes.ENUM('private', 'regular'),
+        allowNull: false,
+        defaultValue: 'regular'
     },
     is_active: {
         type: DataTypes.BOOLEAN,

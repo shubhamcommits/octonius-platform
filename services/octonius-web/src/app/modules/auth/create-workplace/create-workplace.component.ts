@@ -203,10 +203,16 @@ export class CreateWorkplaceComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: (response) => {
-          // Update the current user with the new workplace
-          if (response.user) {
-            this.authService.setCurrentUser(response.user);
+          // Store authentication tokens for auto-login
+          if (response.data && response.data.access_token && response.data.refresh_token) {
+            this.authService.setTokens(response.data.access_token, response.data.refresh_token);
           }
+          
+          // Update the current user with the new workplace
+          if (response.data && response.data.user) {
+            this.authService.setCurrentUser(response.data.user);
+          }
+          
           this.toastService.success('Workplace created successfully!')
           this.router.navigate(['/myspace'])
         },

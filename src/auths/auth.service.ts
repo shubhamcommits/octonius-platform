@@ -4,6 +4,9 @@ import { Auth } from './auth.model'
 // Import User model
 import { User } from '../users/user.model'
 
+// Import User service
+import { UserService } from '../users/user.service'
+
 // Import Workplace model
 import { Workplace } from '../workplaces/workplace.model'
 
@@ -37,16 +40,22 @@ import jwt, { SignOptions } from 'jsonwebtoken'
 // Import Token model
 import { Token } from './token.model'
 
+// Import IP utility
+import { getRealClientIP } from '../shared/ip-utils'
+
 /**
  * Service class for handling authentication operations (OTP-based, passwordless)
  */
 export class AuthService {
+    private userService = new UserService();
+
     /**
      * Registers a new user with email (passwordless)
      * @param email - User's email address
+     * @param ipAddress - Client IP address
      * @returns AuthResponse or AuthError
      */
-    async register(email: string): Promise<AuthResponse<User> | AuthError> {
+    async register(email: string, ipAddress?: string): Promise<AuthResponse<User> | AuthError> {
         try {
 
             // Check if user already exists
@@ -62,15 +71,30 @@ export class AuthService {
                 }
             }
 
-            // Create the user with required fields and sensible defaults
-            const user = await User.create({
+            // Create the user using UserService to ensure proper setup (including private group)
+            const userResponse = await this.userService.create({
                 email,
+                first_name: null,
+                last_name: null,
+                role_id: null, // Will be set later
+                phone: null,
                 timezone: 'UTC',
                 language: 'en',
                 notification_preferences: { email: true, push: true, in_app: true },
                 source: 'email',
                 active: true
             })
+
+            if (!userResponse.success) {
+                return {
+                    success: false,
+                    message: AuthCode.AUTH_DATABASE_ERROR,
+                    code: 500,
+                    stack: new Error('Failed to create user')
+                }
+            }
+
+            const user = userResponse.user
 
             // Create an auth record for the user (OTP logic to be added)
             await Auth.create({
@@ -79,7 +103,8 @@ export class AuthService {
                 refresh_token: '',
                 last_login: new Date(),
                 created_date: new Date(),
-                logged_in: false
+                logged_in: false,
+                ip_address: ipAddress || null
             })
 
             // Return success response
@@ -164,9 +189,10 @@ export class AuthService {
      * Verifies OTP and logs in the user
      * @param email - User's email address
      * @param otp - The OTP code to verify
+     * @param ipAddress - Client IP address
      * @returns AuthResponse or AuthError
      */
-    async verify_otp(email: string, otp: string): Promise<AuthResponse<{ exists: boolean, user: any, access_token?: string, refresh_token?: string }> | AuthError> {
+    async verify_otp(email: string, otp: string, ipAddress?: string): Promise<AuthResponse<{ exists: boolean, user: any, access_token?: string, refresh_token?: string }> | AuthError> {
         try {
             // Check if user exists
             const user = await User.findOne({ where: { email } })
@@ -208,7 +234,8 @@ export class AuthService {
                     token: access_token,
                     refresh_token: refresh_token,
                     last_login: new Date(),
-                    logged_in: true
+                    logged_in: true,
+                    ip_address: ipAddress || null
                 })
 
                 // Save tokens in Token table
@@ -259,9 +286,10 @@ export class AuthService {
      * Sets up initial workplace with admin user
      * @param email - User's email address
      * @param workplace_name - Name of the workplace to create
+     * @param ipAddress - Client IP address
      * @returns AuthResponse with user and workplace data
      */
-    async setup_workplace_and_user(email: string, workplace_name: string): Promise<AuthResponse<{ user: User, workplace: Workplace }> | AuthError> {
+    async setup_workplace_and_user(email: string, workplace_name: string, ipAddress?: string): Promise<AuthResponse<{ user: User, workplace: Workplace, access_token: string, refresh_token: string }> | AuthError> {
         try {
 
             // Check if user already exists
@@ -270,26 +298,27 @@ export class AuthService {
             // If user does not exist, create it
             if (!user) {
 
-                // Create the user with required fields and sensible defaults
-                user = await User.create({
+                // Create the user using UserService to ensure proper setup (including private group)
+                const userResponse = await this.userService.create({
                     email,
+                    first_name: null,
+                    last_name: null,
+                    role_id: null, // Will be set later
+                    phone: null,
                     timezone: 'UTC',
                     language: 'en',
                     notification_preferences: { email: true, push: true, in_app: true },
                     source: 'email',
                     active: true
+                    // current_workplace_id will be set after workplace creation
                 })
-            }
 
-            // Create an auth record for the user
-            await Auth.create({
-                user_id: user.uuid,
-                token: '',
-                refresh_token: '',
-                last_login: new Date(),
-                created_date: new Date(),
-                logged_in: false
-            })
+                if (!userResponse.success) {
+                    throw new Error('Failed to create user')
+                }
+
+                user = userResponse.user
+            }
 
             // Create workplace
             const workplace = await Workplace.create({
@@ -321,12 +350,61 @@ export class AuthService {
             // Update user's current workplace
             await user.update({ current_workplace_id: workplace.uuid })
 
-            // Return success response
+            // Ensure private group exists for the user in this workplace
+            try {
+                await this.userService.ensureUserHasPrivateGroup(user.uuid, workplace.uuid);
+                logger.info('Private group ensured for user in new workplace', { 
+                    userId: user.uuid, 
+                    workplaceId: workplace.uuid 
+                });
+            } catch (groupError) {
+                logger.warn('Failed to ensure private group for user in new workplace', { 
+                    userId: user.uuid, 
+                    workplaceId: workplace.uuid, 
+                    error: groupError 
+                });
+                // Don't fail the process if private group creation fails
+            }
+
+            // Generate authentication tokens for the user to auto-login them
+            const { access_token, refresh_token } = TokenService.generate_tokens(user)
+
+            // Decode expiry from tokens
+            const access_decoded: any = TokenService.verify_access_token(access_token)
+            const refresh_decoded: any = TokenService.verify_refresh_token(refresh_token)
+            const access_expires_at = new Date(access_decoded.exp * 1000)
+            const refresh_expires_at = new Date(refresh_decoded.exp * 1000)
+
+            // Create/update Auth record with tokens for auto-login
+            await Auth.upsert({
+                user_id: user.uuid,
+                token: access_token,
+                refresh_token: refresh_token,
+                last_login: new Date(),
+                logged_in: true,
+                ip_address: ipAddress || null
+            })
+
+            // Save tokens in Token table
+            await TokenService.save_tokens(
+                user.uuid,
+                access_token,
+                refresh_token,
+                access_expires_at,
+                refresh_expires_at
+            )
+
+            // Return success response with tokens for auto-login
             return {
                 success: true,
                 message: AuthCode.AUTH_REGISTERED,
                 code: 201,
-                data: { user, workplace }
+                data: { 
+                    user, 
+                    workplace,
+                    access_token,
+                    refresh_token
+                }
             }
         } catch (error: any) {
             // Handle unique constraint error for workplace name

@@ -57,7 +57,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
             next: (note: File) => {
               this.note = note
               this.noteTitle = note.title || ''
-              this.lastEdited = note.last_edited || ''
+              this.lastEdited = note.last_modified || ''
               this.initializeEditor(note.content)
               this.isLoading = false
             },

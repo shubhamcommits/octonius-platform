@@ -81,8 +81,8 @@ export class InboxComponent implements OnInit, OnDestroy {
 
   getRecentActivityEmptyStateImage(): string {
     return this.currentTheme === 'night' 
-      ? 'https://media.octonius.com/assets/no-activity-light.svg'
-      : 'https://media.octonius.com/assets/no-activity-dark.svg'
+      ? 'https://media.octonius.com/assets/placeholder_recent-activity-dark.png'
+      : 'https://media.octonius.com/assets/placeholder_recent-activity.png'
   }
 
   getMessagesEmptyStateImage(): string {
