@@ -9,6 +9,9 @@ import { DEFAULT_AVATAR_URL } from '../config/constants'
 import { GroupResponse, GroupsResponse, GroupError, GroupMembersResponse } from './group.type'
 import { Op, WhereOptions, IncludeOptions } from 'sequelize'
 
+// Import Cache Service
+import { CacheService } from '../shared/cache.service'
+
 /**
  * Group Service Class
  * Handles all group-related business logic and database operations
@@ -84,6 +87,12 @@ export class GroupService {
             // Create default task columns for the group
             await taskService.createDefaultColumns(group.uuid, groupData.created_by)
 
+            // Cache the new group and invalidate group lists
+            await CacheService.setGroup(group.uuid, group)
+            await CacheService.invalidateGroupList(groupData.workplace_id)
+            await CacheService.invalidateSearchResults(groupData.workplace_id, 'groups')
+            logger.info(`Group cached and related caches invalidated: ${group.uuid}`)
+
             logger.info(`Group created: ${group.uuid} by user: ${groupData.created_by}`)
 
             return {
@@ -108,6 +117,18 @@ export class GroupService {
      */
     static async getGroupsByWorkplace(workplace_id: string, user_id: string): Promise<GroupsResponse<Group[]> | GroupError> {
         try {
+            // Check cache first
+            const cachedGroups = await CacheService.getGroupList(workplace_id, user_id)
+            if (cachedGroups) {
+                logger.info(`Groups retrieved from cache for workplace: ${workplace_id} (user: ${user_id})`)
+                return {
+                    success: true,
+                    message: GroupCode.GROUPS_FOUND,
+                    code: 200,
+                    groups: cachedGroups
+                }
+            }
+
             const includeOptions: IncludeOptions[] = [
                 {
                     model: User,
@@ -146,6 +167,10 @@ export class GroupService {
                 include: includeOptions,
                 order: [['created_at', 'DESC']]
             })
+
+            // Cache the results
+            await CacheService.setGroupList(workplace_id, user_id, groups)
+            logger.info(`Groups cached for workplace: ${workplace_id} (user: ${user_id})`)
 
             logger.info(`Retrieved ${groups.length} groups for workplace: ${workplace_id} (user: ${user_id})`)
 
@@ -189,6 +214,18 @@ export class GroupService {
                 }
             }
 
+            // Check cache for group data
+            const cachedGroup = await CacheService.getGroup(group_id)
+            if (cachedGroup) {
+                logger.info(`Group retrieved from cache: ${group_id} by user: ${user_id}`)
+                return {
+                    success: true,
+                    message: GroupCode.GROUP_FOUND,
+                    code: 200,
+                    group: cachedGroup
+                }
+            }
+
             const group = await Group.findOne({
                 where: {
                     uuid: group_id,
@@ -222,6 +259,10 @@ export class GroupService {
                     stack: new Error(GroupCode.GROUP_NOT_FOUND)
                 }
             }
+
+            // Cache the group data
+            await CacheService.setGroup(group_id, group)
+            logger.info(`Group cached: ${group_id}`)
 
             logger.info(`Retrieved group: ${group_id} by user: ${user_id}`)
 
@@ -311,6 +352,10 @@ export class GroupService {
             // Update the group
             await group.update(updateData)
 
+            // Invalidate group cache
+            await CacheService.invalidateGroupData(group_id, group.workplace_id)
+            logger.info(`Group cache invalidated after update: ${group_id}`)
+
             logger.info(`Group updated: ${group_id} by user: ${user_id}`)
 
             return {
@@ -376,6 +421,10 @@ export class GroupService {
             // Soft delete the group
             await group.update({ is_active: false })
 
+            // Invalidate group cache
+            await CacheService.invalidateGroupData(group_id, group.workplace_id)
+            logger.info(`Group cache invalidated after deletion: ${group_id}`)
+
             logger.info(`Group deleted: ${group_id} by user: ${user_id}`)
 
             return {
@@ -400,6 +449,18 @@ export class GroupService {
      */
     static async searchGroups(workplace_id: string, searchTerm: string, user_id: string): Promise<GroupsResponse<Group[]> | GroupError> {
         try {
+            // Check cache first
+            const cachedResults = await CacheService.getSearchResults(searchTerm, 'groups', workplace_id)
+            if (cachedResults) {
+                logger.info(`Search results retrieved from cache for term: ${searchTerm} in workplace: ${workplace_id}`)
+                return {
+                    success: true,
+                    message: GroupCode.GROUPS_FOUND,
+                    code: 200,
+                    groups: cachedResults
+                }
+            }
+
             // Get group IDs where user is an active member first
             const userGroupIds = await GroupMembership.findAll({
                 where: {
@@ -444,6 +505,10 @@ export class GroupService {
                 ],
                 order: [['name', 'ASC']]
             })
+
+            // Cache the search results
+            await CacheService.setSearchResults(searchTerm, 'groups', workplace_id, groups)
+            logger.info(`Search results cached for term: ${searchTerm} in workplace: ${workplace_id}`)
 
             logger.info(`Searched groups for term: ${searchTerm} in workplace: ${workplace_id} (user: ${user_id})`)
 

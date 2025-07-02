@@ -190,3 +190,8 @@ export async function fetchRedisKeysByPrefix(prefix: string): Promise<{ message:
     }
 }
 
+/**
+ * Export Redis client for direct access
+ */
+export { client as redisClient }
+
