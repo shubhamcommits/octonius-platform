@@ -49,6 +49,16 @@ import { GroupRoute } from './groups/group.route'
 // Define the express application
 const app = express()
 
+// Configure Express to trust proxy headers for real IP detection
+// This is essential when deployed behind load balancers, reverse proxies, or CDNs
+if (NODE_ENV === 'prod') {
+    // In production, trust the first proxy (load balancer/CDN)
+    app.set('trust proxy', 1)
+} else {
+    // In development, trust all proxies for testing
+    app.set('trust proxy', true)
+}
+
 // Import Redis function
 import { isRedisAvailable } from './redis'
 

@@ -15,6 +15,8 @@ export const envSchema = z.object({
   AWS_DEFAULT_REGION: z.string(),
   AWS_ACCESS_KEY_ID: z.string(),
   AWS_SECRET_ACCESS_KEY: z.string(),
+  S3_BUCKET_NAME: z.string(),
+  CDN_BASE_URL: z.string().optional().default('https://media.octonius.com'),
 
   // Database
   DB_WRITER_HOST: z.string(),
