@@ -6,6 +6,8 @@ import { GroupMemberService, GroupMember } from '../../../services/group-member.
 import { ToastService } from '../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { environment } from '../../../../../../environments/environment';
+import { FileService } from '../../../../../core/services/file.service';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-group-admin',
@@ -70,14 +72,23 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
   showDeleteModal = false;
   deleteConfirmText = '';
   
+  imagePreviewUrl: SafeUrl | null = null;
+  uploadProgress: number | null = null;
+  uploading: boolean = false;
+  uploadError: string | null = null;
+  imageUrlLocked: boolean = false;
+  
   private groupSub: Subscription | null = null;
+  private originalGroupForm: any = null;
 
   constructor(
     private router: Router,
     private workGroupService: WorkGroupService,
     private groupMemberService: GroupMemberService,
     private toastService: ToastService,
-    private authService: AuthService
+    private authService: AuthService,
+    private fileService: FileService,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
@@ -112,6 +123,8 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
         department: this.group.metadata.department || ''
       }
     };
+    // Deep copy for dirty check
+    this.originalGroupForm = JSON.parse(JSON.stringify(this.groupForm));
   }
 
   loadMembers(): void {
@@ -462,5 +475,47 @@ export class GroupAdminComponent implements OnInit, OnDestroy {
         };
       }
     });
+  }
+
+  onImageFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    this.uploadError = null;
+    this.uploading = true;
+    this.uploadProgress = 0;
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.imagePreviewUrl = this.sanitizer.bypassSecurityTrustUrl(e.target.result);
+    };
+    reader.readAsDataURL(file);
+    // Upload to S3
+    this.fileService.uploadFileViaS3(file).subscribe({
+      next: (uploadedFile: any) => {
+        const url = uploadedFile.cdn_url || uploadedFile.download_url || uploadedFile.url;
+        this.groupForm.imageUrl = url;
+        this.uploading = false;
+        this.uploadProgress = null;
+        this.imageUrlLocked = true;
+      },
+      error: (err: any) => {
+        this.uploadError = 'Failed to upload image. Please try again.';
+        this.uploading = false;
+        this.uploadProgress = null;
+      }
+    });
+  }
+
+  clearImageUpload() {
+    this.imagePreviewUrl = null;
+    this.imageUrlLocked = false;
+    this.groupForm.imageUrl = '';
+  }
+
+  get isFormDirty(): boolean {
+    if (!this.originalGroupForm) return false;
+    // Compare all fields (deep)
+    return JSON.stringify(this.groupForm) !== JSON.stringify(this.originalGroupForm);
   }
 }

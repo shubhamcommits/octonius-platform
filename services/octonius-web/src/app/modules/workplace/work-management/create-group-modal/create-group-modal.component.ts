@@ -1,5 +1,7 @@
 import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
+import { FileService } from '../../../../core/services/file.service';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
 export interface CreateGroupData {
   name: string;
@@ -31,8 +33,13 @@ export class CreateGroupModalComponent implements OnInit {
 
   form;
   tags: string[] = [];
+  imagePreviewUrl: SafeUrl | null = null;
+  uploadProgress: number | null = null;
+  uploading: boolean = false;
+  uploadError: string | null = null;
+  imageUrlLocked: boolean = false;
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder, private fileService: FileService, private sanitizer: DomSanitizer) {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       description: ['', [Validators.maxLength(500)]],
@@ -53,7 +60,7 @@ export class CreateGroupModalComponent implements OnInit {
 
   onSubmit() {
     if (this.form.valid) {
-      const formValue = this.form.value;
+      const formValue = this.form.getRawValue();
       
       const groupData: CreateGroupData = {
         name: (formValue.name || '').trim(),
@@ -99,5 +106,43 @@ export class CreateGroupModalComponent implements OnInit {
       event.preventDefault();
       this.addTag();
     }
+  }
+
+  onImageFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    this.uploadError = null;
+    this.uploading = true;
+    this.uploadProgress = 0;
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.imagePreviewUrl = this.sanitizer.bypassSecurityTrustUrl(e.target.result);
+    };
+    reader.readAsDataURL(file);
+    // Upload to S3 (no group_id yet, so just use uploadFileViaS3)
+    this.fileService.uploadFileViaS3(file).subscribe({
+      next: (uploadedFile: any) => {
+        const url = uploadedFile.cdn_url || uploadedFile.download_url || uploadedFile.url;
+        this.form.get('imageUrl')?.setValue(url);
+        this.uploading = false;
+        this.uploadProgress = null;
+        this.imageUrlLocked = true;
+        this.form.get('imageUrl')?.disable();
+      },
+      error: (err: any) => {
+        this.uploadError = 'Failed to upload image. Please try again.';
+        this.uploading = false;
+        this.uploadProgress = null;
+      }
+    });
+  }
+
+  clearImageUpload() {
+    this.imagePreviewUrl = null;
+    this.imageUrlLocked = false;
+    this.form.get('imageUrl')?.setValue('');
+    this.form.get('imageUrl')?.enable();
   }
 } 
