@@ -4,6 +4,9 @@ import { Model, DataTypes, Optional } from 'sequelize'
 // Import Database Class
 import { db } from '../sequelize'
 
+// Import Constants
+import { DEFAULT_AVATAR_URL } from '../config/constants'
+
 // Define user attributes (passwordless authentication)
 interface UserAttributes {
     uuid: string
@@ -11,7 +14,7 @@ interface UserAttributes {
     first_name: string | null
     last_name: string | null
     email: string
-    phone: string
+    phone: string | null
     avatar_url: string | null
     job_title: string | null
     department: string | null
@@ -40,7 +43,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     public first_name!: string | null
     public last_name!: string | null
     public email!: string
-    public phone!: string
+    public phone: string | null
     public avatar_url!: string | null
     public job_title!: string | null
     public department!: string | null
@@ -73,6 +76,42 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
             foreignKey: 'user_id',
             as: 'workplace_memberships'
         })
+
+        // User has many lounge stories as author
+        User.hasMany(models.LoungeStory, {
+            foreignKey: 'user_id',
+            sourceKey: 'uuid',
+            as: 'lounge_stories'
+        })
+
+        // User has many task comments
+        User.hasMany(models.TaskComment, {
+            foreignKey: 'user_id',
+            sourceKey: 'uuid',
+            as: 'task_comments'
+        })
+    }
+
+    // Virtual getter for avatar URL with fallback
+    get avatarUrlWithFallback(): string {
+        return this.avatar_url || DEFAULT_AVATAR_URL
+    }
+
+    // Method to get user display data with fallbacks
+    getUserDisplay() {
+        return {
+            uuid: this.uuid,
+            first_name: this.first_name,
+            last_name: this.last_name,
+            email: this.email,
+            avatar_url: this.avatarUrlWithFallback,
+            display_name: this.first_name || this.last_name 
+                ? `${this.first_name || ''} ${this.last_name || ''}`.trim()
+                : this.email,
+            initials: this.first_name || this.last_name
+                ? `${this.first_name?.charAt(0) || ''}${this.last_name?.charAt(0) || ''}`
+                : this.email.charAt(0).toUpperCase()
+        }
     }
 }
 
@@ -89,14 +128,14 @@ User.init({
         allowNull: false
     },
     first_name: {
-        type: DataTypes.CHAR(50),
+        type: DataTypes.STRING(50),
         allowNull: true,
         validate: {
             len: [0, 50]
         }
     },
     last_name: {
-        type: DataTypes.CHAR(50),
+        type: DataTypes.STRING(50),
         allowNull: true,
         validate: {
             len: [0, 50]
@@ -116,7 +155,7 @@ User.init({
     phone: {
         type: DataTypes.STRING(20),
         unique: 'phone',
-        allowNull: false,
+        allowNull: true,
         validate: {
             is: {
                 args: /^[0-9]+$/,

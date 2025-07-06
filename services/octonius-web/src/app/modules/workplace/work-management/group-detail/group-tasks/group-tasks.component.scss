@@ -1,0 +1,133 @@
+// Component-specific height constraint
+:host {
+  display: block;
+  height: 100%;
+}
+
+// Kanban board styles
+.kanban-board-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0; // Important for flexbox children
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kanban-board-container {
+  position: relative;
+  flex: 1;
+  min-height: 0; // Important for flexbox children
+  overflow-x: auto;
+  overflow-y: hidden;
+  
+  // Custom scrollbar for horizontal scrolling
+  &::-webkit-scrollbar {
+    height: 12px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.4);
+    }
+  }
+}
+
+.kanban-board {
+  height: 100%;
+  align-items: stretch;
+}
+
+.kanban-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  
+  .task-list {
+    flex: 1;
+    min-height: 0; // Critical for overflow to work
+    overflow-y: auto;
+    overflow-x: hidden;
+    
+    // Custom scrollbar for vertical scrolling
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+      
+      &:hover {
+        background: rgba(0, 0, 0, 0.3);
+      }
+    }
+    
+    // Firefox scrollbar
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    
+    // Ensure padding for scrollbar
+    padding-right: 4px;
+  }
+}
+
+// Ensure cards don't shrink
+.card {
+  flex-shrink: 0;
+}
+
+// Smooth scroll behavior
+.kanban-board-container,
+.task-list {
+  scroll-behavior: smooth;
+}
+
+// Dark mode scrollbar adjustments
+@media (prefers-color-scheme: dark) {
+  .kanban-board-container {
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.4);
+      }
+    }
+  }
+  
+  .task-list {
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    }
+    
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .kanban-column {
+    width: 280px !important;
+    min-width: 280px !important;
+  }
+}

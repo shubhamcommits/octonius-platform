@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core'
+import { Component, OnInit, OnDestroy } from '@angular/core'
 import { FormBuilder, FormGroup, Validators } from '@angular/forms'
 import { ReactiveFormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
@@ -6,7 +6,7 @@ import { AuthService } from '../../../core/services/auth.service'
 import { Router } from '@angular/router'
 import { finalize } from 'rxjs/operators'
 import { FormsModule } from '@angular/forms'
-import { WorkplaceService } from '../../shared/services/workplace.service'
+import { ToastService } from '../../../core/services/toast.service'
 
 @Component({
   selector: 'app-create-workplace',
@@ -15,10 +15,10 @@ import { WorkplaceService } from '../../shared/services/workplace.service'
   templateUrl: './create-workplace.component.html',
   styleUrls: ['./create-workplace.component.scss']
 })
-export class CreateWorkplaceComponent implements OnInit {
+export class CreateWorkplaceComponent implements OnInit, OnDestroy {
   createWorkplaceForm!: FormGroup
   otpForm!: FormGroup
-  step: 'create' | 'verify' = 'create'
+  step: 'create' | 'verify' | 'verified' = 'create'
   otpError: string = ''
   isLoading = false
   email: string = ''
@@ -29,30 +29,43 @@ export class CreateWorkplaceComponent implements OnInit {
   private timerInterval: any
   showWorkplaceNameEdit: boolean = false;
   attemptedWorkplaceName: string = '';
+  newWorkplaceName: string = '';
+  isOtpVerified: boolean = false;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private workplaceService: WorkplaceService
+    private toastService: ToastService
   ) {
-    // Try to get email from router state
-    const nav = this.router.getCurrentNavigation()
-    const email = nav?.extras.state?.['email']
-    const is_new_user = nav?.extras.state?.['is_new_user']
-    const user = nav?.extras.state?.['user']
+    // Check if user is authenticated but has no workplace
+    const currentUser = this.authService.getCurrentUser();
+    if (currentUser && this.authService.isTokenValid()) {
+      // User is authenticated but has no workplace
+      this.email = currentUser.email;
+      this.is_new_user = true;
+      this.user = currentUser;
+      this.isOtpVerified = true; // They must have verified OTP to get tokens
+    } else {
+      // Try to get email from router state (normal flow)
+      const nav = this.router.getCurrentNavigation()
+      const email = nav?.extras.state?.['email']
+      const is_new_user = nav?.extras.state?.['is_new_user']
+      const user = nav?.extras.state?.['user']
 
-    // If email is not present, redirect to login
-    if (!email) {
-      this.router.navigate(['/auths/login'])
+      // If no email and not authenticated, redirect to login
+      if (!email && !currentUser) {
+        this.router.navigate(['/auths/login'])
+        return;
+      }
+
+      this.email = email || '';
+      this.is_new_user = is_new_user || false;
+      this.user = user || null;
     }
 
-    this.email = email
-    this.is_new_user = is_new_user
-    this.user = user
-
     this.createWorkplaceForm = this.fb.group({
-      email: [email, [Validators.required, Validators.email]],
+      email: [this.email, [Validators.required, Validators.email]],
       workplace_name: ['', [Validators.required, Validators.minLength(3)]]
     })
 
@@ -62,7 +75,10 @@ export class CreateWorkplaceComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.startResendTimer()
+    // Only start timer if we're in the OTP flow (not already verified)
+    if (!this.isOtpVerified) {
+      this.startResendTimer()
+    }
   }
 
   ngOnDestroy() {
@@ -72,6 +88,11 @@ export class CreateWorkplaceComponent implements OnInit {
   }
 
   startResendTimer() {
+    // Clear any existing timer before starting a new one
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval)
+    }
+    
     this.canResendOtp = false
     this.resendTimer = 30
     this.timerInterval = setInterval(() => {
@@ -80,6 +101,7 @@ export class CreateWorkplaceComponent implements OnInit {
       } else {
         this.canResendOtp = true
         clearInterval(this.timerInterval)
+        this.timerInterval = null
       }
     }, 1000)
   }
@@ -93,9 +115,11 @@ export class CreateWorkplaceComponent implements OnInit {
         next: () => {
           this.startResendTimer()
           this.otpError = ''
+          this.toastService.success('OTP sent successfully')
         },
         error: (err: any) => {
           this.otpError = 'Failed to resend OTP. Try again.'
+          this.toastService.error('Failed to send OTP. Please try again.')
         }
       })
   }
@@ -105,6 +129,13 @@ export class CreateWorkplaceComponent implements OnInit {
       this.createWorkplaceForm.markAllAsTouched()
       return
     }
+    
+    // If OTP is already verified, directly create workplace
+    if (this.isOtpVerified) {
+      this.createWorkplace()
+      return
+    }
+    
     this.isLoading = true
     this.authService.requestOtp(this.email)
       .pipe(finalize(() => this.isLoading = false))
@@ -113,9 +144,11 @@ export class CreateWorkplaceComponent implements OnInit {
           this.step = 'verify'
           this.otpError = ''
           this.startResendTimer()
+          this.toastService.info('Please check your email for the verification code')
         },
         error: (err: any) => {
           this.otpError = 'Failed to send OTP. Try again.'
+          this.toastService.error('Failed to send OTP. Please try again.')
         }
       })
   }
@@ -137,13 +170,26 @@ export class CreateWorkplaceComponent implements OnInit {
               this.authService.setTokens(res.data.access_token, res.data.refresh_token)
             }
             this.otpError = ''
-            this.createWorkplace()
+            this.isOtpVerified = true
+            this.toastService.success('OTP verified successfully')
+            
+            // If we have a workplace name ready, create it immediately
+            if (this.createWorkplaceForm.get('workplace_name')?.value) {
+              this.createWorkplace();
+            } else {
+              // Otherwise go back to create step
+              this.step = 'create'
+              // Reset the workplace name edit state
+              this.showWorkplaceNameEdit = false
+            }
           } else {
             this.otpError = 'Invalid OTP. Try again.'
+            this.toastService.error('Invalid OTP. Please try again.')
           }
         },
         error: () => {
           this.otpError = 'Invalid OTP. Try again.'
+          this.toastService.error('Invalid OTP. Please try again.')
         }
       })
   }
@@ -151,19 +197,36 @@ export class CreateWorkplaceComponent implements OnInit {
   createWorkplace() {
     const workplace_name = this.createWorkplaceForm.get('workplace_name')?.value
     this.isLoading = true
+    // Show immediate feedback
+    this.toastService.info('Creating workplace...');
     this.authService.setupWorkplace(this.email, workplace_name)
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
-        next: (workplace) => {
+        next: (response) => {
+          // Store authentication tokens for auto-login
+          if (response.data && response.data.access_token && response.data.refresh_token) {
+            this.authService.setTokens(response.data.access_token, response.data.refresh_token);
+          }
+          
+          // Update the current user with the new workplace
+          if (response.data && response.data.user) {
+            this.authService.setCurrentUser(response.data.user);
+          }
+          
+          this.toastService.success('Workplace created successfully!')
           this.router.navigate(['/myspace'])
         },
         error: (error) => {
-          if (error?.error?.message === 'A workplace with this name already exists' || error?.error?.message === 'AUTH_WORKPLACE_NAME_EXISTS' || error?.error?.message?.includes('already exists')) {
-            this.otpError = error?.error?.message || 'A workplace with this name already exists.'
+          if (error?.status === 409 || error?.error?.message === 'A workplace with this name already exists' || error?.error?.message === 'AUTH_WORKPLACE_NAME_EXISTS' || error?.error?.message?.includes('already exists')) {
+            this.otpError = 'This workplace name is already taken. Please choose a different name.'
             this.showWorkplaceNameEdit = true;
             this.attemptedWorkplaceName = workplace_name;
+            this.newWorkplaceName = ''; // Clear the new name input
+            this.toastService.warning('This workplace name is already taken. Please choose a different name.')
           } else {
             this.otpError = error?.error?.message || 'Failed to create workplace'
+            this.toastService.error('Failed to create workplace. Please try again.')
+            // Don't reset OTP verified state, user can try again
           }
         }
       })
@@ -174,25 +237,33 @@ export class CreateWorkplaceComponent implements OnInit {
       this.otpError = 'Workplace name is required (min 3 chars).';
       return;
     }
+    // Update the form with the new workplace name
     this.createWorkplaceForm.get('workplace_name')?.setValue(newName);
     this.showWorkplaceNameEdit = false;
     this.otpError = '';
-    this.onResendOtpForNewName(newName);
-  }
-
-  onResendOtpForNewName(newName: string) {
-    this.isLoading = true;
-    this.authService.requestOtp(this.email)
-      .pipe(finalize(() => this.isLoading = false))
-      .subscribe({
-        next: () => {
-          this.otpError = '';
-          this.otpForm.reset();
-          this.startResendTimer();
-        },
-        error: () => {
-          this.otpError = 'Failed to resend OTP. Try again.';
-        }
-      });
+    
+    // If OTP is already verified, directly create workplace with new name
+    if (this.isOtpVerified) {
+      this.createWorkplace();
+    } else {
+      // Otherwise, request OTP and go to verify step
+      this.isLoading = true;
+      this.authService.requestOtp(this.email)
+        .pipe(finalize(() => this.isLoading = false))
+        .subscribe({
+          next: () => {
+            this.step = 'verify';
+            this.otpError = '';
+            this.otpForm.reset();
+            this.startResendTimer();
+            this.toastService.info('Please check your email for the verification code');
+          },
+          error: () => {
+            this.otpError = 'Failed to send OTP. Try again.';
+            this.toastService.error('Failed to send OTP. Please try again.');
+            this.showWorkplaceNameEdit = true; // Show the edit form again
+          }
+        });
+    }
   }
 }

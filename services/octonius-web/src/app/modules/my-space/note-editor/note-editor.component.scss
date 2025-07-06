@@ -1,0 +1,373 @@
+// Essential animations for status indicators
+@keyframes pulse-success {
+  0%, 100% { box-shadow: 0 0 0 2px hsl(var(--su)); }
+  50% { box-shadow: 0 0 0 8px hsl(var(--su) / 0.3); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+// Status dot animations (cannot be done with utility classes)
+.status-dot {
+  &.animate-pulse-success {
+    animation: pulse-success 2s ease-in-out;
+  }
+  
+  &.animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+}
+
+// EditorJS full-screen optimizations
+#editorjs {
+  // Full height container
+  &.h-full {
+    height: 100vh !important;
+    max-height: calc(100vh - 80px) !important; // Account for header
+  }
+  
+  // Override padding to start from absolute left
+  &.p-6 {
+    padding-left: 0 !important;
+    padding-top: 1rem !important;
+  }
+  
+  &.p-4 {
+    padding-left: 0 !important;
+    padding-top: 1rem !important;
+  }
+  
+  &.p-3 {
+    padding-left: 0 !important;
+    padding-top: 1rem !important;
+  }
+  
+  // Container level overrides for full-screen
+  .codex-editor {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: calc(100vh - 120px) !important; // Full viewport minus header and padding
+  }
+  
+  .codex-editor__redactor {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    min-height: calc(100vh - 120px) !important;
+  }
+  
+  // Block level overrides - remove ALL default spacing
+  .ce-block {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    
+    &__content {
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      text-align: left !important;
+    }
+  }
+  
+  // Toolbar overrides
+  .ce-toolbar {
+    margin: 0 !important;
+    padding: 0 !important;
+    left: 0 !important;
+    
+    &__content {
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+    }
+  }
+  
+  // Paragraph specific overrides
+  .ce-paragraph {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    text-align: left !important;
+    
+    &[data-placeholder] {
+      text-align: left !important;
+    }
+  }
+  
+  // Force all EditorJS elements to start from left edge
+  * {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+  }
+  
+  // Override any centering classes EditorJS might add
+  [class*="center"],
+  [class*="Center"] {
+    text-align: left !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
+  }
+  
+  // Custom placeholder positioned at absolute left
+  .codex-editor--empty .ce-block:first-child {
+    position: relative;
+    margin: 0 !important;
+    padding: 0 !important;
+    
+    &::before {
+      content: 'Type / for commands • @ for mentions • Use shortcuts (Cmd+Shift+H for headings, Cmd+B for bold)';
+      color: hsl(var(--bc));
+      opacity: 0.5;
+      position: absolute;
+      left: 0 !important;
+      top: 0;
+      margin: 0 !important;
+      padding: 0 !important;
+      pointer-events: none;
+      font-size: 1rem;
+      line-height: 1.7;
+      text-align: left !important;
+      width: 100%;
+    }
+  }
+  
+  // Override any default EditorJS margins that create spacing
+  .ce-block:first-child {
+    margin-top: 0 !important;
+  }
+  
+  .ce-block:last-child {
+    margin-bottom: 0 !important;
+  }
+  
+  // === THEME-AWARE EDITOR STYLING ===
+  
+  // Cursor/Caret and text theming
+  .ce-paragraph, .ce-header, .ce-quote__text, .ce-code__textarea, .cdx-input, [contenteditable="true"] {
+    caret-color: hsl(var(--p)) !important;
+    color: hsl(var(--bc)) !important;
+  }
+  
+  // Selection highlighting
+  .ce-paragraph::selection, .ce-header::selection, .ce-quote__text::selection, .ce-code__textarea::selection {
+    background-color: hsl(var(--p) / 0.2) !important;
+    color: hsl(var(--bc)) !important;
+  }
+  
+  // === TOOLBAR & UI THEMING ===
+  
+  // Main toolbars and UI elements
+  .ce-toolbar, .ce-toolbox, .ce-inline-toolbar, .ce-settings, .ce-popover, .ce-conversion-toolbar {
+    background-color: hsl(var(--b1)) !important;
+    border: 1px solid hsl(var(--b3)) !important;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px hsl(var(--b3) / 0.1);
+  }
+  
+  // Buttons and interactive elements
+  .ce-toolbar__plus, .ce-toolbar__settings-btn, .ce-toolbox__button, .ce-inline-tool, 
+  .ce-settings__button, .ce-popover__item, .ce-conversion-toolbar__tool {
+    color: hsl(var(--bc)) !important;
+    
+    &:hover {
+      background-color: hsl(var(--b2)) !important;
+      color: hsl(var(--bc)) !important;
+    }
+    
+    &--active {
+      background-color: hsl(var(--p)) !important;
+      color: hsl(var(--pc)) !important;
+    }
+  }
+  
+  // === BLOCK-SPECIFIC THEMING ===
+  
+  // Block selection and hover states
+  .ce-block {
+    &--selected {
+      background-color: hsl(var(--b2) / 0.5) !important;
+      border-radius: 0.25rem;
+    }
+    
+    &:hover {
+      background-color: hsl(var(--b2) / 0.3) !important;
+      border-radius: 0.25rem;
+    }
+  }
+  
+
+  
+  // === TOOL-SPECIFIC THEMING ===
+  
+  // Quote tool
+  .ce-quote {
+    border-left: 3px solid hsl(var(--p)) !important;
+    background-color: hsl(var(--b2) / 0.3) !important;
+    
+    &__text {
+      color: hsl(var(--bc)) !important;
+    }
+    
+    &__caption {
+      color: hsl(var(--bc) / 0.7) !important;
+    }
+  }
+  
+  // Code tool
+  .ce-code {
+    background-color: hsl(var(--b3)) !important;
+    border-radius: 0.5rem;
+    
+    &__textarea {
+      background-color: transparent !important;
+      color: hsl(var(--bc)) !important;
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, 'Monaco', 'Courier New', monospace;
+    }
+  }
+  
+  // Warning tool
+  .cdx-warning {
+    background-color: hsl(var(--wa) / 0.1) !important;
+    border-left: 3px solid hsl(var(--wa)) !important;
+    border-radius: 0.25rem;
+    
+    &__title {
+      color: hsl(var(--wa)) !important;
+    }
+    
+    &__message {
+      color: hsl(var(--bc)) !important;
+    }
+  }
+  
+  // Table tool
+  .tc-table {
+    border-color: hsl(var(--b3)) !important;
+    
+    &__cell {
+      border-color: hsl(var(--b3)) !important;
+      background-color: hsl(var(--b1)) !important;
+      color: hsl(var(--bc)) !important;
+      
+      &--selected {
+        background-color: hsl(var(--p) / 0.1) !important;
+      }
+    }
+  }
+  
+  // List tool
+  .cdx-list {
+    &__item {
+      color: hsl(var(--bc)) !important;
+      
+      &::before {
+        color: hsl(var(--bc) / 0.7) !important;
+      }
+    }
+  }
+  
+  // Checklist tool
+  .cdx-checklist {
+    &__item {
+      color: hsl(var(--bc)) !important;
+      
+      &-checkbox {
+        border-color: hsl(var(--b3)) !important;
+        
+        &--checked {
+          background-color: hsl(var(--su)) !important;
+          border-color: hsl(var(--su)) !important;
+        }
+      }
+    }
+  }
+  
+  // Link tool
+  .ce-link-tool {
+    background-color: hsl(var(--b2)) !important;
+    border-radius: 0.5rem;
+    border: 1px solid hsl(var(--b3)) !important;
+    
+    &__title {
+      color: hsl(var(--bc)) !important;
+    }
+    
+    &__description {
+      color: hsl(var(--bc) / 0.7) !important;
+    }
+    
+    &__anchor {
+      color: hsl(var(--p)) !important;
+    }
+  }
+  
+  // Image tool
+  .image-tool {
+    &__image {
+      border-radius: 0.5rem;
+    }
+    
+    &__caption {
+      background-color: hsl(var(--b1)) !important;
+      color: hsl(var(--bc)) !important;
+      border: 1px solid hsl(var(--b3)) !important;
+      border-radius: 0.25rem;
+    }
+  }
+  
+  // Delimiter tool
+  .ce-delimiter {
+    &::before {
+      background-color: hsl(var(--b3)) !important;
+    }
+    
+    &::after {
+      color: hsl(var(--bc) / 0.5) !important;
+    }
+  }
+  
+  // === INPUT THEMING ===
+  
+  // All EditorJS inputs
+  .cdx-input {
+    background-color: hsl(var(--b1)) !important;
+    border: 1px solid hsl(var(--b3)) !important;
+    color: hsl(var(--bc)) !important;
+    border-radius: 0.25rem;
+    
+    &:focus {
+      border-color: hsl(var(--p)) !important;
+      box-shadow: 0 0 0 2px hsl(var(--p) / 0.2) !important;
+      outline: none !important;
+    }
+    
+    &::placeholder {
+      color: hsl(var(--bc) / 0.5) !important;
+    }
+  }
+  
+
+  
+  // === MISC THEMING ===
+  
+  // Custom scrollbar and focus for theme consistency
+  .codex-editor {
+    &::-webkit-scrollbar { width: 8px; }
+    &::-webkit-scrollbar-track { background-color: hsl(var(--b2)); }
+    &::-webkit-scrollbar-thumb { background-color: hsl(var(--b3)); }
+    
+    *:focus { outline: 2px solid hsl(var(--p)) !important; }
+  }
+}
+
+

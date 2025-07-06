@@ -40,8 +40,24 @@ import { FileRoute } from './files/file.route'
 // Import Workload Route
 import { WorkloadRoute } from './workload/workload.route'
 
+// Import Lounge Route
+import { LoungeRoute } from './lounge/lounge.route'
+
+// Import Group Route
+import { GroupRoute } from './groups/group.route'
+
 // Define the express application
 const app = express()
+
+// Configure Express to trust proxy headers for real IP detection
+// This is essential when deployed behind load balancers, reverse proxies, or CDNs
+if (NODE_ENV === 'prod') {
+    // In production, trust the first proxy (load balancer/CDN)
+    app.set('trust proxy', 1)
+} else {
+    // In development, trust all proxies for testing
+    app.set('trust proxy', true)
+}
 
 // Import Redis function
 import { isRedisAvailable } from './redis'
@@ -153,6 +169,8 @@ app.use('/v1/users', new UserRoute().router)
 app.use('/v1/workplaces', new WorkplaceRoute().router)
 app.use('/v1/files', new FileRoute().router)
 app.use('/v1/workload', new WorkloadRoute().router)
+app.use('/v1/lounges', new LoungeRoute().router)
+app.use('/v1/groups', new GroupRoute().router)
 
 // Invalid routes handling middleware
 app.all('*', (req: Request, res: Response, next: NextFunction) => {

@@ -7,6 +7,17 @@ import { Permission } from '../roles/permission.model'
 import { RolePermission } from '../roles/role-permission.model'
 import { Auth } from '../auths/auth.model'
 import { Token } from '../auths/token.model'
+import { LoungeStory } from '../lounge/lounge.model'
+import { File } from '../files/file.model'
+import { Group } from '../groups/group.model'
+import { GroupMembership } from '../groups/group-membership.model'
+import { GroupActivityPost } from '../groups/activity/activity.model'
+import { GroupActivityLike } from '../groups/activity/activity.model'
+import { GroupActivityComment } from '../groups/activity/activity.model'
+import { Task } from '../groups/tasks/task.model'
+import { TaskColumn } from '../groups/tasks/task-column.model'
+import { TaskComment } from '../groups/tasks/task-comment.model'
+import { TaskAssignee } from '../groups/tasks/task-assignee.model'
 
 // Export all models
 export {
@@ -17,7 +28,18 @@ export {
     Permission,
     RolePermission,
     Auth,
-    Token
+    Token,
+    LoungeStory,
+    File,
+    Group,
+    GroupMembership,
+    GroupActivityPost,
+    GroupActivityLike,
+    GroupActivityComment,
+    Task,
+    TaskColumn,
+    TaskComment,
+    TaskAssignee
 }
 
 // Create models object
@@ -29,7 +51,18 @@ const models = {
     Permission,
     RolePermission,
     Auth,
-    Token
+    Token,
+    LoungeStory,
+    File,
+    Group,
+    GroupMembership,
+    GroupActivityPost,
+    GroupActivityLike,
+    GroupActivityComment,
+    Task,
+    TaskColumn,
+    TaskComment,
+    TaskAssignee
 }
 
 // Initialize associations

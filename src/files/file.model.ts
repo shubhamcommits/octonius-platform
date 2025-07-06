@@ -6,15 +6,33 @@ export class File extends Model {
   declare name: string;
   declare type: 'note' | 'file';
   declare icon: string;
-  declare owner_id: string;
+  declare user_id: string;
   declare workplace_id: string;
+  declare group_id: string;
   declare title?: string;
   declare content?: any;
   declare size?: number;
   declare mime_type?: string;
+  declare cdn_url?: string;
   declare last_modified: Date;
   declare created_at: Date;
   declare updated_at: Date;
+
+  // Association methods
+  static associate(models: any) {
+    File.belongsTo(models.User, {
+      foreignKey: 'user_id',
+      as: 'owner'
+    });
+    File.belongsTo(models.Workplace, {
+      foreignKey: 'workplace_id',
+      as: 'workplace'
+    });
+    File.belongsTo(models.Group, {
+      foreignKey: 'group_id',
+      as: 'group'
+    });
+  }
 }
 
 File.init(
@@ -36,12 +54,12 @@ File.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    owner_id: {
+    user_id: {
       type: DataTypes.UUID,
       allowNull: false,
       references: {
         model: 'users',
-        key: 'id',
+        key: 'uuid',
       },
     },
     workplace_id: {
@@ -49,7 +67,15 @@ File.init(
       allowNull: false,
       references: {
         model: 'workplaces',
-        key: 'id',
+        key: 'uuid',
+      },
+    },
+    group_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'groups',
+        key: 'uuid',
       },
     },
     title: {
@@ -65,6 +91,10 @@ File.init(
       allowNull: true,
     },
     mime_type: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    cdn_url: {
       type: DataTypes.STRING,
       allowNull: true,
     },

@@ -53,18 +53,6 @@ resource "aws_security_group" "rds" {
     security_groups = [var.ecs_security_group_id]
   }
 
-  # Allow PostgreSQL traffic from whitelisted IPs
-  dynamic "ingress" {
-    for_each = var.whitelisted_ips != null ? var.whitelisted_ips : {}
-    content {
-      from_port   = 5432
-      to_port     = 5432
-      protocol    = "tcp"
-      cidr_blocks = [ingress.value.cidr]
-      description = ingress.value.description
-    }
-  }
-
   # Allow all outbound traffic
   egress {
     from_port   = 0

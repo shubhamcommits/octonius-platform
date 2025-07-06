@@ -1,0 +1,516 @@
+<div *ngIf="isLoading" class="max-w-6xl mx-auto py-10 px-4">
+  <div class="flex items-center justify-center min-h-96">
+    <div class="loading loading-spinner loading-lg"></div>
+    <span class="ml-3">Loading task details...</span>
+  </div>
+</div>
+
+<div *ngIf="!isLoading && task" class="max-w-6xl mx-auto py-6 px-4">
+  <!-- Header: Breadcrumbs -->
+  <div class="flex items-center gap-2 text-sm text-base-content/70 mb-6">
+    <a routerLink="../" class="hover:text-primary cursor-pointer">Tasks</a>
+    <span>/</span>
+    <span class="font-medium text-base-content">{{ task.title }}</span>
+  </div>
+
+  <!-- Main Content: Two Columns -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left/Main Column -->
+    <div class="lg:col-span-2 flex flex-col gap-6">
+      <!-- Task Title and Description -->
+      <div>
+        <div class="flex items-start justify-between mb-4">
+          <h1 class="text-2xl font-bold text-base-content">{{ task.title }}</h1>
+          <div class="flex gap-2">
+            <button class="btn btn-outline btn-sm" (click)="openEditModal()">
+              <lucide-icon name="Edit" class="w-4 h-4"></lucide-icon>
+              Edit
+            </button>
+            <button class="btn btn-error btn-outline btn-sm" (click)="openDeleteModal()">
+              <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
+              Delete
+            </button>
+          </div>
+        </div>
+        
+        <p class="text-base-content/80 leading-relaxed" *ngIf="task.description">
+          {{ task.description }}
+        </p>
+        <p class="text-base-content/60 italic" *ngIf="!task.description">
+          No description provided
+        </p>
+      </div>
+
+      <!-- Interaction Bar -->
+      <div class="flex items-center gap-6 py-3 border-y border-base-200">
+        <button class="flex items-center gap-2 text-sm hover:text-primary transition-colors">
+          <lucide-icon name="MessageSquare" class="w-4 h-4"></lucide-icon>
+          <span>{{ comments.length }}</span>
+        </button>
+        
+        <span class="text-sm text-base-content/60">Add a comment</span>
+        
+        <div class="flex-grow"></div>
+        
+        <button class="btn btn-ghost btn-sm btn-circle">
+          <lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon>
+        </button>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="flex flex-col gap-4">
+        <div class="flex gap-6 border-b border-base-200">
+          <button 
+            class="pb-3 px-1 text-sm font-medium border-b-2 transition-colors"
+            [ngClass]="{
+              'border-primary text-primary': activeTab === 'activity',
+              'border-transparent text-base-content/60': activeTab !== 'activity'
+            }"
+            (click)="switchTab('activity')">
+            Activity
+          </button>
+          <button 
+            class="pb-3 px-1 text-sm font-medium border-b-2 transition-colors"
+            [ngClass]="{
+              'border-primary text-primary': activeTab === 'subtasks',
+              'border-transparent text-base-content/60': activeTab !== 'subtasks'
+            }"
+            (click)="switchTab('subtasks')">
+            Subtasks
+          </button>
+          <button 
+            class="pb-3 px-1 text-sm font-medium border-b-2 transition-colors"
+            [ngClass]="{
+              'border-primary text-primary': activeTab === 'files',
+              'border-transparent text-base-content/60': activeTab !== 'files'
+            }"
+            (click)="switchTab('files')">
+            Files
+          </button>
+        </div>
+
+        <!-- Activity Tab Content -->
+        <div *ngIf="activeTab === 'activity'" class="space-y-6">
+          <!-- Comments List -->
+          <div *ngIf="isLoadingComments" class="flex justify-center py-8">
+            <div class="loading loading-spinner loading-md"></div>
+          </div>
+
+          <div *ngIf="!isLoadingComments && comments.length === 0" class="text-center py-8 text-base-content/60">
+            No comments yet. Be the first to add a comment!
+          </div>
+
+          <!-- Comment Items -->
+          <div *ngFor="let comment of comments" class="flex gap-3">
+            <div class="flex-shrink-0">
+              <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
+                <img [src]="getUserAvatarUrl(comment.user)" 
+                     [alt]="getUserDisplayName(comment.user)" 
+                     class="w-full h-full object-cover" />
+              </div>
+            </div>
+            
+            <div class="flex-grow min-w-0">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="font-medium text-sm">{{ getUserDisplayName(comment.user) }}</span>
+                <span class="text-xs text-base-content/60">{{ comment.created_at | date:'MMM d, y h:mm a' }}</span>
+              </div>
+              
+              <div class="bg-base-100 rounded-lg p-4 border border-base-200">
+                <p class="text-sm text-base-content/80 leading-relaxed">{{ comment.content }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add Comment Section -->
+          <div class="mt-6">
+            <div class="flex gap-3">
+              <div class="flex-shrink-0">
+                <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
+                  <img [src]="getUserAvatarUrl(currentUser)" 
+                       [alt]="getUserDisplayName(currentUser)" 
+                       class="w-full h-full object-cover" />
+                </div>
+              </div>
+              <div class="flex-grow">
+                <textarea 
+                  class="textarea textarea-bordered w-full resize-none" 
+                  placeholder="Add a comment..."
+                  [(ngModel)]="newComment"
+                  rows="3">
+                </textarea>
+                <div class="flex justify-end mt-2">
+                  <button 
+                    class="btn btn-primary btn-sm" 
+                    [disabled]="!newComment.trim() || isSubmittingComment"
+                    (click)="addComment()">
+                    <span *ngIf="isSubmittingComment" class="loading loading-spinner loading-xs"></span>
+                    {{ isSubmittingComment ? 'Adding...' : 'Comment' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subtasks Tab Content -->
+        <div *ngIf="activeTab === 'subtasks'" class="text-center py-12 text-base-content/60">
+          <lucide-icon name="CheckSquare" class="w-12 h-12 mx-auto mb-4 opacity-50"></lucide-icon>
+          <p>Subtasks feature coming soon!</p>
+        </div>
+
+        <!-- Files Tab Content -->
+        <div *ngIf="activeTab === 'files'" class="text-center py-12 text-base-content/60">
+          <lucide-icon name="Paperclip" class="w-12 h-12 mx-auto mb-4 opacity-50"></lucide-icon>
+          <p>File attachments feature coming soon!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right/Sidebar Column -->
+    <div class="space-y-6">
+      <!-- Assignees Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Assignees</h3>
+        <div class="space-y-2">
+          <!-- Current Assignees -->
+          <div *ngFor="let assignee of task.assignees" class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200">
+            <div class="w-6 h-6 rounded-full overflow-hidden bg-base-300">
+                             <img [src]="getUserAvatarUrl(assignee)" 
+                   [alt]="getUserDisplayName(assignee)"
+                   class="w-full h-full object-cover" />
+            </div>
+            <span class="text-sm font-medium flex-grow">{{ getUserDisplayName(assignee) }}</span>
+            <button class="text-base-content/40 hover:text-base-content/80 transition-colors" 
+                    (click)="removeAssignee(assignee.uuid)">
+              <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
+            </button>
+          </div>
+          
+          <!-- No Assignees State -->
+          <div *ngIf="!task.assignees || task.assignees.length === 0" class="text-sm text-base-content/60 p-2">
+            No assignees yet
+          </div>
+          
+          <!-- Add Assignee Button -->
+          <button class="flex items-center gap-2 p-2 text-base-content/60 hover:text-base-content/80 hover:bg-base-100 rounded-lg border border-dashed border-base-300 hover:border-base-400 transition-all w-full"
+                  (click)="openAssigneeModal()">
+            <div class="w-6 h-6 rounded-full bg-base-200 flex items-center justify-center">
+              <lucide-icon name="Plus" class="w-3 h-3"></lucide-icon>
+            </div>
+            <span class="text-sm">Add Assignee</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Due Date Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Due date</h3>
+        <div class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200" 
+             [ngClass]="{
+               'border-error bg-error/5': isOverdue(task.due_date)
+             }">
+          <div class="w-6 h-6 rounded flex items-center justify-center"
+               [ngClass]="{
+                 'bg-error': isOverdue(task.due_date),
+                 'bg-base-200': !isOverdue(task.due_date)
+               }">
+            <lucide-icon name="Calendar" class="w-3 h-3" 
+                        [ngClass]="{
+                          'text-white': isOverdue(task.due_date),
+                          'text-base-content/60': !isOverdue(task.due_date)
+                        }"></lucide-icon>
+          </div>
+          <span class="text-sm font-medium" 
+                [ngClass]="{'text-error': isOverdue(task.due_date)}">
+            {{ formatDate(task.due_date) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Task Status Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Task status</h3>
+        <div class="dropdown dropdown-end w-full">
+          <label tabindex="0" class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200 cursor-pointer hover:bg-base-50 transition-colors w-full">
+            <div class="w-6 h-6 rounded flex items-center justify-center"
+                 [class.bg-warning]="task.status === 'in_progress'"
+                 [class.bg-info]="task.status === 'todo'"
+                 [class.bg-success]="task.status === 'done'"
+                 [class.bg-secondary]="task.status === 'review'">
+              <lucide-icon name="Circle" class="w-3 h-3 text-white"></lucide-icon>
+            </div>
+            <span class="text-sm font-medium flex-grow">{{ getStatusLabel(task.status) }}</span>
+            <lucide-icon name="ChevronDown" class="w-3 h-3 text-base-content/40"></lucide-icon>
+          </label>
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-200">
+            <li><a (click)="updateTaskStatus('todo')" [class.active]="task.status === 'todo'">To Do</a></li>
+            <li><a (click)="updateTaskStatus('in_progress')" [class.active]="task.status === 'in_progress'">In Progress</a></li>
+            <li><a (click)="updateTaskStatus('review')" [class.active]="task.status === 'review'">Review</a></li>
+            <li><a (click)="updateTaskStatus('done')" [class.active]="task.status === 'done'">Done</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Custom Fields Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Custom fields</h3>
+        <div class="space-y-2">
+          <!-- Dynamic Custom Fields -->
+          <div *ngFor="let field of getCustomFieldEntries(); trackBy: trackByFieldKey" 
+               class="group flex items-center justify-between p-2 rounded-lg border transition-all duration-200 hover:shadow-sm hover:scale-[1.02]"
+               [style.background-color]="getCustomFieldBackgroundColor(field.key)"
+               [style.border-color]="getCustomFieldColor(field.key) + '40'">
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded-sm shadow-sm"
+                   [style.background-color]="getCustomFieldColor(field.key)"></div>
+              <span class="text-sm font-medium">{{ field.key | titlecase }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-base-content/80 font-medium">{{ field.value }}</span>
+              <button class="opacity-0 group-hover:opacity-100 text-base-content/40 hover:text-error transition-all duration-200 p-1 rounded hover:bg-error/10" 
+                      (click)="removeCustomField(field.key)"
+                      title="Remove {{ field.key }} field">
+                <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
+              </button>
+            </div>
+          </div>
+          
+          <!-- No Custom Fields State -->
+          <div *ngIf="!hasCustomFields()" class="text-sm text-base-content/60 p-2">
+            No custom fields added yet
+          </div>
+          
+          <!-- Add Custom Field Button -->
+          <button class="flex items-center gap-2 p-2 text-base-content/60 hover:text-base-content/80 hover:bg-base-100 rounded-lg border border-dashed border-base-300 hover:border-base-400 transition-all w-full"
+                  (click)="openCustomFieldsModal()">
+            <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon>
+            <span class="text-sm">Add Custom field</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Time Tracking Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Time tracking</h3>
+        <div *ngIf="task.metadata?.estimated_hours || task.metadata?.actual_hours" class="space-y-1 mb-3">
+          <div *ngIf="task.metadata.estimated_hours" class="text-sm">
+            Estimated: {{ task.metadata.estimated_hours }}h
+          </div>
+          <div *ngIf="task.metadata.actual_hours" class="text-sm">
+            Actual: {{ task.metadata.actual_hours }}h
+          </div>
+        </div>
+        <p *ngIf="!task.metadata?.estimated_hours && !task.metadata?.actual_hours" 
+           class="text-sm text-base-content/60 mb-3">
+          No time tracked yet
+        </p>
+        <button class="btn btn-outline btn-sm w-full" (click)="openTimeEntryModal()">
+          <lucide-icon name="Clock" class="w-4 h-4"></lucide-icon>
+          Add Time Entry
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Task Modal -->
+<div class="modal" [class.modal-open]="showEditModal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">Edit Task</h3>
+    
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Title *</span>
+      </label>
+      <input type="text" class="input input-bordered" [(ngModel)]="editForm.title" placeholder="Task title">
+    </div>
+
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Description</span>
+      </label>
+      <textarea class="textarea textarea-bordered" [(ngModel)]="editForm.description" 
+                placeholder="Task description" rows="3"></textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Priority</span>
+        </label>
+        <select class="select select-bordered" [(ngModel)]="editForm.priority">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </div>
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Status</span>
+        </label>
+        <select class="select select-bordered" [(ngModel)]="editForm.status">
+          <option value="todo">To Do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="review">Review</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Due Date</span>
+      </label>
+      <input type="date" class="input input-bordered" [(ngModel)]="editForm.due_date">
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" [disabled]="!editForm.title.trim() || isSaving" (click)="saveTask()">
+        <span *ngIf="isSaving" class="loading loading-spinner loading-xs"></span>
+        {{ isSaving ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal" [class.modal-open]="showDeleteModal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-error">Delete Task</h3>
+    <p class="py-4">Are you sure you want to delete "{{ task?.title }}"? This action cannot be undone.</p>
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-error" (click)="deleteTask()">Delete Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Error State -->
+<div *ngIf="!isLoading && !task" class="max-w-6xl mx-auto py-10 px-4">
+  <div class="text-center">
+    <h2 class="text-2xl font-bold mb-4">Task Not Found</h2>
+    <p class="text-base-content/70 mb-6">The task you're looking for doesn't exist or has been deleted.</p>
+    <button class="btn btn-primary" routerLink="../">Back to Tasks</button>
+  </div>
+</div>
+
+<!-- Assignee Modal -->
+<div class="modal" [class.modal-open]="showAssigneeModal">
+  <div class="modal-box w-11/12 max-w-md">
+    <h3 class="font-bold text-lg mb-4">Manage Assignees</h3>
+    
+    <div *ngIf="isLoadingMembers" class="flex justify-center py-4">
+      <div class="loading loading-spinner loading-md"></div>
+    </div>
+
+    <div *ngIf="!isLoadingMembers" class="space-y-2 max-h-60 overflow-y-auto">
+      <div *ngFor="let member of groupMembers" class="flex items-center gap-3 p-2 hover:bg-base-100 rounded">
+        <input type="checkbox" 
+               class="checkbox checkbox-sm" 
+               [checked]="assigneeForm.selectedUserIds.includes(member.uuid)"
+               (change)="toggleAssignee(member.uuid, $event)" />
+        <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
+                     <img [src]="getUserAvatarUrl(member)" 
+               [alt]="getUserDisplayName(member)"
+               class="w-full h-full object-cover" />
+        </div>
+        <span class="text-sm">{{ getUserDisplayName(member) }}</span>
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeAssigneeModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="saveAssignees()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Time Entry Modal -->
+<div class="modal" [class.modal-open]="showTimeEntryModal">
+  <div class="modal-box w-11/12 max-w-md">
+    <h3 class="font-bold text-lg mb-4">Add Time Entry</h3>
+    
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Hours *</span>
+      </label>
+      <input type="number" 
+             class="input input-bordered" 
+             [(ngModel)]="timeEntryForm.hours" 
+             placeholder="0.5" 
+             step="0.25" 
+             min="0.25" />
+    </div>
+
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Description</span>
+      </label>
+      <textarea class="textarea textarea-bordered" 
+                [(ngModel)]="timeEntryForm.description" 
+                placeholder="What did you work on?"
+                rows="3"></textarea>
+    </div>
+
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Date</span>
+      </label>
+      <input type="date" 
+             class="input input-bordered" 
+             [(ngModel)]="timeEntryForm.date" />
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeTimeEntryModal()">Cancel</button>
+      <button class="btn btn-primary" 
+              [disabled]="timeEntryForm.hours <= 0 || isAddingTimeEntry" 
+              (click)="addTimeEntry()">
+        <span *ngIf="isAddingTimeEntry" class="loading loading-spinner loading-xs"></span>
+        {{ isAddingTimeEntry ? 'Adding...' : 'Add Entry' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Fields Modal -->
+<div class="modal" [class.modal-open]="showCustomFieldsModal">
+  <div class="modal-box w-11/12 max-w-md">
+    <h3 class="font-bold text-lg mb-4">Add Custom Field</h3>
+    
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Field Name *</span>
+      </label>
+      <input type="text" 
+             class="input input-bordered" 
+             [(ngModel)]="customFieldsForm.fieldName" 
+             name="customFieldName"
+             placeholder="e.g., Stage, Department, etc." />
+    </div>
+
+    <div class="form-control mb-4">
+      <label class="label">
+        <span class="label-text">Field Value *</span>
+      </label>
+      <input type="text" 
+             class="input input-bordered" 
+             [(ngModel)]="customFieldsForm.fieldValue" 
+             name="customFieldValue"
+             placeholder="Enter field value" />
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-ghost" (click)="closeCustomFieldsModal()">Cancel</button>
+      <button class="btn btn-primary" 
+              [disabled]="!customFieldsForm.fieldName.trim() || !customFieldsForm.fieldValue.trim() || isUpdatingCustomFields" 
+              (click)="saveCustomFields()">
+        <span *ngIf="isUpdatingCustomFields" class="loading loading-spinner loading-xs"></span>
+        {{ isUpdatingCustomFields ? 'Adding...' : 'Add Field' }}
+      </button>
+    </div>
+  </div> 

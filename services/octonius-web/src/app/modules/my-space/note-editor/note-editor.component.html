@@ -1,66 +1,78 @@
-<div class="max-w-4xl mx-auto">
-  <!-- Header with back button -->
-  <div class="flex items-center justify-between mb-6">
-    <button (click)="goBackToFiles()" class="btn btn-ghost btn-sm gap-2">
-      <span class="text-lg">←</span>
-      Back to Files
-    </button>
+<div class="h-screen flex flex-col bg-base-100">
+  <!-- Compact Header -->
+  <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-100 z-10 flex-shrink-0">
+    <div class="flex items-center space-x-4">
+      <button (click)="goBackToFiles()" class="btn btn-ghost btn-sm">
+        <span class="text-lg">←</span>
+      </button>
+      
+      <!-- Title Input - Inline -->
+      <input type="text" 
+             [(ngModel)]="noteTitle"
+             (ngModelChange)="onTitleChange()"
+             placeholder="Untitled Note"
+             class="text-lg font-semibold bg-transparent border-none outline-none placeholder-base-content/50 focus:placeholder-base-content/70 min-w-[200px] max-w-[400px]">
+    </div>
+    
     <div class="flex items-center space-x-2">
+      <!-- Auto-save status indicator -->
+      <div class="hidden md:flex items-center space-x-2 text-sm text-base-content/70">
+        <div class="status-dot w-2 h-2 rounded-full" [class]="getSaveStatusClass()"></div>
+        <span class="text-xs">{{ getSaveStatusText() }}</span>
+      </div>
+      
       <button (click)="shareNote()" class="btn btn-ghost btn-sm">
         Share
       </button>
-      <button (click)="showMoreOptions()" class="btn btn-ghost btn-sm btn-square">
-        <span>⋯</span>
-      </button>
+      
+      <!-- Dropdown Menu -->
+      <div class="dropdown dropdown-end">
+        <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square">
+          <span>⋯</span>
+        </div>
+        <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-64 p-2 shadow-lg">
+          <li>
+            <a (click)="saveNow()" [class.disabled]="isSaving" class="flex items-center gap-3">
+              <span class="text-lg">💾</span>
+              <span>{{ isSaving ? 'Saving...' : 'Save Now' }}</span>
+            </a>
+          </li>
+          <li>
+            <a (click)="toggleAutoSave()" class="flex items-center gap-3">
+              <span class="text-lg">{{ autoSaveEnabled ? '⏸️' : '▶️' }}</span>
+              <span>{{ autoSaveEnabled ? 'Pause Auto-save' : 'Enable Auto-save' }}</span>
+            </a>
+          </li>
+          <li class="menu-title mt-2">
+            <span class="text-xs font-semibold opacity-60">Auto-save Settings</span>
+          </li>
+          <li>
+            <div class="flex items-center justify-between px-3 py-2">
+              <span class="text-sm opacity-70">Interval:</span>
+              <select [(ngModel)]="autoSaveInterval" (change)="onAutoSaveIntervalChange()" class="select select-xs select-bordered max-w-xs">
+                <option value="15">15s</option>
+                <option value="30">30s</option>
+                <option value="60">1m</option>
+                <option value="120">2m</option>
+              </select>
+            </div>
+          </li>
+          <li class="menu-title mt-2">
+            <span class="text-xs font-semibold opacity-60">Debug Info</span>
+          </li>
+          <li>
+            <div class="text-xs opacity-50 px-3 py-2 space-y-1">
+              <div>Last saved: {{ lastSavedTime || 'Never' }}</div>
+              <div>Changes: {{ hasUnsavedChanges ? 'Yes' : 'No' }}</div>
+            </div>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 
-  <div class="card bg-base-100 shadow-sm">
-    <div class="card-body">
-      <!-- Title Input -->
-      <div class="mb-6">
-        <input type="text" 
-               [(ngModel)]="noteTitle"
-               placeholder="Type a title ..."
-               class="text-3xl font-bold bg-transparent border-none outline-none w-full placeholder-base-content opacity-50 focus:placeholder-base-content focus:opacity-70">
-      </div>
-
-      <!-- Meta Information -->
-      <div class="flex items-center space-x-6 text-sm text-base-content opacity-70 mb-6">
-        <div class="flex items-center space-x-2">
-          <span>Created by</span>
-          <div class="flex items-center space-x-1">
-            <div class="avatar">
-              <div class="w-6 h-6 rounded-full bg-base-300">
-                <span class="flex items-center justify-center h-full text-xs">{{createdByAvatar}}</span>
-              </div>
-            </div>
-            <span class="font-medium">{{createdBy}}</span>
-          </div>
-        </div>
-        <div class="flex items-center space-x-2">
-          <span>Last edited</span>
-          <span>{{lastEdited}}</span>
-        </div>
-      </div>
-
-      <!-- Editor Container -->
-      <div class="min-h-[400px] border border-base-300 rounded-lg p-6 bg-base-200">
-        <div id="editorjs" #editorjs></div>
-        
-        <!-- Placeholder text (shown when editor is empty) -->
-        <div class="text-base-content opacity-50 text-center py-20" *ngIf="false">
-          <p class="text-lg mb-2">Write something or press / for options</p>
-          <p class="text-error">TBD based on the editor we select</p>
-        </div>
-      </div>
-
-      <!-- Save Button -->
-      <div class="card-actions justify-end mt-6">
-        <button (click)="saveNote()" class="btn btn-primary">
-          Save Note
-        </button>
-      </div>
-    </div>
+  <!-- Full-Screen Editor -->
+  <div class="flex-1 overflow-hidden bg-base-100">
+    <div id="editorjs" #editorjs class="w-full h-full p-6 md:p-4 sm:p-3"></div>
   </div>
 </div> 

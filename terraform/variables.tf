@@ -84,4 +84,10 @@ variable "whitelisted_ips" {
     description = string
   }))
   default = {}
+}
+
+variable "bastion_key_name" {
+  description = "EC2 Key Pair name for bastion host SSH access"
+  type        = string
+  default     = "octonius-bastion"
 } 

@@ -17,6 +17,9 @@ import { appLogger } from '../logger'
 // Import validation helpers
 import { validateParameters, validateJSON } from '../shared/validators'
 
+// Import IP utility
+import { getRealClientIP } from '../shared/ip-utils'
+
 // Extend Express Request type to include user
 declare global {
     namespace Express {
@@ -64,8 +67,11 @@ export class AuthController {
             // Log the request
             appLogger('Registering new user', { method: req.method, path: req.path, ip: req.ip })
 
-            // Get the email from the body
+            // Get the email from the body and real client IP
             const { email } = req.body
+
+            // Get the real client IP
+            const clientIP = getRealClientIP(req)
 
             // Validate the Data
             let errors: any = validateParameters({ email })
@@ -87,8 +93,8 @@ export class AuthController {
                 return sendValidationError(res, body_errors)
             }
 
-            // Register the user
-            const result = await this.auth_service.register(email)
+            // Register the user with client IP
+            const result = await this.auth_service.register(email, clientIP)
             
             // Return the result
             if (result.success) {
@@ -184,8 +190,11 @@ export class AuthController {
             // Log the request
             appLogger('Verifying OTP', { method: req.method, path: req.path, ip: req.ip })
 
-            // Get the email and otp_code from the body
+            // Get the email and otp_code from the body and real client IP
             const { email, otp } = req.body
+
+            // Get the real client IP
+            const clientIP = getRealClientIP(req)
 
             // Validate the Data
             let errors: any = validateParameters({ email, otp })
@@ -207,8 +216,8 @@ export class AuthController {
                 return sendValidationError(res, body_errors)
             }
 
-            // Verify the OTP
-            const result = await this.auth_service.verify_otp(email, otp)
+            // Verify the OTP with client IP
+            const result = await this.auth_service.verify_otp(email, otp, clientIP)
 
             // Return the result
             if (result.success) {
@@ -244,8 +253,11 @@ export class AuthController {
             // Log the request
             appLogger('Setting up workspace and user', { method: req.method, path: req.path, ip: req.ip })
 
-            // Get the email, and workplace_name from the body
+            // Get the email, and workplace_name from the body and real client IP
             const { email, workplace_name } = req.body
+
+            // Get the real client IP
+            const clientIP = getRealClientIP(req)
 
             // Validate the Data
             let errors: any = validateParameters({ email, workplace_name })
@@ -267,8 +279,8 @@ export class AuthController {
                 return sendValidationError(res, body_errors)
             }
 
-            // Setup workplace and user
-            const result = await this.auth_service.setup_workplace_and_user(email, workplace_name)
+            // Setup workplace and user with client IP
+            const result = await this.auth_service.setup_workplace_and_user(email, workplace_name, clientIP)
 
             // Return the result
             if (result.success) {
@@ -277,8 +289,12 @@ export class AuthController {
                 return sendResponse(req as any, res, 201, {
                     success: true,
                     message: result.message,
-                    user: result.data.user,
-                    workplace: result.data.workplace
+                    data: {
+                        user: result.data.user,
+                        workplace: result.data.workplace,
+                        access_token: result.data.access_token,
+                        refresh_token: result.data.refresh_token
+                    }
                 })
             } else {
 

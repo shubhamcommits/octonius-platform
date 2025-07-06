@@ -6,29 +6,86 @@
     <p class="text-base-content/70 text-sm mb-8" *ngIf="step === 'create'">Enter your email and workplace name to get started.</p>
     <p class="text-base-content/70 text-sm mb-8" *ngIf="step === 'verify'">We sent an OTP to <span class="text-primary font-medium">{{ createWorkplaceForm.get('email')?.value }}</span>. Enter it below to continue.</p>
 
+    <!-- Display success message when OTP is verified -->
+    <div *ngIf="isOtpVerified && step === 'create'" class="alert alert-success mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <span>Email verified! You can now create your workplace.</span>
+    </div>
+
     <!-- Step 1: Form for email and workplace name -->
-    <form *ngIf="step === 'create'" [formGroup]="createWorkplaceForm" (ngSubmit)="onSubmitForm()" class="w-full space-y-4">
-      <div>
-        <label class="block text-sm font-medium mb-1">Email</label>
-        <input formControlName="email" type="email" class="input input-bordered w-full" [readonly]="true" />
-        <div *ngIf="createWorkplaceForm.get('email')?.invalid && createWorkplaceForm.get('email')?.touched" class="text-error text-xs mt-1">
-          Valid email is required.
-        </div>
+    <form [formGroup]="createWorkplaceForm" (ngSubmit)="onSubmitForm()" *ngIf="step === 'create'" class="w-full">
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">Email</span>
+        </label>
+        <input 
+          type="email" 
+          placeholder="Enter your email address..." 
+          class="input input-bordered w-full" 
+          formControlName="email" 
+          readonly
+          required />
+        <label class="label">
+          <span class="label-text-alt">Use an organization email to easily collaborate with teammates</span>
+        </label>
       </div>
-      <div>
-        <label class="block text-sm font-medium mb-1">Workplace Name</label>
-        <input formControlName="workplace_name" class="input input-bordered w-full" placeholder="Enter your workplace name" />
-        <div *ngIf="createWorkplaceForm.get('workplace_name')?.invalid && createWorkplaceForm.get('workplace_name')?.touched" class="text-error text-xs mt-1">
-          Workplace name is required (min 3 chars).
+      
+      <!-- Display error message for workplace name already exists -->
+      <div *ngIf="showWorkplaceNameEdit" class="mt-4">
+        <div class="alert alert-warning">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <div>
+            <h3 class="font-bold">A workplace with the name "{{attemptedWorkplaceName}}" already exists.</h3>
+            <div class="text-xs">Choose a different workplace name</div>
+          </div>
         </div>
-        <div *ngIf="createWorkplaceForm.get('workplace_name')?.errors?.['notUnique'] && createWorkplaceForm.get('workplace_name')?.touched" class="text-error text-xs mt-1">
-          Workplace name is already taken.
+        <div class="form-control w-full mt-4">
+          <label class="label">
+            <span class="label-text">Workplace Name</span>
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="newWorkplaceName"
+            [ngModelOptions]="{standalone: true}"
+            placeholder="Enter a different workplace name..." 
+            class="input input-bordered w-full" 
+            required />
         </div>
+        <button 
+          type="button"
+          class="btn btn-primary w-full mt-4" 
+          (click)="onEditWorkplaceNameSubmit(newWorkplaceName)"
+          [disabled]="!newWorkplaceName || newWorkplaceName.length < 3 || isLoading">
+          <span *ngIf="!isLoading && isOtpVerified">Create Workplace</span>
+          <span *ngIf="!isLoading && !isOtpVerified">Request OTP for new name</span>
+          <span *ngIf="isLoading" class="loading loading-spinner"></span>
+        </button>
       </div>
-      <button type="submit" class="btn btn-primary w-full text-primary-content" [disabled]="isLoading || !createWorkplaceForm.valid">
-        <span *ngIf="!isLoading">Send OTP</span>
-        <span *ngIf="isLoading" class="loading loading-spinner"></span>
-      </button>
+      
+      <!-- Regular workplace name input - only show when NOT editing -->
+      <div *ngIf="!showWorkplaceNameEdit">
+        <div class="form-control w-full mt-4">
+          <label class="label">
+            <span class="label-text">Workplace Name</span>
+          </label>
+          <input 
+            type="text" 
+            placeholder="Enter your workplace name..." 
+            class="input input-bordered w-full" 
+            formControlName="workplace_name" 
+            required />
+          <div *ngIf="createWorkplaceForm.get('workplace_name')?.invalid && createWorkplaceForm.get('workplace_name')?.touched" class="text-error text-xs mt-1">
+            Workplace name is required (min 3 chars).
+          </div>
+        </div>
+        
+        <button class="btn btn-primary w-full text-primary-content mt-6" type="submit"
+          [disabled]="createWorkplaceForm.invalid || isLoading">
+          <span *ngIf="!isLoading && !isOtpVerified">Continue</span>
+          <span *ngIf="!isLoading && isOtpVerified">Create Workplace</span>
+          <span *ngIf="isLoading" class="loading loading-spinner"></span>
+        </button>
+      </div>
     </form>
 
     <!-- Step 2: OTP Verification -->
@@ -58,15 +115,6 @@
       </button>
       <div *ngIf="otpError" class="text-error text-xs text-center mt-2">{{ otpError }}</div>
     </form>
-
-    <div *ngIf="showWorkplaceNameEdit" class="w-full mt-4">
-      <div class="text-error text-xs text-center mb-2">A workplace with the name "<span class='font-bold'>{{ attemptedWorkplaceName }}</span>" already exists.</div>
-      <label class="block text-sm font-medium mb-1">Choose a different workplace name</label>
-      <input type="text" class="input input-bordered w-full mb-2" [value]="createWorkplaceForm.get('workplace_name')?.value" #newNameInput placeholder="Enter a new workplace name" />
-      <button class="btn btn-primary w-full text-primary-content" [disabled]="isLoading" (click)="onEditWorkplaceNameSubmit(newNameInput.value)">
-        Request OTP for new name
-      </button>
-    </div>
 
     <!-- Helper Text -->
     <div class="mt-6 text-xs text-base-content/60 text-center">

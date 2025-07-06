@@ -123,6 +123,26 @@ resource "aws_security_group" "app_runner" {
   )
 }
 
+module "bastion" {
+  source = "./modules/bastion"
+
+  environment      = var.environment
+  project_name     = local.project_name
+  region           = var.aws_region
+  vpc_id           = module.vpc.vpc_id
+  public_subnet_id = module.vpc.public_subnet_ids[0]
+  whitelisted_ips  = var.whitelisted_ips
+  key_name         = var.bastion_key_name
+
+  # Database connection info
+  rds_endpoint      = module.rds.endpoint
+  database_name     = "octoniusdb"
+  database_username = var.database_username
+  rds_secret_arn    = module.rds.secret_arn
+
+  tags = local.common_tags
+}
+
 module "rds" {
   source = "./modules/rds"
 
@@ -149,6 +169,17 @@ module "rds" {
   deletion_protection                   = var.environment == "prod"
 
   tags = local.common_tags
+}
+
+# Add bastion access to RDS security group after both modules are created
+resource "aws_security_group_rule" "rds_from_bastion" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = module.bastion.bastion_security_group_id
+  security_group_id        = module.rds.security_group_id
+  description              = "PostgreSQL access from bastion host"
 }
 
 module "elasticache" {
@@ -240,7 +271,9 @@ module "app_runner" {
     JWT_ACCESS_KEY        = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_KEY::"
     JWT_ACCESS_TIME       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_ACCESS_TIME::"
     JWT_REFRESH_KEY       = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_KEY::"
-    JWT_REFRESH_TIME      = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_TIME::"
+    JWT_REFRESH_TIME      = "${data.aws_secretsmanager_secret.platform_env.arn}:JWT_REFRESH_TIME::",
+    CDN_BASE_URL          = "${data.aws_secretsmanager_secret.platform_env.arn}:CDN_BASE_URL::",
+    S3_BUCKET_NAME        = "${data.aws_secretsmanager_secret.platform_env.arn}:S3_BUCKET_NAME::",
     DB_PASS               = "${module.rds.secret_arn}:password::"
   }
 

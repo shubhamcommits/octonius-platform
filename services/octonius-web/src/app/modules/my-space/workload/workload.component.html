@@ -61,7 +61,7 @@
     <div class="card bg-base-100 shadow-sm">
       <div class="card-body">
         <h2 class="card-title text-lg mb-4">Today</h2>
-        <div class="space-y-3">
+        <div class="space-y-3" *ngIf="todayTasks.length > 0">
           <div *ngFor="let task of todayTasks" class="flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors">
             <div class="flex items-center space-x-3">
               <div [ngClass]="getStatusColor(task.status)" class="w-1 h-8 rounded-full"></div>
@@ -73,6 +73,12 @@
             </div>
           </div>
         </div>
+        <!-- Empty State for Today -->
+        <div *ngIf="todayTasks.length === 0" class="flex flex-col items-center justify-center py-12">
+          <img [src]="getRecentActivityEmptyStateImage()" alt="No tasks today" class="w-64 h-64 mb-4">
+          <h3 class="text-lg font-medium text-base-content/70 mb-2">No tasks for today</h3>
+          <p class="text-sm text-base-content/50 text-center">You're all caught up! Enjoy your productive day.</p>
+        </div>
       </div>
     </div>
 
@@ -80,7 +86,7 @@
     <div class="card bg-base-100 shadow-sm">
       <div class="card-body">
         <h2 class="card-title text-lg mb-4">Tomorrow</h2>
-        <div class="space-y-3">
+        <div class="space-y-3" *ngIf="tomorrowTasks.length > 0">
           <div *ngFor="let task of tomorrowTasks" class="flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors">
             <div class="flex items-center space-x-3">
               <div [ngClass]="getStatusColor(task.status)" class="w-1 h-8 rounded-full"></div>
@@ -92,6 +98,12 @@
             </div>
           </div>
         </div>
+        <!-- Empty State for Tomorrow -->
+        <div *ngIf="tomorrowTasks.length === 0" class="flex flex-col items-center justify-center py-12">
+          <img [src]="getRecentActivityEmptyStateImage()" alt="No tasks tomorrow" class="w-64 h-64 mb-4">
+          <h3 class="text-lg font-medium text-base-content/70 mb-2">No tasks for tomorrow</h3>
+          <p class="text-sm text-base-content/50 text-center">Tomorrow is looking light! Perfect time to plan ahead.</p>
+        </div>
       </div>
     </div>
 
@@ -99,7 +111,7 @@
     <div class="card bg-base-100 shadow-sm">
       <div class="card-body">
         <h2 class="card-title text-lg mb-4">Next week</h2>
-        <div class="space-y-3">
+        <div class="space-y-3" *ngIf="nextWeekTasks.length > 0">
           <div *ngFor="let task of nextWeekTasks" class="flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors">
             <div class="flex items-center space-x-3">
               <div [ngClass]="getStatusColor(task.status)" class="w-1 h-8 rounded-full"></div>
@@ -110,6 +122,12 @@
               <p class="text-xs text-base-content opacity-70">{{task.team}}</p>
             </div>
           </div>
+        </div>
+        <!-- Empty State for Next Week -->
+        <div *ngIf="nextWeekTasks.length === 0" class="flex flex-col items-center justify-center py-12">
+          <img [src]="getRecentActivityEmptyStateImage()" alt="No tasks next week" class="w-64 h-64 mb-4">
+          <h3 class="text-lg font-medium text-base-content/70 mb-2">No tasks for next week</h3>
+          <p class="text-sm text-base-content/50 text-center">Next week is clear! Great opportunity to focus on long-term goals.</p>
         </div>
       </div>
     </div>

@@ -96,6 +96,17 @@ output "rds_secret_arn" {
   sensitive   = true
 }
 
+# RDS Connection Helper
+output "rds_connection_command" {
+  description = "PostgreSQL connection command (requires AWS CLI to get password from Secrets Manager)"
+  value = "psql -h ${module.rds.endpoint} -p ${module.rds.port} -U ${var.database_username} -d octoniusdb"
+}
+
+output "rds_password_retrieval_command" {
+  description = "AWS CLI command to retrieve the database password"
+  value = "aws secretsmanager get-secret-value --secret-id '${module.rds.secret_arn}' --query SecretString --output text | jq -r .password"
+}
+
 # ElastiCache Outputs
 output "redis_endpoint" {
   description = "The address of the endpoint for the ElastiCache Redis cluster"
@@ -158,4 +169,25 @@ output "web_cloudfront_distribution_id" {
 output "web_cloudfront_domain_name" {
   description = "Domain name of the web CloudFront distribution"
   value       = module.web.cloudfront_domain_name
+}
+
+# Bastion Host Outputs
+output "bastion_public_ip" {
+  description = "Public IP address of the bastion host"
+  value       = module.bastion.bastion_public_ip
+}
+
+output "bastion_ssh_command" {
+  description = "SSH command to connect to the bastion host"
+  value       = module.bastion.ssh_command
+}
+
+output "bastion_ssh_tunnel_command" {
+  description = "SSH tunnel command for local database access"
+  value       = "ssh -L 5432:${module.rds.endpoint}:5432 -i ~/.ssh/${var.bastion_key_name}.pem ec2-user@${module.bastion.bastion_public_ip}"
+}
+
+output "bastion_local_psql_command" {
+  description = "PostgreSQL command to use after SSH tunnel is established"
+  value       = module.bastion.local_psql_command
 } 

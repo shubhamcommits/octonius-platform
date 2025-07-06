@@ -1,0 +1,48 @@
+<div class="min-h-screen bg-base-100 text-base-content">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header with logo, navigation, and actions -->
+    <header class="px-8 py-6 border-b border-base-300">
+      <!-- Main header row -->
+      <div class="flex items-center justify-between">
+        <!-- Logo Left -->
+        <div class="flex items-center gap-2">
+          <img [src]="logoSrc" alt="Octonius Logo" class="w-12 h-12 object-contain" />
+        </div>
+        
+        <!-- Navbar in Center -->
+        <div class="flex-1 flex justify-center">
+          <app-navbar activeTab="workplace"></app-navbar>
+        </div>
+        
+        <!-- Actions Right -->
+        <div class="flex items-center gap-2">
+          <!-- Theme Switcher -->
+          <button class="btn btn-ghost btn-circle btn-sm group" (click)="toggleTheme()">
+            <lucide-icon [name]="currentTheme === 'night' ? 'SunMoon' : 'SunMoon'" class="w-5 h-5 transition-transform duration-300 group-hover:scale-110"></lucide-icon>
+          </button>
+          
+          <!-- Logout Button -->
+          <button class="btn btn-ghost btn-sm gap-2 group" (click)="logout()">
+            <lucide-icon name="LogOut" class="w-4 h-4 transition-transform duration-300 group-hover:scale-110"></lucide-icon>
+            <span class="hidden sm:inline">Logout</span>
+          </button>
+        </div>
+      </div>
+    </header>
+    
+    <!-- Main content area with breadcrumbs -->
+    <main class="px-8 py-8">
+      <div class="flex items-center gap-2 text-sm text-base-content/70 mb-4">
+        <a routerLink="/" class="hover:text-primary cursor-pointer flex items-center group">
+          <lucide-icon name="Home" class="w-4 h-4 transition-transform duration-300 group-hover:scale-110"></lucide-icon>
+        </a>
+        <span>/</span>
+        <a routerLink="/workplace" class="font-semibold text-primary hover:underline cursor-pointer">Workplace</a>
+        <span>/</span>
+        <span class="capitalize text-base-content">{{ breadcrumb }}</span>
+      </div>
+      
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

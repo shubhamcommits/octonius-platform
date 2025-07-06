@@ -1,0 +1,998 @@
+<div class="flex flex-col h-full">
+  <!-- Header -->
+  <div class="bg-base-100 border-b border-base-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-base-content">Group Administration</h1>
+        <p class="text-base-content/60 mt-1">Manage group settings, members, and permissions</p>
+      </div>
+      <div class="flex items-center gap-2" *ngIf="group">
+        <div class="flex items-center gap-3 px-4 py-2 bg-base-200 rounded-lg">
+          <img [src]="group.imageUrl" [alt]="group.name" class="w-8 h-8 rounded-lg object-cover">
+          <div>
+            <p class="font-medium text-sm">{{ group.name }}</p>
+            <p class="text-xs text-base-content/60">{{ group.memberCount }} members</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="bg-base-100 border-b border-base-200 px-6">
+    <div class="flex space-x-8">
+      <button (click)="switchTab('general')" [ngClass]="{'border-primary text-primary': activeTab === 'general', 'border-transparent text-base-content/60': activeTab !== 'general'}" class="flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors">
+        <lucide-icon name="Settings" class="w-4 h-4"></lucide-icon>
+        General
+      </button>
+      <button (click)="switchTab('members')" [ngClass]="{'border-primary text-primary': activeTab === 'members', 'border-transparent text-base-content/60': activeTab !== 'members'}" class="flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors">
+        <lucide-icon name="Users" class="w-4 h-4"></lucide-icon>
+        Members
+      </button>
+      <button (click)="switchTab('permissions')" [ngClass]="{'border-primary text-primary': activeTab === 'permissions', 'border-transparent text-base-content/60': activeTab !== 'permissions'}" class="flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors">
+        <lucide-icon name="Shield" class="w-4 h-4"></lucide-icon>
+        Permissions
+      </button>
+      <button (click)="switchTab('danger')" [ngClass]="{'border-primary text-primary': activeTab === 'danger', 'border-transparent text-base-content/60': activeTab !== 'danger'}" class="flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors">
+        <lucide-icon name="AlertTriangle" class="w-4 h-4"></lucide-icon>
+        Danger Zone
+      </button>
+    </div>
+  </div>
+
+  <!-- Content Area -->
+  <div class="flex-1 overflow-y-auto">
+    <!-- General Settings Tab -->
+    <div *ngIf="activeTab === 'general'" class="min-h-full bg-base-50/30">
+      <div class="max-w-7xl mx-auto p-8">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <!-- Left Column - Main Settings -->
+          <div class="xl:col-span-2 space-y-8">
+            <!-- Basic Information -->
+            <section class="card bg-base-100 shadow-sm border border-base-200">
+              <div class="card-body p-8">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="p-2 bg-primary/10 rounded-lg">
+                    <lucide-icon name="Info" class="w-5 h-5 text-primary"></lucide-icon>
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-semibold text-base-content">Basic Information</h3>
+                    <p class="text-sm text-base-content/60">Essential details about your group</p>
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <!-- Group Name -->
+                  <div class="lg:col-span-2">
+                    <label class="label">
+                      <span class="label-text font-semibold text-base-content/80">Group Name</span>
+                      <span class="label-text-alt text-error">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="groupForm.name"
+                      class="input input-bordered w-full focus:border-primary"
+                      placeholder="Enter a descriptive group name">
+                  </div>
+
+                  <!-- Description -->
+                  <div class="lg:col-span-2">
+                    <label class="label">
+                      <span class="label-text font-semibold text-base-content/80">Description</span>
+                    </label>
+                    <textarea 
+                      [(ngModel)]="groupForm.description"
+                      class="textarea textarea-bordered h-28 focus:border-primary resize-none"
+                      placeholder="Describe the purpose and goals of this group..."></textarea>
+                  </div>
+
+                  <!-- Group Image URL -->
+                  <div class="lg:col-span-2">
+                    <label class="label">
+                      <span class="label-text font-semibold text-base-content/80">Group Image URL</span>
+                    </label>
+                    <input 
+                      type="url" 
+                      [(ngModel)]="groupForm.imageUrl"
+                      class="input input-bordered w-full focus:border-primary"
+                      placeholder="https://example.com/image.jpg">
+                    <div class="label">
+                      <span class="label-text-alt text-base-content/60">URL to an image that represents this group</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Additional Information -->
+            <section class="card bg-base-100 shadow-sm border border-base-200">
+              <div class="card-body p-8">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="p-2 bg-secondary/10 rounded-lg">
+                    <lucide-icon name="Users" class="w-5 h-5 text-secondary"></lucide-icon>
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-semibold text-base-content">Organization Details</h3>
+                    <p class="text-sm text-base-content/60">Categorize and organize your group</p>
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <!-- Category -->
+                  <div>
+                    <label class="label">
+                      <span class="label-text font-semibold text-base-content/80">Category</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="groupForm.metadata.category"
+                      class="input input-bordered w-full focus:border-primary"
+                      placeholder="e.g., Development, Marketing, HR">
+                    <div class="label">
+                      <span class="label-text-alt text-base-content/60">What type of work does this group do?</span>
+                    </div>
+                  </div>
+
+                  <!-- Department -->
+                  <div>
+                    <label class="label">
+                      <span class="label-text font-semibold text-base-content/80">Department</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="groupForm.metadata.department"
+                      class="input input-bordered w-full focus:border-primary"
+                      placeholder="e.g., Engineering, Sales">
+                    <div class="label">
+                      <span class="label-text-alt text-base-content/60">Which department does this group belong to?</span>
+                    </div>
+                  </div>
+
+                  <!-- Tags -->
+                  <div class="lg:col-span-2">
+                    <label class="label">
+                      <span class="label-text font-semibold text-base-content/80">Tags</span>
+                    </label>
+                    <div class="flex gap-3 mb-4">
+                      <input 
+                        type="text" 
+                        [(ngModel)]="newTag"
+                        class="input input-bordered flex-1 focus:border-primary"
+                        placeholder="Add tags to help categorize your group" 
+                        (keypress)="onTagInputKeyPress($event)">
+                      <button type="button" 
+                        class="btn btn-outline btn-primary" 
+                        (click)="addTag()"
+                        [disabled]="!newTag.trim() || groupForm.metadata.tags.length >= 10">
+                        <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon>
+                        Add Tag
+                      </button>
+                    </div>
+                    
+                    <!-- Tags Display -->
+                    <div *ngIf="groupForm.metadata.tags.length > 0" class="flex flex-wrap gap-2 mb-3">
+                      <span 
+                        *ngFor="let tag of groupForm.metadata.tags; let i = index" 
+                        class="badge badge-primary gap-2 px-3 py-2 text-sm font-medium transition-all duration-200 hover:scale-105">
+                        {{ tag }}
+                        <button type="button" 
+                          class="btn btn-ghost btn-xs hover:bg-error/20 hover:text-error rounded-full" 
+                          (click)="removeTag(i)">
+                          <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
+                        </button>
+                      </span>
+                    </div>
+                    
+                    <div class="label">
+                      <span class="label-text-alt text-base-content/60">
+                        Add up to 10 tags to help categorize your group ({{ groupForm.metadata.tags.length }}/10)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Right Column - Preview & Actions -->
+          <div class="space-y-6">
+            <!-- Group Preview -->
+            <div class="card bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20">
+              <div class="card-body p-6">
+                <h4 class="font-semibold text-base-content mb-4 flex items-center gap-2">
+                  <lucide-icon name="Eye" class="w-4 h-4"></lucide-icon>
+                  Preview
+                </h4>
+                <div class="bg-base-100 rounded-lg p-4 border border-base-200">
+                  <div class="flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <lucide-icon name="Users" class="w-6 h-6 text-primary"></lucide-icon>
+                    </div>
+                    <div>
+                      <p class="font-medium text-base-content">{{ groupForm.name || 'Group Name' }}</p>
+                      <p class="text-sm text-base-content/60">{{ groupForm.metadata.category || 'Category' }}</p>
+                    </div>
+                  </div>
+                  <p class="text-sm text-base-content/70 mb-3">{{ groupForm.description || 'Group description will appear here...' }}</p>
+                  <div class="flex flex-wrap gap-1">
+                    <span *ngFor="let tag of groupForm.metadata.tags" class="badge badge-outline badge-xs">{{ tag }}</span>
+                    <span *ngIf="groupForm.metadata.tags.length === 0" class="badge badge-outline badge-xs opacity-50">No tags yet</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card bg-base-100 shadow-sm border border-base-200">
+              <div class="card-body p-6">
+                <h4 class="font-semibold text-base-content mb-4">Actions</h4>
+                <div class="space-y-3">
+                  <button type="button" 
+                          (click)="saveGeneralSettings()" 
+                          [disabled]="isSaving || !groupForm.name.trim()" 
+                          class="btn btn-primary w-full">
+                    <lucide-icon name="Save" class="w-4 h-4"></lucide-icon>
+                    <span *ngIf="!isSaving">Save Changes</span>
+                    <span *ngIf="isSaving">Saving...</span>
+                    <span *ngIf="isSaving" class="loading loading-spinner loading-sm"></span>
+                  </button>
+                  <button type="button" class="btn btn-ghost w-full">
+                    <lucide-icon name="RotateCcw" class="w-4 h-4"></lucide-icon>
+                    Reset to Defaults
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Members Tab -->
+    <div *ngIf="activeTab === 'members'" class="min-h-full bg-base-50/30">
+      <div class="max-w-7xl mx-auto p-8">
+        <!-- Header Section -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+          <div class="flex items-center gap-4">
+            <div class="p-3 bg-primary/10 rounded-xl">
+              <lucide-icon name="Users" class="w-6 h-6 text-primary"></lucide-icon>
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold text-base-content">Group Members</h2>
+              <p class="text-base-content/60">Manage who has access to this group and their permissions</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <button *ngIf="canManageMembers()" 
+                    (click)="openInviteMemberModal()" 
+                    type="button"
+                    class="btn btn-primary gap-2">
+              <lucide-icon name="Mail" class="w-5 h-5"></lucide-icon>
+              Invite Member
+            </button>
+            <button *ngIf="canManageMembers()" 
+                    (click)="openAddMemberModal()" 
+                    type="button"
+                    class="btn btn-outline btn-primary gap-2">
+              <lucide-icon name="UserPlus" class="w-5 h-5"></lucide-icon>
+              Add Existing User
+            </button>
+          </div>
+        </div>
+
+        <!-- Members List -->
+        <div class="card bg-base-100 shadow-lg border border-base-200">
+          <div class="card-body p-0">
+            <!-- Loading State -->
+            <div *ngIf="isLoadingMembers" class="p-12 text-center">
+              <div class="flex flex-col items-center gap-4">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <div>
+                  <p class="font-medium text-base-content">Loading members...</p>
+                  <p class="text-sm text-base-content/60">Please wait while we fetch the group members</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Members List -->
+            <div *ngIf="!isLoadingMembers" class="divide-y divide-base-200">
+              <!-- Table Header -->
+              <div class="bg-base-50 px-6 py-4">
+                <div class="grid grid-cols-12 gap-4 text-sm font-semibold text-base-content/70 uppercase tracking-wider">
+                  <div class="col-span-5">Member</div>
+                  <div class="col-span-2">Role</div>
+                  <div class="col-span-2">Status</div>
+                  <div class="col-span-2">Joined</div>
+                  <div class="col-span-1">Actions</div>
+                </div>
+              </div>
+
+              <!-- Member Rows -->
+              <div *ngFor="let member of members; let i = index" 
+                   class="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-base-50 transition-colors duration-200">
+                <!-- Member Info -->
+                <div class="col-span-5 flex items-center gap-4">
+                  <div class="avatar">
+                    <div class="w-12 h-12 rounded-full ring-2 ring-base-200">
+                      <div *ngIf="getUserAvatarUrl(member.user); else memberInitials" 
+                           class="w-full h-full rounded-full overflow-hidden">
+                        <img [src]="getUserAvatarUrl(member.user)" [alt]="member.user.displayName" class="object-cover">
+                      </div>
+                      <ng-template #memberInitials>
+                        <div class="w-full h-full rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center text-sm font-bold">
+                          {{ member.user.initials }}
+                        </div>
+                      </ng-template>
+                    </div>
+                  </div>
+                  
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <p class="font-semibold text-base-content truncate">{{ member.user.displayName }}</p>
+                      <span *ngIf="member.user.uuid === currentUser?.uuid" 
+                            class="badge badge-info badge-sm">You</span>
+                    </div>
+                    <p class="text-sm text-base-content/60 truncate">{{ member.user.email }}</p>
+                  </div>
+                </div>
+
+                <!-- Role -->
+                <div class="col-span-2 flex items-center">
+                  <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium"
+                        [ngClass]="{
+                          'bg-error/20 text-error border border-error/30': member.role === 'admin',
+                          'bg-info/20 text-info border border-info/30': member.role === 'member',
+                          'bg-warning/20 text-warning border border-warning/30': member.role === 'viewer'
+                        }">
+                    {{ member.role | titlecase }}
+                  </span>
+                </div>
+
+                <!-- Status -->
+                <div class="col-span-2 flex items-center">
+                  <span *ngIf="member.status === 'pending'" class="badge badge-warning gap-2">
+                    <div class="w-2 h-2 rounded-full bg-warning animate-pulse"></div>
+                    Pending
+                  </span>
+                  <span *ngIf="member.status === 'active'" class="badge badge-success gap-2">
+                    <div class="w-2 h-2 rounded-full bg-success"></div>
+                    Active
+                  </span>
+                </div>
+
+                <!-- Joined Date -->
+                <div class="col-span-2 flex items-center">
+                  <span class="text-sm text-base-content/60">{{ member.joinedAt ? (member.joinedAt | date:'shortDate') : 'N/A' }}</span>
+                </div>
+
+                <!-- Actions -->
+                <div class="col-span-1 flex items-center justify-end">
+                  <div *ngIf="canManageMembers() && member.user.uuid !== currentUser?.uuid" class="dropdown dropdown-end">
+                    <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
+                      <lucide-icon name="MoreVertical" class="w-4 h-4"></lucide-icon>
+                    </div>
+                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200">
+                      <li>
+                        <a (click)="updateMemberRole(member, 'viewer')" [class.active]="member.role === 'viewer'">
+                          <lucide-icon name="Eye" class="w-4 h-4"></lucide-icon>
+                          Make Viewer
+                        </a>
+                      </li>
+                      <li>
+                        <a (click)="updateMemberRole(member, 'member')" [class.active]="member.role === 'member'">
+                          <lucide-icon name="User" class="w-4 h-4"></lucide-icon>
+                          Make Member
+                        </a>
+                      </li>
+                      <li>
+                        <a (click)="updateMemberRole(member, 'admin')" [class.active]="member.role === 'admin'">
+                          <lucide-icon name="Shield" class="w-4 h-4"></lucide-icon>
+                          Make Admin
+                        </a>
+                      </li>
+                      <li><hr class="my-1"></li>
+                      <li>
+                        <a (click)="removeMember(member)" class="text-error">
+                          <lucide-icon name="UserMinus" class="w-4 h-4"></lucide-icon>
+                          Remove Member
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Empty State -->
+              <div *ngIf="members.length === 0" class="p-12 text-center">
+                <div class="flex flex-col items-center gap-4">
+                  <div class="p-4 bg-base-200 rounded-full">
+                    <lucide-icon name="Users" class="w-12 h-12 text-base-content/40"></lucide-icon>
+                  </div>
+                  <div>
+                    <p class="font-medium text-base-content">No members yet</p>
+                    <p class="text-sm text-base-content/60">Start by inviting people to join your group</p>
+                  </div>
+                  <button *ngIf="canManageMembers()" 
+                          (click)="openInviteMemberModal()" 
+                          type="button"
+                          class="btn btn-primary btn-sm gap-2">
+                    <lucide-icon name="Mail" class="w-4 h-4"></lucide-icon>
+                    Invite First Member
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permissions Tab -->
+    <div *ngIf="activeTab === 'permissions'" class="min-h-full bg-base-50/30">
+      <div class="max-w-7xl mx-auto p-8">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <!-- Left Column - Main Settings -->
+          <div class="xl:col-span-2 space-y-8">
+            <!-- Header -->
+            <div class="flex items-center gap-4 mb-2">
+              <div class="p-3 bg-info/10 rounded-xl">
+                <lucide-icon name="Shield" class="w-6 h-6 text-info"></lucide-icon>
+              </div>
+              <div>
+                <h2 class="text-2xl font-bold text-base-content">Group Permissions</h2>
+                <p class="text-base-content/60">Configure how members can interact with this group</p>
+              </div>
+            </div>
+
+            <!-- Visibility Settings -->
+            <section class="card bg-base-100 shadow-sm border border-base-200">
+              <div class="card-body p-8">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="p-2 bg-primary/10 rounded-lg">
+                    <lucide-icon name="Eye" class="w-5 h-5 text-primary"></lucide-icon>
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-semibold text-base-content">Group Visibility</h3>
+                    <p class="text-sm text-base-content/60">Control who can discover and access this group</p>
+                  </div>
+                </div>
+                
+                <div class="space-y-4">
+                  <label class="label cursor-pointer justify-start gap-4 p-4 border border-base-200 rounded-lg hover:border-primary/50 transition-colors">
+                    <input 
+                      type="radio" 
+                      [(ngModel)]="groupForm.settings.visibility"
+                      value="public"
+                      class="radio radio-primary">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3">
+                        <lucide-icon name="Globe" class="w-5 h-5 text-success"></lucide-icon>
+                        <div class="font-semibold text-base-content">Public Group</div>
+                      </div>
+                      <div class="text-sm text-base-content/60 mt-1">Anyone in the workplace can see and join this group</div>
+                    </div>
+                  </label>
+                  
+                  <label class="label cursor-pointer justify-start gap-4 p-4 border border-base-200 rounded-lg hover:border-primary/50 transition-colors">
+                    <input 
+                      type="radio" 
+                      [(ngModel)]="groupForm.settings.visibility"
+                      value="private"
+                      class="radio radio-primary">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3">
+                        <lucide-icon name="Lock" class="w-5 h-5 text-warning"></lucide-icon>
+                        <div class="font-semibold text-base-content">Private Group</div>
+                      </div>
+                      <div class="text-sm text-base-content/60 mt-1">Only invited members can see and access this group</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <!-- Member Permissions -->
+            <section class="card bg-base-100 shadow-sm border border-base-200">
+              <div class="card-body p-8">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="p-2 bg-secondary/10 rounded-lg">
+                    <lucide-icon name="Settings" class="w-5 h-5 text-secondary"></lucide-icon>
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-semibold text-base-content">Member Permissions</h3>
+                    <p class="text-sm text-base-content/60">Define what members can do in this group</p>
+                  </div>
+                </div>
+                
+                <div class="space-y-6">
+                  <!-- Allow Member Invites -->
+                  <div class="form-control">
+                    <label class="label cursor-pointer justify-start gap-4 p-4 border border-base-200 rounded-lg hover:border-primary/50 transition-colors">
+                      <input 
+                        type="checkbox" 
+                        [(ngModel)]="groupForm.settings.allowMemberInvites"
+                        class="checkbox checkbox-primary">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-3">
+                          <lucide-icon name="UserPlus" class="w-5 h-5 text-info"></lucide-icon>
+                          <div class="font-semibold text-base-content">Allow member invites</div>
+                        </div>
+                        <div class="text-sm text-base-content/60 mt-1">Members can invite others to join this group</div>
+                      </div>
+                    </label>
+                  </div>
+
+                  <!-- Require Approval -->
+                  <div class="form-control">
+                    <label class="label cursor-pointer justify-start gap-4 p-4 border border-base-200 rounded-lg hover:border-primary/50 transition-colors">
+                      <input 
+                        type="checkbox" 
+                        [(ngModel)]="groupForm.settings.requireApproval"
+                        class="checkbox checkbox-primary">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-3">
+                          <lucide-icon name="CheckCircle" class="w-5 h-5 text-warning"></lucide-icon>
+                          <div class="font-semibold text-base-content">Require approval for new members</div>
+                        </div>
+                        <div class="text-sm text-base-content/60 mt-1">New members need admin approval before joining</div>
+                      </div>
+                    </label>
+                  </div>
+
+                  <!-- Default Role -->
+                  <div>
+                    <label class="label">
+                      <span class="label-text font-semibold text-base-content/80">Default role for new members</span>
+                    </label>
+                    <select [(ngModel)]="groupForm.settings.defaultRole" class="select select-bordered w-full focus:border-primary">
+                      <option value="viewer">👁️ Viewer - Can view content only</option>
+                      <option value="member">👤 Member - Can participate and contribute</option>
+                      <option value="admin">🛡️ Admin - Can manage group settings</option>
+                    </select>
+                    <div class="label">
+                      <span class="label-text-alt text-base-content/60">This role will be assigned to new members automatically</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Right Column - Preview & Actions -->
+          <div class="space-y-6">
+            <!-- Permissions Summary -->
+            <div class="card bg-gradient-to-br from-info/5 to-warning/5 border border-info/20">
+              <div class="card-body p-6">
+                <h4 class="font-semibold text-base-content mb-4 flex items-center gap-2">
+                  <lucide-icon name="FileText" class="w-4 h-4"></lucide-icon>
+                  Summary
+                </h4>
+                <div class="space-y-3">
+                  <div class="flex items-center gap-3 p-3 bg-base-100 rounded-lg border border-base-200">
+                    <lucide-icon name="Eye" class="w-4 h-4 text-primary"></lucide-icon>
+                    <div class="flex-1">
+                      <p class="text-sm font-medium">Visibility</p>
+                      <p class="text-xs text-base-content/60">{{ groupForm.settings.visibility === 'public' ? 'Public Group' : 'Private Group' }}</p>
+                    </div>
+                  </div>
+                  
+                  <div class="flex items-center gap-3 p-3 bg-base-100 rounded-lg border border-base-200">
+                    <lucide-icon name="UserPlus" class="w-4 h-4 text-secondary"></lucide-icon>
+                    <div class="flex-1">
+                      <p class="text-sm font-medium">Member Invites</p>
+                      <p class="text-xs text-base-content/60">{{ groupForm.settings.allowMemberInvites ? 'Allowed' : 'Admin Only' }}</p>
+                    </div>
+                  </div>
+                  
+                  <div class="flex items-center gap-3 p-3 bg-base-100 rounded-lg border border-base-200">
+                    <lucide-icon name="CheckCircle" class="w-4 h-4 text-warning"></lucide-icon>
+                    <div class="flex-1">
+                      <p class="text-sm font-medium">Approval Required</p>
+                      <p class="text-xs text-base-content/60">{{ groupForm.settings.requireApproval ? 'Yes' : 'No' }}</p>
+                    </div>
+                  </div>
+                  
+                  <div class="flex items-center gap-3 p-3 bg-base-100 rounded-lg border border-base-200">
+                    <lucide-icon name="Shield" class="w-4 h-4 text-info"></lucide-icon>
+                    <div class="flex-1">
+                      <p class="text-sm font-medium">Default Role</p>
+                      <p class="text-xs text-base-content/60 capitalize">{{ groupForm.settings.defaultRole }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card bg-base-100 shadow-sm border border-base-200">
+              <div class="card-body p-6">
+                <h4 class="font-semibold text-base-content mb-4">Actions</h4>
+                <div class="space-y-3">
+                  <button type="button" 
+                          (click)="savePermissionSettings()" 
+                          [disabled]="isSaving" 
+                          class="btn btn-primary w-full">
+                    <lucide-icon name="Save" class="w-4 h-4"></lucide-icon>
+                    <span *ngIf="!isSaving">Save Permissions</span>
+                    <span *ngIf="isSaving">Saving...</span>
+                    <span *ngIf="isSaving" class="loading loading-spinner loading-sm"></span>
+                  </button>
+                  <button type="button" class="btn btn-ghost w-full">
+                    <lucide-icon name="RotateCcw" class="w-4 h-4"></lucide-icon>
+                    Reset to Defaults
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger Zone Tab -->
+    <div *ngIf="activeTab === 'danger'" class="min-h-full bg-base-50/30">
+      <div class="max-w-7xl mx-auto p-8">
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-8">
+          <div class="p-3 bg-error/10 rounded-xl">
+            <lucide-icon name="AlertTriangle" class="w-6 h-6 text-error"></lucide-icon>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-error">Danger Zone</h2>
+            <p class="text-base-content/60">Irreversible and destructive actions that require careful consideration</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <!-- Left Column - Danger Actions -->
+          <div class="xl:col-span-2">
+            <!-- Delete Group Section -->
+            <section class="card bg-gradient-to-br from-error/5 to-error/10 border border-error/30 shadow-lg">
+              <div class="card-body p-8">
+                <div class="flex items-start gap-6">
+                  <div class="p-4 bg-error/20 rounded-xl flex-shrink-0">
+                    <lucide-icon name="Trash2" class="w-8 h-8 text-error"></lucide-icon>
+                  </div>
+                  <div class="flex-1">
+                    <h3 class="text-2xl font-bold text-error mb-3">Delete this group</h3>
+                    <div class="prose prose-sm max-w-none text-base-content/80 mb-6">
+                      <p class="mb-3">
+                        <strong>This action cannot be undone.</strong> Deleting this group will permanently:
+                      </p>
+                      <ul class="list-disc pl-6 space-y-1">
+                        <li>Remove the group and all its settings</li>
+                        <li>Delete all group content, tasks, and activities</li>
+                        <li>Remove all members from the group</li>
+                        <li>Clear all group-related notifications and history</li>
+                        <li>Revoke all group-specific permissions</li>
+                      </ul>
+                      <p class="mt-4 text-warning font-medium">
+                        ⚠️ This will affect {{ group?.memberCount || 0 }} group members.
+                      </p>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4">
+                      <button *ngIf="canDeleteGroup()" 
+                              type="button"
+                              (click)="openDeleteModal()" 
+                              class="btn btn-error gap-3 flex-shrink-0">
+                        <lucide-icon name="Trash2" class="w-5 h-5"></lucide-icon>
+                        Delete Group Permanently
+                      </button>
+                      
+                      <div *ngIf="!canDeleteGroup()" 
+                           class="alert alert-warning shadow-sm">
+                        <lucide-icon name="Lock" class="w-5 h-5"></lucide-icon>
+                        <div>
+                          <h4 class="font-semibold">Insufficient Permissions</h4>
+                          <p class="text-sm">Only group administrators can delete this group.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Additional Danger Actions (Future) -->
+            <section class="mt-8 card bg-base-100 border border-base-200 opacity-60">
+              <div class="card-body p-8">
+                <div class="flex items-start gap-6">
+                  <div class="p-4 bg-base-200 rounded-xl flex-shrink-0">
+                    <lucide-icon name="Archive" class="w-8 h-8 text-base-content/40"></lucide-icon>
+                  </div>
+                  <div class="flex-1">
+                    <h3 class="text-xl font-semibold text-base-content/60 mb-2">Archive Group</h3>
+                    <p class="text-base-content/50 mb-4">
+                      Archive this group to make it read-only while preserving all data. 
+                      Members won't be able to add new content, but existing content remains accessible.
+                    </p>
+                    <button type="button" class="btn btn-disabled gap-2" disabled>
+                      <lucide-icon name="Archive" class="w-4 h-4"></lucide-icon>
+                      Coming Soon
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Right Column - Safety Information -->
+          <div class="space-y-6">
+            <!-- Safety Checklist -->
+            <div class="card bg-base-100 shadow-sm border border-base-200">
+              <div class="card-body p-6">
+                <h4 class="font-semibold text-base-content mb-4 flex items-center gap-2">
+                  <lucide-icon name="Shield" class="w-4 h-4"></lucide-icon>
+                  Safety Checklist
+                </h4>
+                <div class="space-y-3">
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" class="checkbox checkbox-sm">
+                    <span class="text-sm">I have exported any important data</span>
+                  </label>
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" class="checkbox checkbox-sm">
+                    <span class="text-sm">I have notified all group members</span>
+                  </label>
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" class="checkbox checkbox-sm">
+                    <span class="text-sm">I understand this action is permanent</span>
+                  </label>
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" class="checkbox checkbox-sm">
+                    <span class="text-sm">I have admin authority to do this</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Group Information -->
+            <div class="card bg-base-100 shadow-sm border border-base-200">
+              <div class="card-body p-6">
+                <h4 class="font-semibold text-base-content mb-4 flex items-center gap-2">
+                  <lucide-icon name="Info" class="w-4 h-4"></lucide-icon>
+                  Group Details
+                </h4>
+                <div class="space-y-3 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-base-content/60">Group Name:</span>
+                    <span class="font-medium">{{ group?.name || 'N/A' }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-base-content/60">Members:</span>
+                    <span class="font-medium">{{ group?.memberCount || 0 }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-base-content/60">Created:</span>
+                    <span class="font-medium">{{ group?.createdAt ? (group?.createdAt | date:'shortDate') : 'N/A' }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-base-content/60">Your Role:</span>
+                    <span class="badge badge-sm badge-outline">{{ getCurrentUserRole() || 'Unknown' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Help & Support -->
+            <div class="card bg-gradient-to-br from-info/5 to-primary/5 border border-info/20">
+              <div class="card-body p-6">
+                <h4 class="font-semibold text-base-content mb-3 flex items-center gap-2">
+                  <lucide-icon name="HelpCircle" class="w-4 h-4"></lucide-icon>
+                  Need Help?
+                </h4>
+                <p class="text-sm text-base-content/70 mb-4">
+                  If you're unsure about deleting this group, consider reaching out for assistance.
+                </p>
+                <div class="space-y-2">
+                  <button type="button" class="btn btn-ghost btn-sm w-full justify-start gap-2">
+                    <lucide-icon name="MessageCircle" class="w-4 h-4"></lucide-icon>
+                    Contact Support
+                  </button>
+                  <button type="button" class="btn btn-ghost btn-sm w-full justify-start gap-2">
+                    <lucide-icon name="FileText" class="w-4 h-4"></lucide-icon>
+                    View Documentation
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Invite Member Modal -->
+<div *ngIf="showInviteMemberModal" class="modal modal-open">
+  <div class="modal-box max-w-md">
+    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" (click)="closeInviteMemberModal()">✕</button>
+    
+    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+      <lucide-icon name="Mail" class="w-5 h-5 text-primary"></lucide-icon>
+      Invite Member
+    </h3>
+    
+    <div class="space-y-4">
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-medium">Email Address *</span>
+        </label>
+        <input 
+          type="email" 
+          [(ngModel)]="inviteForm.email"
+          class="input input-bordered w-full"
+          placeholder="Enter email address"
+          [class.input-error]="inviteForm.email && !isValidEmail(inviteForm.email)">
+        <div *ngIf="inviteForm.email && !isValidEmail(inviteForm.email)" class="label">
+          <span class="label-text-alt text-error">Please enter a valid email address</span>
+        </div>
+      </div>
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-medium">Role</span>
+        </label>
+        <select [(ngModel)]="inviteForm.role" class="select select-bordered w-full">
+          <option value="viewer">Viewer - Can view content only</option>
+          <option value="member">Member - Can participate and contribute</option>
+          <option value="admin">Admin - Can manage group settings</option>
+        </select>
+      </div>
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-medium">Personal Message (Optional)</span>
+        </label>
+        <textarea 
+          [(ngModel)]="inviteForm.message"
+          class="textarea textarea-bordered"
+          rows="3"
+          placeholder="Add a personal message to the invitation..."></textarea>
+        <div class="label">
+          <span class="label-text-alt text-base-content/60">{{ inviteForm.message.length || 0 }}/200 characters</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button type="button" class="btn btn-ghost" (click)="closeInviteMemberModal()">Cancel</button>
+      <button type="button" 
+              class="btn btn-primary" 
+              (click)="sendInvitation()" 
+              [disabled]="!inviteForm.email.trim() || !isValidEmail(inviteForm.email) || isSendingInvite">
+        <span *ngIf="!isSendingInvite" class="flex items-center gap-2">
+          <lucide-icon name="Send" class="w-4 h-4"></lucide-icon>
+          Send Invitation
+        </span>
+        <span *ngIf="isSendingInvite" class="flex items-center gap-2">
+          <span class="loading loading-spinner loading-sm"></span>
+          Sending...
+        </span>
+      </button>
+    </div>
+  </div>
+  <div class="modal-backdrop" (click)="closeInviteMemberModal()"></div>
+</div>
+
+<!-- Add Member Modal -->
+<div *ngIf="showAddMemberModal" class="modal modal-open">
+  <div class="modal-box max-w-md">
+    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" (click)="closeAddMemberModal()">✕</button>
+    
+    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+      <lucide-icon name="UserPlus" class="w-5 h-5 text-primary"></lucide-icon>
+      Add Existing User
+    </h3>
+    
+    <div class="space-y-4">
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-medium">Search Users</span>
+        </label>
+        <input 
+          type="text" 
+          [(ngModel)]="userSearchQuery"
+          class="input input-bordered w-full"
+          placeholder="Search by name or email..."
+          (input)="searchUsers()">
+      </div>
+
+      <!-- Search Results -->
+      <div *ngIf="searchResults.length > 0" class="max-h-60 overflow-y-auto border border-base-200 rounded-lg">
+        <div *ngFor="let user of searchResults" 
+             class="flex items-center justify-between p-3 hover:bg-base-100 cursor-pointer"
+             (click)="selectUser(user)">
+          <div class="flex items-center gap-3">
+            <div class="avatar">
+              <div class="w-8 rounded-full">
+                <img [src]="getUserAvatarUrl(user)" [alt]="user.displayName">
+              </div>
+            </div>
+            <div>
+              <p class="font-medium text-sm">{{ user.displayName }}</p>
+              <p class="text-xs text-base-content/60">{{ user.email }}</p>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-xs">Add</button>
+        </div>
+      </div>
+
+      <!-- Selected User -->
+      <div *ngIf="selectedUser" class="card bg-base-100 border border-base-200">
+        <div class="card-body p-4">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="avatar">
+              <div class="w-10 rounded-full">
+                <img [src]="getUserAvatarUrl(selectedUser)" [alt]="selectedUser.displayName">
+              </div>
+            </div>
+            <div>
+              <p class="font-medium">{{ selectedUser.displayName }}</p>
+              <p class="text-sm text-base-content/60">{{ selectedUser.email }}</p>
+            </div>
+          </div>
+          
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-medium">Role</span>
+            </label>
+            <select [(ngModel)]="newMemberRole" class="select select-bordered select-sm w-full">
+              <option value="viewer">Viewer</option>
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button type="button" class="btn btn-ghost" (click)="closeAddMemberModal()">Cancel</button>
+      <button type="button" 
+              class="btn btn-primary" 
+              (click)="addMember()" 
+              [disabled]="!selectedUser">
+        Add to Group
+      </button>
+    </div>
+  </div>
+  <div class="modal-backdrop" (click)="closeAddMemberModal()"></div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div *ngIf="showDeleteModal" class="modal modal-open">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-error mb-4">Delete Group</h3>
+    
+    <div class="space-y-4">
+      <p class="text-base-content/80">
+        This action cannot be undone. This will permanently delete the 
+        <strong>{{ group?.name }}</strong> group and all of its content.
+      </p>
+      
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Please type <strong>{{ group?.name }}</strong> to confirm:</span>
+        </label>
+        <input 
+          type="text" 
+          [(ngModel)]="deleteConfirmText"
+          class="input input-bordered w-full"
+          placeholder="Type group name here">
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button type="button" class="btn" (click)="closeDeleteModal()">Cancel</button>
+      <button type="button" 
+              class="btn btn-error" 
+              (click)="deleteGroup()" 
+              [disabled]="deleteConfirmText !== group?.name">
+        Delete Group
+      </button>
+    </div>
+  </div>
+  <div class="modal-backdrop" (click)="closeDeleteModal()"></div>
+</div> 
