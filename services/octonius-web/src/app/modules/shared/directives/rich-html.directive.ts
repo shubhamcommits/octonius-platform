@@ -10,9 +10,10 @@ export class RichHtmlDirective implements OnChanges {
   constructor(private el: ElementRef) {}
 
   ngOnChanges(changes: SimpleChanges): void {
-    if ('htmlContent' in changes) {
-      const content = this.htmlContent || '';
-      this.el.nativeElement.innerHTML = content;
-    }
+    // We set innerHTML directly to the string value.
+    // Do NOT use DomSanitizer.bypassSecurityTrustHtml here, as it returns a SafeHtml object,
+    // which is not compatible with innerHTML and can cause rendering issues.
+    const content = this.htmlContent || '';
+    this.el.nativeElement.innerHTML = content;
   }
 } 
