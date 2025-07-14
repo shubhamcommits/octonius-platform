@@ -10,9 +10,6 @@ import { cpus } from 'os'
 // Import logger
 import logger, { updateLoggerLevel, appLogger } from './src/logger'
 
-// Import AWS Service
-import { awsService } from './src/aws'
-
 // Import environment validation
 import { validateEnv } from './src/config'
 
@@ -44,11 +41,17 @@ if (process.env.NODE_ENV === 'local') {
 // Express App
 import app from './src/app'
 
+// Import server module
+import http from 'http'
+
 // Import database function
 import { initiliazeDatabase } from './src/database'
 
 // Import Redis function
 import { connectRedis, deleteRedisKeysByPrefix, disconnectRedis } from './src/redis'
+
+// Import circuit breaker manager
+import { circuitBreakerManager } from './src/shared/circuit-breakers'
 
 // Import node-fetch module
 import { Headers } from 'node-fetch'
@@ -102,21 +105,17 @@ async function setupWorkerProcesses() {
  * Setup an express server and define port to listen all incoming requests for this application
  */
 async function setUpExpressApplication() {
+    try {
+        // Fetch Environment Variables
+        const { PORT, HOST, NODE_ENV } = process.env
 
-    // HTTP Module
-    const http = require('http')
+        appLogger('Starting Octonius Platform server...', { level: 'info' })
 
-    // Fetch Environment Variables
-    const { PORT, HOST, NODE_ENV, APP_NAME } = process.env
-
-    // Creating Microservice Server
-    const server = http.createServer(app)
-
-    // Connect Database
-    const dbStatus = await initiliazeDatabase()
-    if (!dbStatus.connected) {
-        logger.warn('Database credentials unavailable, running in degraded mode')
-    }
+        // Connect Database
+        const dbStatus = await initiliazeDatabase()
+        if (!dbStatus.connected) {
+            logger.warn('Database credentials unavailable, running in degraded mode')
+        }
 
     // Connect Redis
     await connectRedis()
@@ -137,21 +136,44 @@ async function setUpExpressApplication() {
             logger.warn('Redis is unavailable, running in degraded mode', error)
         })
 
-    // Catch unhandled promise rejections globally
-    process.on('unhandledRejection', (reason, promise) => {
-        logger.error('Unhandled Promise Rejection at: ' + JSON.stringify(promise) + ' reason: ' + JSON.stringify(reason))
-    })
+    // Initialize Circuit Breaker Manager
+    try {
+        await circuitBreakerManager.initialize()
+        appLogger('Circuit breaker manager initialized successfully', { level: 'info' })
+    } catch (error) {
+        appLogger('Circuit breaker manager initialization failed', { 
+            level: 'error',
+            error: error instanceof Error ? error.message : String(error)
+        })
+        // Don't stop the server, but continue without circuit breakers
+    }
 
-    // Catch uncaught exceptions globally
-    process.on('uncaughtException', (error) => {
-        logger.error('Uncaught Exception thrown:', error)
+        // Catch unhandled promise rejections globally
+        process.on('unhandledRejection', (reason, promise) => {
+            logger.error('Unhandled Promise Rejection at: ' + JSON.stringify(promise) + ' reason: ' + JSON.stringify(reason))
+        })
+
+        // Catch uncaught exceptions globally
+        process.on('uncaughtException', (error) => {
+            logger.error('Uncaught Exception thrown:', error)
+            process.exit(1)
+        })
+
+        // Creating Microservice Server
+        const server = http.createServer(app)
+
+        // Exposing the server to the desired port
+        server.listen(Number(PORT), HOST, () => {
+            appLogger('Server is working', { host: HOST, port: PORT, environment: NODE_ENV, pid: process.pid })
+        })
+
+    } catch (error) {
+        appLogger('Failed to start server', { 
+            level: 'error',
+            error: error instanceof Error ? error.message : String(error)
+        })
         process.exit(1)
-    })
-
-    // Exposing the server to the desired port
-    server.listen(Number(PORT), HOST, () => {
-        appLogger('Server is working', { host: HOST, port: PORT, environment: NODE_ENV, pid: process.pid })
-    })
+    }
 }
 
 // If it is a master process then call setting up worker process

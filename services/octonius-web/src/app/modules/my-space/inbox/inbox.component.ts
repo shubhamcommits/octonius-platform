@@ -7,6 +7,7 @@ import { ToastService } from '../../../core/services/toast.service'
 import { CapitalizePipe } from '../../../core/pipes/capitalize.pipe'
 import { ThemeService } from '../../../core/services/theme.service'
 import { Subscription } from 'rxjs'
+import { User } from '../../../core/services/auth.service'
 
 interface Activity {
   user: string
@@ -102,8 +103,8 @@ export class InboxComponent implements OnInit, OnDestroy {
     this.error = null
 
     this.userService.getCurrentUser().subscribe({
-      next: (response: any) => {
-        const user = response.data.user
+      next: (user_data: User) => {
+        const user = user_data
         this.userName = user.first_name || user.email?.split('@')[0] || 'User'
         // Fetch workload/activity/messages/news for this user and workplace
         const userId = user.uuid

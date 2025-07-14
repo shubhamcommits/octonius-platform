@@ -30,11 +30,12 @@ import { File } from '../../../core/models/file.model'
 import { AuthService } from '../../../core/services/auth.service'
 import { ThemeService } from '../../../core/services/theme.service'
 import { environment } from '../../../../environments/environment'
+import { SharedModule } from '../../shared/shared.module'
 
 @Component({
   selector: 'app-note-editor',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, SharedModule],
   templateUrl: './note-editor.component.html',
   styleUrls: ['./note-editor.component.scss']
 })
@@ -69,6 +70,8 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   private themeSubscription: Subscription | null = null
   private initializationAttempts = 0
   private maxInitializationAttempts = 10
+
+  createdByUser: User | null = null
   
   // Editor state
   isEditorFocused = false
@@ -98,11 +101,9 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.userService.getCurrentUser().subscribe({
       next: (user: User) => {
         console.log('User data loaded successfully:', user)
-        this.userName = user.first_name
+        this.userName = user.first_name || user.email?.split('@')[0] || 'User'
         this.userId = user.uuid
         this.workplaceId = user.current_workplace_id || ''
-        this.createdBy = user.first_name || user.email?.split('@')[0] || 'User'
-        this.createdByAvatar = user.avatar_url || environment.defaultAvatarUrl
         
         console.log('User properties set:', {
           userId: this.userId,
@@ -115,6 +116,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
             next: (note: File) => {
               console.log('Note loaded successfully:', note)
               this.note = note
+              this.createdByUser = note.owner as unknown as User
               this.noteTitle = note.title || ''
               this.lastEdited = note.last_modified || ''
               this.lastSavedContent = note.content
@@ -174,6 +176,10 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     setTimeout(() => {
       this.initializeEditor()
     }, 100)
+  }
+
+  getUserAvatarUrl(user: any): string {
+    return user?.avatar_url || environment.defaultAvatarUrl;
   }
   
   ngOnDestroy(): void {
@@ -304,6 +310,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
             }
           }),
           TextStyle,
+          CharacterCount,
           BubbleMenu.configure({
             element: this.bubbleMenuElement?.nativeElement,
             tippyOptions: {
@@ -727,7 +734,16 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   toggleBulletList(): void {
-    this.editor?.chain().focus().toggleBulletList().run()
+    console.log('toggleBulletList called')
+    if (this.editor) {
+      console.log('Editor exists, toggling bullet list')
+      console.log('Can toggle bullet list:', this.editor.can().toggleBulletList())
+      console.log('Current content:', this.editor.getHTML())
+      this.editor.chain().focus().toggleBulletList().run()
+      console.log('After toggle:', this.editor.getHTML())
+    } else {
+      console.log('Editor not available')
+    }
   }
 
   toggleOrderedList(): void {

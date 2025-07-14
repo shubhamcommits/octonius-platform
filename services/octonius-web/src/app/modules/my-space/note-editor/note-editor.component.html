@@ -1,9 +1,85 @@
-<div class="fixed inset-0 bg-base-100 text-base-content z-50">
+<div class="fixed inset-0 bg-base-100 text-base-content z-50 animate-fadeIn">
   <!-- Loading State -->
-  <div *ngIf="isLoading" class="flex-1 flex items-center justify-center h-full">
-    <div class="flex flex-col items-center gap-4">
-      <span class="loading loading-spinner loading-lg text-primary"></span>
-      <p class="text-base-content/60">Loading your note...</p>
+  <div *ngIf="isLoading" class="flex flex-col h-full animate-fadeIn">
+    <!-- Header Skeleton -->
+    <div class="flex-none bg-base-100 border-b border-base-300 px-6 py-4">
+      <div class="flex items-center justify-between mb-4">
+        <div class="w-16 h-8 bg-base-300 rounded animate-pulse"></div>
+        <div class="flex items-center gap-4">
+          <div class="w-24 h-6 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-20 h-8 bg-base-300 rounded animate-pulse"></div>
+        </div>
+      </div>
+      <div class="w-3/4 h-10 bg-base-300 rounded animate-pulse mx-auto"></div>
+    </div>
+
+    <!-- Toolbar Skeleton -->
+    <div class="flex-none bg-base-100 border-b border-base-300 px-6 py-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-1">
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+        </div>
+        <div class="w-px h-6 bg-base-300"></div>
+        <div class="w-24 h-8 bg-base-300 rounded animate-pulse"></div>
+        <div class="w-px h-6 bg-base-300"></div>
+        <div class="flex items-center gap-1">
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+        </div>
+        <div class="w-px h-6 bg-base-300"></div>
+        <div class="flex items-center gap-1">
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+        </div>
+        <div class="w-px h-6 bg-base-300"></div>
+        <div class="flex items-center gap-1">
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+        </div>
+        <div class="w-px h-6 bg-base-300"></div>
+        <div class="flex items-center gap-1">
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-8 h-8 bg-base-300 rounded animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Editor Content Skeleton -->
+    <div class="flex-1 overflow-auto bg-base-100 px-6 py-8">
+      <div class="space-y-4">
+        <div class="w-full h-6 bg-base-300 rounded animate-pulse"></div>
+        <div class="w-3/4 h-6 bg-base-300 rounded animate-pulse"></div>
+        <div class="w-1/2 h-6 bg-base-300 rounded animate-pulse"></div>
+        <div class="w-full h-6 bg-base-300 rounded animate-pulse"></div>
+        <div class="w-2/3 h-6 bg-base-300 rounded animate-pulse"></div>
+        <div class="w-full h-6 bg-base-300 rounded animate-pulse"></div>
+        <div class="w-4/5 h-6 bg-base-300 rounded animate-pulse"></div>
+        <div class="w-1/3 h-6 bg-base-300 rounded animate-pulse"></div>
+        <div class="w-full h-6 bg-base-300 rounded animate-pulse"></div>
+        <div class="w-2/3 h-6 bg-base-300 rounded animate-pulse"></div>
+      </div>
+    </div>
+
+    <!-- Status Bar Skeleton -->
+    <div class="flex-none bg-base-200 border-t border-base-300 px-6 py-2">
+      <div class="flex items-center justify-between text-sm text-base-content/60">
+        <div class="flex items-center gap-4">
+          <div class="w-24 h-4 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-20 h-4 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-32 h-4 bg-base-300 rounded animate-pulse"></div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-12 h-4 bg-base-300 rounded animate-pulse"></div>
+          <div class="w-6 h-6 bg-base-300 rounded-full animate-pulse"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -15,55 +91,23 @@
     </div>
   </div>
 
-  <!-- Editor Interface -->
+  <!-- Professional Editor Interface -->
   <div *ngIf="!isLoading && !error" class="flex flex-col h-full">
-    <!-- Header with title and controls -->
+    <!-- Combined Header and Toolbar - Full Width -->
     <div class="flex-none bg-base-100 border-b border-base-300 px-6 py-4">
-      <div class="flex items-center justify-between mb-4">
-        <button 
-          class="btn btn-ghost btn-sm"
-          (click)="goBackToFiles()"
-          title="Back to Files">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back
-        </button>
-        
+      <div class="flex items-center justify-between gap-4">
+        <!-- Left side: Back button and toolbar -->
         <div class="flex items-center gap-4">
-          <!-- Save Status -->
-          <div class="flex items-center gap-2 text-sm" [class]="getSaveStatusClass()">
-            <span *ngIf="saveStatus === 'saving'" class="loading loading-spinner loading-xs"></span>
-            <span>{{ getSaveStatusText() }}</span>
-          </div>
-          
-          <!-- Manual Save Button -->
           <button 
-            class="btn btn-primary btn-sm"
-            (click)="saveNow()"
-            [disabled]="isSaving || saveStatus === 'saved'"
-            title="Save Now (Ctrl+S)">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            Save
+            class="btn btn-ghost btn-sm"
+            (click)="goBackToFiles()"
+            title="Back to Files">
+            <lucide-icon name="ArrowLeft" class="w-5 h-5"></lucide-icon>
+            Back
           </button>
-        </div>
-      </div>
-      
-      <!-- Note Title -->
-      <input 
-        type="text" 
-        [(ngModel)]="noteTitle"
-        (input)="onTitleChange()"
-        placeholder="Untitled Note"
-        class="input input-ghost text-3xl font-bold w-full p-0 border-none focus:outline-none bg-transparent text-base-content placeholder-base-content/50 text-center"
-        maxlength="200">
-    </div>
-
-    <!-- Main Toolbar -->
-    <div class="flex-none bg-base-100 border-b border-base-300 px-6 py-3">
-      <div class="flex flex-wrap items-center gap-2">
+          
+          <!-- Toolbar -->
+          <div class="flex flex-wrap items-center gap-2">
         <!-- Undo/Redo -->
         <div class="flex items-center gap-1">
           <button 
@@ -71,30 +115,22 @@
             [disabled]="!canUndo()"
             (click)="undo()"
             title="Undo (Ctrl+Z)">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-            </svg>
+            <lucide-icon name="Undo" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             [disabled]="!canRedo()"
             (click)="redo()"
             title="Redo (Ctrl+Y)">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" />
-            </svg>
+            <lucide-icon name="Redo" class="w-4 h-4"></lucide-icon>
           </button>
         </div>
-
         <div class="divider divider-horizontal"></div>
-
         <!-- Heading Dropdown -->
         <div class="dropdown">
           <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
             <span class="text-sm font-medium">{{ getCurrentHeadingText() }}</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
+            <lucide-icon name="ChevronDown" class="w-4 h-4"></lucide-icon>
           </div>
           <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-300">
             <li><a (click)="setParagraph()" [class.active]="isActive('paragraph')">Paragraph</a></li>
@@ -106,9 +142,7 @@
             <li><a (click)="setHeading(6)" [class.active]="isActive('heading', { level: 6 })">Heading 6</a></li>
           </ul>
         </div>
-
         <div class="divider divider-horizontal"></div>
-
         <!-- Text Formatting -->
         <div class="flex items-center gap-1">
           <button 
@@ -116,42 +150,31 @@
             [class.btn-active]="isActive('bold')"
             (click)="toggleBold()"
             title="Bold (Ctrl+B)">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
-            </svg>
+            <lucide-icon name="Bold" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             [class.btn-active]="isActive('italic')"
             (click)="toggleItalic()"
             title="Italic (Ctrl+I)">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 4l4 8-4 8M6 16l2.5-4L6 8" />
-            </svg>
+            <lucide-icon name="Italic" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             [class.btn-active]="isActive('underline')"
             (click)="toggleUnderline()"
             title="Underline (Ctrl+U)">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a4 4 0 100 8v0a4 4 0 100-8zm0 0V4m0 18h8" />
-            </svg>
+            <lucide-icon name="Underline" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             [class.btn-active]="isActive('strike')"
             (click)="toggleStrike()"
             title="Strikethrough">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h12M6 12a6 6 0 106 6h-6a6 6 0 01-6-6z" />
-            </svg>
+            <lucide-icon name="Strikethrough" class="w-4 h-4"></lucide-icon>
           </button>
         </div>
-
         <div class="divider divider-horizontal"></div>
-
         <!-- Text Alignment -->
         <div class="flex items-center gap-1">
           <button 
@@ -159,41 +182,31 @@
             [class.btn-active]="isActive({ textAlign: 'left' })"
             (click)="setTextAlign('left')"
             title="Align Left">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" />
-            </svg>
+            <lucide-icon name="AlignLeft" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             [class.btn-active]="isActive({ textAlign: 'center' })"
             (click)="setTextAlign('center')"
             title="Align Center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M8 12h8m-8 6h16" />
-            </svg>
+            <lucide-icon name="AlignCenter" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             [class.btn-active]="isActive({ textAlign: 'right' })"
             (click)="setTextAlign('right')"
             title="Align Right">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M12 12h8m-8 6h16" />
-            </svg>
+            <lucide-icon name="AlignRight" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             [class.btn-active]="isActive({ textAlign: 'justify' })"
             (click)="setTextAlign('justify')"
             title="Justify">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <lucide-icon name="AlignJustify" class="w-4 h-4"></lucide-icon>
           </button>
         </div>
-
         <div class="divider divider-horizontal"></div>
-
         <!-- Lists -->
         <div class="flex items-center gap-1">
           <button 
@@ -201,32 +214,24 @@
             [class.btn-active]="isActive('bulletList')"
             (click)="toggleBulletList()"
             title="Bullet List">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
+            <lucide-icon name="List" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             [class.btn-active]="isActive('orderedList')"
             (click)="toggleOrderedList()"
             title="Numbered List">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
+            <lucide-icon name="ListOrdered" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             [class.btn-active]="isActive('taskList')"
             (click)="toggleTaskList()"
             title="Task List">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <lucide-icon name="ListTodo" class="w-4 h-4"></lucide-icon>
           </button>
         </div>
-
         <div class="divider divider-horizontal"></div>
-
         <!-- More Options -->
         <div class="flex items-center gap-1">
           <button 
@@ -234,37 +239,63 @@
             [class.btn-active]="isActive('blockquote')"
             (click)="toggleBlockquote()"
             title="Quote">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-            </svg>
+            <lucide-icon name="Quote" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             [class.btn-active]="isActive('codeBlock')"
             (click)="toggleCodeBlock()"
             title="Code Block">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-            </svg>
+            <lucide-icon name="Code" class="w-4 h-4"></lucide-icon>
           </button>
           <button 
             class="btn btn-ghost btn-sm"
             (click)="insertHorizontalRule()"
             title="Horizontal Rule">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-            </svg>
+            <lucide-icon name="Minus" class="w-4 h-4"></lucide-icon>
+          </button>
+        </div>
+          </div>
+        </div>
+        
+        <!-- Right side: Save status and button -->
+        <div class="flex items-center gap-4">
+          <!-- Save Status -->
+          <div class="flex items-center gap-2 text-sm" [class]="getSaveStatusClass()">
+            <span *ngIf="saveStatus === 'saving'" class="loading loading-spinner loading-xs"></span>
+            <span>{{ getSaveStatusText() }}</span>
+          </div>
+          <!-- Manual Save Button -->
+          <button 
+            class="btn btn-primary btn-sm"
+            (click)="saveNow()"
+            [disabled]="isSaving || saveStatus === 'saved'"
+            title="Save Now (Ctrl+S)">
+            <lucide-icon name="Save" class="w-4 h-4"></lucide-icon>
+            Save
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Editor Content Area -->
-    <div class="flex-1 overflow-auto bg-base-100">
-      <div #editorElement class="tiptap-editor min-h-full w-full"></div>
+    <!-- Centered Content Area -->
+    <div class="flex-1 overflow-auto bg-base-100 flex justify-center">
+      <div class="w-full max-w-3xl px-6 py-8">
+              <!-- Note Title -->
+      <input 
+        type="text" 
+        [(ngModel)]="noteTitle"
+        (input)="onTitleChange()"
+        placeholder="Untitled Note"
+        class="input input-ghost text-3xl font-bold w-full p-0 border-none focus:outline-none bg-transparent text-base-content placeholder-base-content/50 mb-8 text-center"
+        maxlength="200">
+        
+        <!-- Editor Content Area -->
+        <div #editorElement class="tiptap-editor min-h-[400px] w-full"></div>
+      </div>
     </div>
 
-    <!-- Bottom Status Bar -->
+    <!-- Bottom Status Bar - Full Width -->
     <div class="flex-none bg-base-200 border-t border-base-300 px-6 py-2">
       <div class="flex items-center justify-between text-sm text-base-content/60">
         <div class="flex items-center gap-4">
@@ -273,10 +304,10 @@
           <span>Last edited: {{ lastEdited | date:'short' }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span>User</span>
+          <span>{{ createdByUser?.first_name || 'Unknown User' }} {{ createdByUser?.last_name || 'Unknown User' }}</span>
           <div class="avatar">
             <div class="w-6 h-6 rounded-full">
-              <img [src]="createdByAvatar" [alt]="createdBy" />
+              <img [src]="getUserAvatarUrl(createdByUser)" [alt]="createdByUser?.first_name || createdByUser?.last_name || 'User'" />
             </div>
           </div>
         </div>
@@ -293,10 +324,7 @@
         [class.btn-active]="isActive('bold')"
         (click)="toggleBold()"
         title="Bold">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
-        </svg>
+        <lucide-icon name="Bold" class="w-4 h-4"></lucide-icon>
       </button>
       
       <!-- Italic -->
@@ -305,9 +333,7 @@
         [class.btn-active]="isActive('italic')"
         (click)="toggleItalic()"
         title="Italic">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 4l4 8-4 8M6 16l2.5-4L6 8" />
-        </svg>
+        <lucide-icon name="Italic" class="w-4 h-4"></lucide-icon>
       </button>
       
       <!-- Underline -->
@@ -316,9 +342,7 @@
         [class.btn-active]="isActive('underline')"
         (click)="toggleUnderline()"
         title="Underline">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a4 4 0 100 8v0a4 4 0 100-8zm0 0V4m0 18h8" />
-        </svg>
+        <lucide-icon name="Underline" class="w-4 h-4"></lucide-icon>
       </button>
       
       <!-- Code -->
@@ -327,9 +351,7 @@
         [class.btn-active]="isActive('code')"
         (click)="toggleCode()"
         title="Code">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-        </svg>
+        <lucide-icon name="Code" class="w-4 h-4"></lucide-icon>
       </button>
       
       <!-- Link -->
@@ -338,9 +360,7 @@
         [class.btn-active]="isActive('link')"
         (click)="setLink()"
         title="Link">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-        </svg>
+        <lucide-icon name="Link" class="w-4 h-4"></lucide-icon>
       </button>
     </div>
   </div>

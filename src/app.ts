@@ -46,6 +46,9 @@ import { LoungeRoute } from './lounge/lounge.route'
 // Import Group Route
 import { GroupRoute } from './groups/group.route'
 
+// Import Circuit Breaker components
+import { CircuitBreakerRoute, circuitBreakerManager } from './shared/circuit-breakers'
+
 // Define the express application
 const app = express()
 
@@ -98,7 +101,9 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
 })
 
 // Static files route
-app.use('/public', express.static(path.join(__dirname, 'public/')))
+app.use('/api/health', (req: Request, res: Response, next: NextFunction) => {
+    res.status(200).json({ message: `${APP_NAME} server is working!` })
+})
 
 // Health check Route
 app.get('/health', async (req: Request, res: Response, next: NextFunction) => {
@@ -112,11 +117,24 @@ app.get('/health', async (req: Request, res: Response, next: NextFunction) => {
         // Check Redis connection
         const redis_status_promise = isRedisAvailable() ? 'available' : 'unavailable'
 
+        // Check circuit breaker manager status
+        const circuit_breaker_status = circuitBreakerManager.isReady() ? 'available' : 'unavailable'
+
+        // Get circuit breaker metrics
+        const circuit_breaker_metrics = circuitBreakerManager.isReady() ? 
+            circuitBreakerManager.getMetrics() : null
+
         // Wait for both statuses
         const [db_status, redis_status] = await Promise.all([db_status_promise, redis_status_promise])
 
+        // Determine overall health
+        const allServicesHealthy = db_status === 'available' && 
+                                 redis_status === 'available' && 
+                                 circuit_breaker_status === 'available' &&
+                                 (!circuit_breaker_metrics || circuit_breaker_metrics.openBreakers === 0)
+
         // If all services are available, send a 200 response
-        if (db_status === 'available' && redis_status === 'available') {
+        if (allServicesHealthy) {
             res.status(200).json({
                 status: 'up',
                 application: APP_NAME,
@@ -124,29 +142,33 @@ app.get('/health', async (req: Request, res: Response, next: NextFunction) => {
                 message: `${APP_NAME} is working!`,
                 components: [
                     { database: db_status },
-                    { redis: redis_status }
-                ]
+                    { redis: redis_status },
+                    { circuit_breakers: circuit_breaker_status }
+                ],
+                circuit_breaker_metrics: circuit_breaker_metrics
             })
 
         } else {
 
             // If any of them is unavailable, return a 424 response
-            res.status(200).json({
+            res.status(503).json({
                 status: 'down',
                 application: APP_NAME,
                 environment: `${process.env.NODE_ENV}`,
                 message: `${APP_NAME} is unstable!`,
                 components: [
                     { database: db_status },
-                    { redis: redis_status }
-                ]
+                    { redis: redis_status },
+                    { circuit_breakers: circuit_breaker_status }
+                ],
+                circuit_breaker_metrics: circuit_breaker_metrics
             })
         }
 
     } catch (error) {
 
         // Return 503 response
-        res.status(200).json({
+        res.status(503).json({
             status: 'failure',
             application: APP_NAME,
             environment: `${process.env.NODE_ENV}`,
@@ -171,6 +193,7 @@ app.use('/v1/files', new FileRoute().router)
 app.use('/v1/workload', new WorkloadRoute().router)
 app.use('/v1/lounges', new LoungeRoute().router)
 app.use('/v1/groups', new GroupRoute().router)
+app.use('/v1/circuit-breakers', new CircuitBreakerRoute().router)
 
 // Invalid routes handling middleware
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
