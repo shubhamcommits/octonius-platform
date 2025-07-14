@@ -101,7 +101,9 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
 })
 
 // Static files route
-app.use('/public', express.static(path.join(__dirname, 'public/')))
+app.use('/api/health', (req: Request, res: Response, next: NextFunction) => {
+    res.status(200).json({ message: `${APP_NAME} server is working!` })
+})
 
 // Health check Route
 app.get('/health', async (req: Request, res: Response, next: NextFunction) => {
