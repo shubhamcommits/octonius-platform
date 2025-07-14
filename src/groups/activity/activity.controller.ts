@@ -44,8 +44,9 @@ export class GroupActivityController {
                     this.activityService.commentCount(post.uuid),
                     user_id ? this.activityService.isLikedByUser(post.uuid, user_id) : false
                 ]);
+                const postObject = typeof post.toJSON === 'function' ? post.toJSON() : post;
                 return {
-                    ...post.toJSON(),
+                    ...postObject,
                     like_count: likeCount,
                     comment_count: commentCount,
                     liked_by_current_user: likedByCurrentUser

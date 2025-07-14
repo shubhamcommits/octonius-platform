@@ -23,6 +23,11 @@ export const routes: Routes = [
     canActivate: [AuthGuard, WorkplaceGuard]
   },
   {
+    path: 'account',
+    loadChildren: () => import('./modules/account/account.module').then(m => m.AccountModule),
+    canActivate: [AuthGuard, WorkplaceGuard]
+  },
+  {
     path: '**',
     loadComponent: () => import('./modules/not-found/not-found.component').then(m => m.NotFoundComponent)
   }

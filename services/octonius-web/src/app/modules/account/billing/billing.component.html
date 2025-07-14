@@ -1,0 +1,24 @@
+<div class="billing-container">
+  <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-8 border border-base-300/50 max-w-xl mx-auto mt-8 shadow-xl">
+    <h1 class="text-2xl font-bold mb-2 flex items-center gap-2">
+      <lucide-icon name="FileText" class="w-6 h-6 text-primary"></lucide-icon>
+      Billing
+    </h1>
+    <p class="text-base-content/70 mb-6">Manage your subscription and billing details</p>
+
+    <div class="mb-6">
+      <div class="flex items-center gap-4 mb-2">
+        <span class="text-lg font-semibold">{{ plan.name }}</span>
+        <span class="badge badge-primary text-base">Current Plan</span>
+      </div>
+      <div class="text-3xl font-bold text-primary mb-2">{{ plan.price }} <span class="text-base font-normal text-base-content/70">/ {{ plan.period }}</span></div>
+      <ul class="list-disc ml-6 text-base-content/80 mb-4">
+        <li *ngFor="let feature of plan.features">{{ feature }}</li>
+      </ul>
+    </div>
+
+    <button class="btn btn-primary w-full" (click)="manageBilling()">
+      Manage Billing
+    </button>
+  </div>
+</div> 

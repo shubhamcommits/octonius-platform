@@ -1,62 +1,71 @@
 <div class="max-w-9xl mx-auto p-8">
-  <!-- Header with Breadcrumbs -->
-  <div class="flex items-center justify-between mb-6">
-    <div class="flex items-center gap-2 text-sm text-base-content/70">
-      <a routerLink="/workplace/work-management" class="hover:text-primary cursor-pointer">Groups</a>
-      <span>/</span>
-      <span class="font-semibold text-base-content">{{ group?.name || 'Loading...' }}</span>
-    </div>
+  <!-- Loading State -->
+  <div *ngIf="!group" class="flex items-center justify-center h-96">
+    <div class="loading loading-spinner loading-lg text-primary"></div>
   </div>
 
-  <!-- Backdrop Blur Overlay -->
-  <div *ngIf="isDropdownOpen && !isTaskDetailRoute()"
-    class="fixed inset-0 bg-black/40 backdrop-blur-lg z-40 transition-all duration-300 ease-in-out animate-in fade-in-0"
-    (click)="closeDropdown()"></div>
+  <!-- Main Content -->
+  <div *ngIf="group" class="animate-fadeIn">
+    <!-- Header with Breadcrumbs -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-2 text-sm text-base-content/70">
+        <a routerLink="/workplace/work-management" class="hover:text-primary cursor-pointer">Groups</a>
+        <span>/</span>
+        <span class="font-semibold text-base-content">{{ group.name || 'Loading...' }}</span>
+      </div>
+    </div>
 
-  <!-- Centered Dropdown Navigation -->
-  <ng-container *ngIf="!isTaskDetailRoute()">
-    <div class="flex justify-center my-4 relative">
-      <button (click)="toggleDropdown()" class="btn btn-md btn-ghost text-xl font-bold cursor-pointer relative z-10">
-        {{ activeView | titlecase }}
-        <lucide-icon name="ChevronDown" class="w-6 h-6 transition-transform duration-200"
-          [class.rotate-180]="isDropdownOpen"></lucide-icon>
-      </button>
+    <!-- Centered Dropdown Navigation -->
+    <ng-container *ngIf="!isTaskDetailRoute()">
+      <div class="flex justify-center my-4 relative">
+        <button (click)="toggleDropdown()" class="btn btn-md btn-ghost text-xl font-bold cursor-pointer relative z-10">
+          {{ activeView | titlecase }}
+          <lucide-icon name="ChevronDown" class="w-6 h-6 transition-transform duration-200"
+            [class.rotate-180]="isDropdownOpen"></lucide-icon>
+        </button>
+      </div>
+    </ng-container>
 
-      <!-- Centered Dropdown Menu -->
-      <div *ngIf="isDropdownOpen"
-        class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] bg-base-200/95 backdrop-blur-xl rounded-xl shadow-2xl p-6 z-50 border border-base-content/20 animate-in slide-in-from-top-4 fade-in-0 zoom-in-95 duration-300">
-        <div class="grid grid-cols-2 gap-4">
-          <div *ngFor="let item of menuItems" (click)="onNavigate(item.route)" [ngClass]="{
-            'bg-primary/20': activeView === cleanRoute(item.route),
-            'border-primary/50': activeView === cleanRoute(item.route)
-          }" class="group p-4 rounded-xl hover:bg-base-content/10 
-                 flex items-center gap-4 transition-all duration-200 
-                 cursor-pointer border border-transparent hover:border-primary/30">
-            <lucide-icon [name]="item.icon" [ngClass]="{
-                      'text-primary': activeView === cleanRoute(item.route),
-                      'text-primary/70': activeView !== cleanRoute(item.route)
-                    }" class="w-8 h-8 transition-all duration-300 
-                           group-hover:scale-110">
-            </lucide-icon>
-            <div>
-              <p class="font-bold text-sm" [ngClass]="{
-              'text-primary': activeView === cleanRoute(item.route)
-            }">
-                {{ item.label }}
-              </p>
-              <p class="text-sm text-base-content/70">
-                {{ item.description }}
-              </p>
-            </div>
-          </div>
+    <!-- Child Route Content -->
+    <div class="mt-6">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>
 
+<!-- Dropdown and Backdrop outside main content -->
+<ng-container *ngIf="isDropdownOpen && !isTaskDetailRoute()">
+  <!-- Backdrop -->
+  <div class="fixed inset-0 bg-black/40 backdrop-blur-xl z-40"
+       (click)="closeDropdown()"></div>
+  
+  <!-- Dropdown Menu -->
+  <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] bg-base-200 rounded-xl shadow-2xl p-6 z-50 border border-base-content/20"
+       [@dropdownAnimation]>
+    <div class="grid grid-cols-2 gap-4">
+      <div *ngFor="let item of menuItems" (click)="onNavigate(item.route)" [ngClass]="{
+        'bg-primary/20': activeView === cleanRoute(item.route),
+        'border-primary/50': activeView === cleanRoute(item.route)
+      }" class="group p-4 rounded-xl hover:bg-base-content/10 
+             flex items-center gap-4 transition-all duration-200 
+             cursor-pointer border border-transparent hover:border-primary/30">
+        <lucide-icon [name]="item.icon" [ngClass]="{
+                  'text-primary': activeView === cleanRoute(item.route),
+                  'text-primary/70': activeView !== cleanRoute(item.route)
+                }" class="w-8 h-8 transition-all duration-300 
+                       group-hover:scale-110">
+        </lucide-icon>
+        <div>
+          <p class="font-bold text-sm" [ngClass]="{
+          'text-primary': activeView === cleanRoute(item.route)
+        }">
+            {{ item.label }}
+          </p>
+          <p class="text-sm text-base-content/70">
+            {{ item.description }}
+          </p>
         </div>
       </div>
     </div>
-  </ng-container>
-
-  <!-- Child Route Content -->
-  <div class="mt-6">
-    <router-outlet></router-outlet>
   </div>
-</div>
+</ng-container>

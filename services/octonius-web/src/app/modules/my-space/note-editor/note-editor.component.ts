@@ -98,7 +98,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.userService.getCurrentUser().subscribe({
       next: (user: User) => {
         console.log('User data loaded successfully:', user)
-        this.userName = user.first_name
+        this.userName = user.first_name || user.email?.split('@')[0] || 'User'
         this.userId = user.uuid
         this.workplaceId = user.current_workplace_id || ''
         this.createdBy = user.first_name || user.email?.split('@')[0] || 'User'

@@ -46,8 +46,8 @@ export class FilesComponent implements OnInit {
       this.error = null
 
       // Load user data for display name
-      const response: any = await firstValueFrom(this.userService.getCurrentUser())
-      const user = response.data.user
+      const user_data: User = await firstValueFrom(this.userService.getCurrentUser())
+      const user = user_data
       if (!user) {
         throw new Error('No user data available')
       }
