@@ -62,7 +62,19 @@
             </div>
           </div>
           <div class="flex-1">
-            <textarea class="textarea textarea-bordered w-full" placeholder="What's on your mind, User?" [(ngModel)]="newPostContent" [disabled]="isSubmitting"></textarea>
+            <app-tiptap-editor
+              [config]="{
+                placeholder: 'What\'s on your mind, User?',
+                showToolbar: true,
+                showBubbleMenu: true,
+                showCharacterCount: true,
+                maxHeight: '200px',
+                minHeight: '120px',
+                toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
+              }"
+              [(ngModel)]="newPostContent"
+              name="newPostContent">
+            </app-tiptap-editor>
             <div class="flex justify-between items-center mt-2">
               <div class="flex gap-2">
                 <button class="btn btn-ghost btn-sm btn-circle" disabled><lucide-icon name="Paperclip" class="w-5 h-5"></lucide-icon></button>
@@ -150,7 +162,7 @@
                       <p class="text-sm font-semibold">{{ comment.user?.first_name }} {{ comment.user?.last_name }}</p>
                       <span class="text-xs text-base-content/60">{{ comment.created_at | date:'medium' }}</span>
                     </div>
-                    <p class="text-sm text-base-content/90 whitespace-pre-wrap">{{ comment.content }}</p>
+                    <div class="text-sm text-base-content/90 whitespace-pre-wrap" [appRichHtml]="comment.content"></div>
                   </div>
                 </div>
               </div>
@@ -165,13 +177,19 @@
                     </div>
                   </div>
                   <div class="flex-1">
-                    <textarea 
-                      class="textarea textarea-bordered w-full min-h-[80px] resize-none" 
-                      placeholder="What's on your mind, User?"
+                    <app-tiptap-editor
+                      [config]="{
+                        placeholder: 'What\'s on your mind, User?',
+                        showToolbar: true,
+                        showBubbleMenu: true,
+                        showCharacterCount: true,
+                        maxHeight: '200px',
+                        minHeight: '120px',
+                        toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
+                      }"
                       [(ngModel)]="post.newComment"
-                      [disabled]="!!post.submittingComment"
-                      (keydown)="handleCommentKeydown($event, post)">
-                    </textarea>
+                      name="post.newComment">
+                    </app-tiptap-editor>
                     <div class="flex justify-between items-center mt-2">
                       <div class="flex gap-2">
                         <button class="btn btn-ghost btn-sm btn-circle" disabled>
