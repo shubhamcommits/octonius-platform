@@ -13,16 +13,16 @@ on:
       - '.github/workflows/**'
       - 'src/**'
       - 'server.ts'
-  pull_request:
-    branches:
-      - master
-      - development
-    paths:
-      - 'services/**'
-      - 'terraform/**'
-      - '.github/workflows/**'
-      - 'src/**'
-      - 'server.ts'
+  # pull_request:
+  #   branches:
+  #     - master
+  #     - development
+  #   paths:
+  #     - 'services/**'
+  #     - 'terraform/**'
+  #     - '.github/workflows/**'
+  #     - 'src/**'
+  #     - 'server.ts'
   workflow_dispatch:
     inputs:
       environment:
