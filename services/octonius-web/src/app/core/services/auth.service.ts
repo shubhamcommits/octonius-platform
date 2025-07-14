@@ -8,11 +8,27 @@ import { ToastService } from './toast.service';
 
 export interface User {
   uuid: string;
-  first_name: string;
-  last_name: string;
+  active: boolean;
+  first_name: string | null;
+  last_name: string | null;
   email: string;
-  current_workplace_id?: string;
-  avatar_url?: string;
+  phone: string | null;
+  avatar_url: string | null;
+  job_title: string | null;
+  department: string | null;
+  timezone: string;
+  language: string;
+  notification_preferences: {
+    email: boolean;
+    push: boolean;
+    in_app: boolean;
+  };
+  disabled_at: Date | null;
+  source: string;
+  role: string | null;
+  current_workplace_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 @Injectable({

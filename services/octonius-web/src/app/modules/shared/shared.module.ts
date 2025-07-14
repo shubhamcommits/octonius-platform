@@ -79,7 +79,9 @@ import { LucideAngularModule,
   Archive,
   HelpCircle,
   EyeOff,
-  EyeIcon
+  EyeIcon,
+  ChartBar,
+  Copy
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -174,7 +176,9 @@ import { RichHtmlDirective } from './directives/rich-html.directive'
       Archive,
       HelpCircle,
       EyeOff,
-      EyeIcon
+      EyeIcon,
+      ChartBar,
+      Copy
     })
   ],
   exports: [

@@ -6,6 +6,7 @@ import { ToastService } from '../../../core/services/toast.service'
 import { CapitalizePipe } from '../../../core/pipes/capitalize.pipe'
 import { ThemeService } from '../../../core/services/theme.service'
 import { Subscription } from 'rxjs'
+import { User } from '../../../core/services/auth.service'
 
 interface Task {
   title: string
@@ -66,8 +67,8 @@ export class WorkloadComponent implements OnInit, OnDestroy {
     this.error = null
 
     this.userService.getCurrentUser().subscribe({
-      next: (response: any) => {
-        const user = response.data.user
+      next: (user_data: User) => {
+        const user = user_data
         this.userName = user.first_name || user.email?.split('@')[0] || 'User'
         if (user.uuid && user.current_workplace_id) {
           this.workloadService.getWorkload(user.uuid, user.current_workplace_id).subscribe({

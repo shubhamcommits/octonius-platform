@@ -1,6 +1,7 @@
 <!-- Backdrop Blur Overlay -->
 <div *ngIf="openDropdown" 
-     class="fixed inset-0 bg-black/40 backdrop-blur-lg z-40 transition-all duration-300 ease-in-out animate-in fade-in-0"
+     class="fixed inset-0 bg-black/40 backdrop-blur-lg z-40 transition-all duration-300 ease-in-out"
+     [@backdropAnimation]
      (click)="closeAllDropdowns()"></div>
 
 <!-- Main Navigation -->
@@ -12,58 +13,62 @@
     </button>
     <!-- My Space Dropdown -->
     <div *ngIf="openDropdown === 'myspace' && tab.id === 'myspace'"
-         class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-base-200/95 backdrop-blur-xl rounded-xl shadow-2xl p-8 flex justify-between z-50 border border-base-content/20 animate-in slide-in-from-top-4 fade-in-0 zoom-in-95 duration-300">
+         class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-base-200/95 backdrop-blur-xl rounded-xl shadow-2xl p-8 flex justify-between z-50 border border-base-content/20 
+                transition-all duration-300 ease-out
+                animate-in fade-in-0 zoom-in-95 slide-in-from-top-4"
+         [@dropdownAnimation]>
       <div class="flex flex-col items-center cursor-pointer group" (click)="goTo('inbox')">
-        <img src="https://media.octonius.com/assets/icon_myinbox.svg" alt="Inbox" class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
+        <img src="https://media.octonius.com/assets/icon_myinbox.svg" alt="Inbox" class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
         <span class="font-bold text-base mt-4">Inbox</span>
       </div>
       <div class="flex flex-col items-center cursor-pointer group" (click)="goTo('tasks')">
-        <img src="https://media.octonius.com/assets/icon_projects.svg" alt="My Tasks" class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
+        <img src="https://media.octonius.com/assets/icon_projects.svg" alt="My Tasks" class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
         <span class="font-bold text-base mt-4">My Tasks</span>
       </div>
       <div class="flex flex-col items-center cursor-pointer group" (click)="goTo('files')">
-        <img src="https://media.octonius.com/assets/icon_mynotes.svg" alt="My Files" class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
+        <img src="https://media.octonius.com/assets/icon_mynotes.svg" alt="My Files" class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
         <span class="font-bold text-base mt-4">My Files</span>
       </div>
     </div>
     <!-- Workplace Dropdown -->
     <div *ngIf="openDropdown === 'workplace' && tab.id === 'workplace'"
-      class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] bg-base-200/95 backdrop-blur-xl rounded-xl shadow-2xl p-8 z-50 border border-base-content/20 animate-in slide-in-from-top-4 fade-in-0 zoom-in-95 duration-300">
+      class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] bg-base-200/95 backdrop-blur-xl rounded-xl shadow-2xl p-8 z-50 border border-base-content/20 animate-in slide-in-from-top-4 fade-in-0 zoom-in-95 duration-300"
+      [@dropdownAnimation]>
       <div class="grid grid-cols-3 gap-x-8 gap-y-12">
         <!-- Work Management -->
         <div class="flex flex-col items-center cursor-pointer group" (click)="goToWorkplace('work-management')">
           <img src="https://media.octonius.com/assets/icon_workmanagement.svg" alt="Work Management"
-            class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
+            class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
           <span class="font-bold text-base mt-4 whitespace-nowrap">Work Management</span>
         </div>
         <!-- CRM -->
         <div class="flex flex-col items-center cursor-pointer group" (click)="goToWorkplace('crm')">
           <img src="https://media.octonius.com/assets/icon_CRM.svg" alt="CRM"
-            class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
+            class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
           <span class="font-bold text-base mt-4">CRM</span>
         </div>
         <!-- Files -->
         <div class="flex flex-col items-center cursor-pointer group" (click)="goToWorkplace('files')">
           <img src="https://media.octonius.com/assets/icon_files.svg" alt="Files"
-            class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
+            class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
           <span class="font-bold text-base mt-4">Files</span>
         </div>
         <!-- Communities -->
         <div class="flex flex-col items-center cursor-pointer group" (click)="goToWorkplace('communities')">
           <img src="https://media.octonius.com/assets/icon_agora.svg" alt="Communities"
-            class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
+            class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
           <span class="font-bold text-base mt-4">Communities</span>
         </div>
         <!-- Library -->
         <div class="flex flex-col items-center cursor-pointer group" (click)="goToWorkplace('library')">
           <img src="https://media.octonius.com/assets/icon_library.svg" alt="Library"
-            class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
+            class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
           <span class="font-bold text-base mt-4">Library</span>
         </div>
         <!-- Lounge -->
         <div class="flex flex-col items-center cursor-pointer group" (click)="goToWorkplace('lounge')">
           <img src="https://media.octonius.com/assets/icon_lounge.svg" alt="Lounge"
-            class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
+            class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
           <span class="font-bold text-base mt-4">Lounge</span>
         </div>
       </div>
@@ -71,21 +76,28 @@
         <a routerLink="/workplace/apps" (click)="openDropdown = null" class="text-sm text-base-content/70 hover:text-primary">See all apps</a>
       </div>
     </div>
-    <!-- Account Dropdown Placeholder -->
+    <!-- Account Dropdown -->
     <div *ngIf="openDropdown === 'account' && tab.id === 'account'"
-          class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-base-200/95 backdrop-blur-xl rounded-xl shadow-2xl p-8 flex justify-between z-50 border border-base-content/20 animate-in slide-in-from-top-4 fade-in-0 zoom-in-95 duration-300">
-         <div class="flex flex-col items-center cursor-pointer group" (click)="goTo('inbox')">
-          <img src="https://media.octonius.com/assets/icon_avatar.svg" alt="Inbox" class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
+         class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-base-200/95 backdrop-blur-xl rounded-xl shadow-2xl p-8 z-50 border border-base-content/20 animate-in slide-in-from-top-4 fade-in-0 zoom-in-95 duration-300"
+         [@dropdownAnimation]>
+      <div class="grid grid-cols-2 gap-6">
+        <!-- Profile -->
+        <div class="flex flex-col items-center cursor-pointer group" (click)="goToAccount('profile')">
+          <div class="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-primary/20 group-hover:scale-110">
+            <img src="https://media.octonius.com/assets/icon_avatar.svg" alt="Profile" class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
+          </div>
           <span class="font-bold text-base mt-4">Profile</span>
+          <span class="text-xs text-base-content/70 text-center">Manage your info</span>
         </div>
-        <div class="flex flex-col items-center cursor-pointer group" (click)="goTo('tasks')">
-          <img src="https://media.octonius.com/assets/icon_projects.svg" alt="My Tasks" class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
-          <span class="font-bold text-base mt-4">My Tasks</span>
+        <!-- Settings -->
+        <div class="flex flex-col items-center cursor-pointer group" (click)="goToAccount('settings')">
+          <div class="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-primary/20 group-hover:scale-110">
+            <img src="https://media.octonius.com/assets/icon_settings.svg" alt="Settings" class="w-16 h-16 transition-transform duration-300 group-hover:scale-110" />
+          </div>
+          <span class="font-bold text-base mt-4">Settings</span>
+          <span class="text-xs text-base-content/70 text-center">Workplace config</span>
         </div>
-        <div class="flex flex-col items-center cursor-pointer group" (click)="goTo('files')">
-          <img src="https://media.octonius.com/assets/icon_mynotes.svg" alt="My Files" class="w-12 h-12 transition-transform duration-300 group-hover:scale-110" />
-          <span class="font-bold text-base mt-4">My Files</span>
-        </div>
+      </div>
     </div>
   </div>
 </nav>

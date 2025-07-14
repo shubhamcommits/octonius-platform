@@ -2,12 +2,34 @@ import { Component, ElementRef, HostListener, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router, RouterEvent, UrlSegment } from '@angular/router';
 import { WorkGroup, WorkGroupService } from '../../services/work-group.service';
 import { filter, map, startWith } from 'rxjs';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 @Component({
   selector: 'app-group-detail',
   standalone: false,
   templateUrl: './group-detail.component.html',
-  styleUrls: ['./group-detail.component.scss']
+  styleUrls: ['./group-detail.component.scss'],
+  animations: [
+    trigger('dropdownAnimation', [
+      transition(':enter', [
+        style({ 
+          opacity: 0
+        }),
+        animate('300ms ease-out', 
+          style({ 
+            opacity: 1
+          })
+        )
+      ]),
+      transition(':leave', [
+        animate('300ms ease-in', 
+          style({ 
+            opacity: 0
+          })
+        )
+      ])
+    ])
+  ]
 })
 export class GroupDetailComponent implements OnInit {
   group: WorkGroup | undefined;
