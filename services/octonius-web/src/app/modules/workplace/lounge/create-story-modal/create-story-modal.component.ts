@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { LoungeStory } from '../../services/lounge.service';
 
 @Component({
@@ -13,7 +13,7 @@ export class CreateStoryModalComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
   @Output() storyCreated = new EventEmitter<Partial<LoungeStory>>();
 
-  form;
+  form: FormGroup;
 
   constructor(private fb: FormBuilder) {
     this.form = this.fb.group({

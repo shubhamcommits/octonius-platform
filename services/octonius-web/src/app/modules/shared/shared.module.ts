@@ -85,12 +85,16 @@ import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
 import { NavbarComponent } from './components/navbar/navbar.component'
 import { TopbarComponent } from './components/topbar/topbar.component'
+import { TiptapEditorComponent } from '../../core/components/tiptap-editor/tiptap-editor.component'
+import { RichHtmlDirective } from './directives/rich-html.directive'
 
 @NgModule({
   imports: [
     CommonModule,
     TopbarComponent,
     NavbarComponent,
+    TiptapEditorComponent,
+    RichHtmlDirective,
     LucideAngularModule.pick({ 
       Home, 
       User, 
@@ -177,7 +181,9 @@ import { TopbarComponent } from './components/topbar/topbar.component'
     CommonModule,
     LucideAngularModule,
     TopbarComponent,
-    NavbarComponent
+    NavbarComponent,
+    TiptapEditorComponent,
+    RichHtmlDirective
   ],
   providers: [AuthGuard, NonAuthGuard]
 })
