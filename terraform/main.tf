@@ -228,7 +228,7 @@ module "app_runner" {
 
   # Container configuration
   container_port     = 3000
-  health_check_path  = "/api/health"
+  health_check_path  = "/health"
   image_tag          = "latest-${local.environment}"
   ecr_repository_url = module.ecr.repository_url
   image_identifier   = "${module.ecr.repository_url}:latest-${local.environment}"
