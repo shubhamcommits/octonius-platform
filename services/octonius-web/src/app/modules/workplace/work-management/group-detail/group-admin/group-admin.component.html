@@ -80,10 +80,19 @@
                     <label class="label">
                       <span class="label-text font-semibold text-base-content/80">Description</span>
                     </label>
-                    <textarea 
+                    <app-tiptap-editor
+                      [config]="{
+                        placeholder: 'Describe the purpose and goals of this group...',
+                        showToolbar: true,
+                        showBubbleMenu: true,
+                        showCharacterCount: true,
+                        maxHeight: '200px',
+                        minHeight: '120px',
+                        toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
+                      }"
                       [(ngModel)]="groupForm.description"
-                      class="textarea textarea-bordered h-28 focus:border-primary resize-none w-full"
-                      placeholder="Describe the purpose and goals of this group..."></textarea>
+                      name="groupFormDescription">
+                    </app-tiptap-editor>
                   </div>
 
                   <!-- Group Image URL -->
@@ -850,11 +859,19 @@
         <label class="label">
           <span class="label-text font-medium">Personal Message (Optional)</span>
         </label>
-        <textarea 
+        <app-tiptap-editor
+          [config]="{
+            placeholder: 'Add a personal message to the invitation...',
+            showToolbar: true,
+            showBubbleMenu: true,
+            showCharacterCount: true,
+            maxHeight: '150px',
+            minHeight: '100px',
+            toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
+          }"
           [(ngModel)]="inviteForm.message"
-          class="textarea textarea-bordered"
-          rows="3"
-          placeholder="Add a personal message to the invitation..."></textarea>
+          name="inviteFormMessage">
+        </app-tiptap-editor>
         <div class="label">
           <span class="label-text-alt text-base-content/60">{{ inviteForm.message.length || 0 }}/200 characters</span>
         </div>

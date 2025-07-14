@@ -1,0 +1,218 @@
+<div class="tiptap-editor-wrapper" [style.max-height]="config.maxHeight" [style.min-height]="config.minHeight">
+  <!-- Toolbar (optional) -->
+  <div *ngIf="config.showToolbar" class="tiptap-toolbar bg-base-200 border-b border-base-300 px-3 py-2">
+    <div class="flex flex-wrap items-center gap-1">
+      <!-- Undo/Redo -->
+      <div class="flex items-center gap-1">
+        <button 
+          class="btn btn-ghost btn-xs"
+          [disabled]="!canUndo()"
+          (click)="undo()"
+          title="Undo">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+          </svg>
+        </button>
+        <button 
+          class="btn btn-ghost btn-xs"
+          [disabled]="!canRedo()"
+          (click)="redo()"
+          title="Redo">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="divider divider-horizontal mx-1"></div>
+
+      <!-- Text Formatting -->
+      <div class="flex items-center gap-1">
+        <button 
+          *ngIf="config.toolbarItems?.includes('bold')"
+          class="btn btn-ghost btn-xs"
+          [class.btn-active]="isActive('bold')"
+          (click)="toggleBold()"
+          title="Bold">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
+          </svg>
+        </button>
+        <button 
+          *ngIf="config.toolbarItems?.includes('italic')"
+          class="btn btn-ghost btn-xs"
+          [class.btn-active]="isActive('italic')"
+          (click)="toggleItalic()"
+          title="Italic">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 4l4 8-4 8M6 16l2.5-4L6 8" />
+          </svg>
+        </button>
+        <button 
+          *ngIf="config.toolbarItems?.includes('underline')"
+          class="btn btn-ghost btn-xs"
+          [class.btn-active]="isActive('underline')"
+          (click)="toggleUnderline()"
+          title="Underline">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a4 4 0 100 8v0a4 4 0 100-8zm0 0V4m0 18h8" />
+          </svg>
+        </button>
+        <button 
+          *ngIf="config.toolbarItems?.includes('strike')"
+          class="btn btn-ghost btn-xs"
+          [class.btn-active]="isActive('strike')"
+          (click)="toggleStrike()"
+          title="Strikethrough">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h12M6 12a6 6 0 106 6h-6a6 6 0 01-6-6z" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="divider divider-horizontal mx-1"></div>
+
+      <!-- Lists -->
+      <div class="flex items-center gap-1">
+        <button 
+          *ngIf="config.toolbarItems?.includes('bulletList')"
+          class="btn btn-ghost btn-xs"
+          [class.btn-active]="isActive('bulletList')"
+          (click)="toggleBulletList()"
+          title="Bullet List">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          </svg>
+        </button>
+        <button 
+          *ngIf="config.toolbarItems?.includes('orderedList')"
+          class="btn btn-ghost btn-xs"
+          [class.btn-active]="isActive('orderedList')"
+          (click)="toggleOrderedList()"
+          title="Numbered List">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+        <button 
+          *ngIf="config.toolbarItems?.includes('taskList')"
+          class="btn btn-ghost btn-xs"
+          [class.btn-active]="isActive('taskList')"
+          (click)="toggleTaskList()"
+          title="Task List">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="divider divider-horizontal mx-1"></div>
+
+      <!-- More Options -->
+      <div class="flex items-center gap-1">
+        <button 
+          *ngIf="config.toolbarItems?.includes('link')"
+          class="btn btn-ghost btn-xs"
+          [class.btn-active]="isActive('link')"
+          (click)="setLink()"
+          title="Link">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+        </button>
+        <button 
+          *ngIf="config.toolbarItems?.includes('blockquote')"
+          class="btn btn-ghost btn-xs"
+          [class.btn-active]="isActive('blockquote')"
+          (click)="toggleBlockquote()"
+          title="Quote">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+          </svg>
+        </button>
+        <button 
+          *ngIf="config.toolbarItems?.includes('codeBlock')"
+          class="btn btn-ghost btn-xs"
+          [class.btn-active]="isActive('codeBlock')"
+          (click)="toggleCodeBlock()"
+          title="Code Block">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Character Count (optional) -->
+      <div *ngIf="config.showCharacterCount" class="ml-auto text-xs text-base-content/60">
+        {{ getCharacterCount() }} chars
+      </div>
+    </div>
+  </div>
+
+  <!-- Editor Content Area -->
+  <div class="tiptap-content-area bg-base-100 border border-base-300 rounded-b-lg">
+    <div class="tiptap-editor bg-base-100 border border-base-300 text-base-content rounded-lg w-full" #editorElement></div>
+  </div>
+</div>
+
+<!-- Bubble Menu (hidden, will be positioned by Tiptap) -->
+<div *ngIf="config.showBubbleMenu" #bubbleMenuElement class="bubble-menu">
+  <div class="flex items-center gap-1 bg-base-200 border border-base-300 rounded shadow-lg p-2">
+    <!-- Bold -->
+    <button 
+      class="btn btn-ghost btn-xs"
+      [class.btn-active]="isActive('bold')"
+      (click)="toggleBold()"
+      title="Bold">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
+      </svg>
+    </button>
+    
+    <!-- Italic -->
+    <button 
+      class="btn btn-ghost btn-xs"
+      [class.btn-active]="isActive('italic')"
+      (click)="toggleItalic()"
+      title="Italic">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 4l4 8-4 8M6 16l2.5-4L6 8" />
+      </svg>
+    </button>
+    
+    <!-- Underline -->
+    <button 
+      class="btn btn-ghost btn-xs"
+      [class.btn-active]="isActive('underline')"
+      (click)="toggleUnderline()"
+      title="Underline">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a4 4 0 100 8v0a4 4 0 100-8zm0 0V4m0 18h8" />
+      </svg>
+    </button>
+    
+    <!-- Code -->
+    <button 
+      class="btn btn-ghost btn-xs"
+      [class.btn-active]="isActive('code')"
+      (click)="toggleCode()"
+      title="Code">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+      </svg>
+    </button>
+    
+    <!-- Link -->
+    <button 
+      class="btn btn-ghost btn-xs"
+      [class.btn-active]="isActive('link')"
+      (click)="setLink()"
+      title="Link">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+      </svg>
+    </button>
+  </div>
+</div> 

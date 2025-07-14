@@ -25,11 +25,18 @@
 
         <div>
           <label class="block font-medium mb-1">Description</label>
-          <textarea 
-            formControlName="description" 
-            class="textarea textarea-bordered w-full" 
-            rows="3" 
-            placeholder="Describe the purpose and goals of this group"></textarea>
+          <app-tiptap-editor
+            [config]="{
+              placeholder: 'Describe the purpose and goals of this group...',
+              showToolbar: true,
+              showBubbleMenu: true,
+              showCharacterCount: true,
+              maxHeight: '200px',
+              minHeight: '120px',
+              toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
+            }"
+            formControlName="description">
+          </app-tiptap-editor>
           <div *ngIf="form.get('description')?.invalid && form.get('description')?.touched" class="text-error text-xs mt-1">
             Description cannot exceed 500 characters.
           </div>

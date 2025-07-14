@@ -40,8 +40,8 @@
     <span class="text-xs text-base-content/60 ml-2">{{ story.date }} {{ story.time }}</span>
   </div>
 
-  <!-- Content -->
-  <div class="mb-8 text-base-content/90 whitespace-pre-line">{{ story.content }}</div>
+  <!-- Main Content -->
+  <div class="mb-8 text-base-content/90 whitespace-pre-line" [appRichHtml]="story.content"></div>
 
   <!-- Comments/Actions -->
   <div class="flex items-center gap-4 text-sm border-t border-base-200 pt-4">

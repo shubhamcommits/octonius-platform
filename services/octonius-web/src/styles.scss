@@ -2,3 +2,32 @@
 @use 'tailwindcss/base';
 @use 'tailwindcss/components';
 @use 'tailwindcss/utilities';
+
+/* TipTap Editor Placeholder Styles */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: rgb(156 163 175); /* Tailwind gray-400 - neutral gray that works in both themes */
+  opacity: 0.7; /* Slightly transparent for softer appearance */
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+}
+
+/* Ensure ProseMirror has proper sizing */
+.ProseMirror {
+  min-height: inherit;
+  max-height: inherit;
+  padding: inherit;
+  overflow-y: auto;
+  outline: none;
+}
+
+/* Remove default paragraph margins in editor */
+.ProseMirror p {
+  margin: 0;
+}
+
+.ProseMirror p + p {
+  margin-top: 0.5rem;
+}
