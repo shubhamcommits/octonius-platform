@@ -101,7 +101,7 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
 app.use('/public', express.static(path.join(__dirname, 'public/')))
 
 // Health check Route
-app.get('/api/health', async (req: Request, res: Response, next: NextFunction) => {
+app.get('/health', async (req: Request, res: Response, next: NextFunction) => {
     try {
 
         // Check database connection status
