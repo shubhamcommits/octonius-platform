@@ -102,7 +102,14 @@ import { LucideAngularModule,
   ArrowUpRight,
   ArrowDownLeft,
   Undo,
-  Redo
+  Redo,
+  Bug,
+  Image,
+  Table,
+  RemoveFormatting,
+  Lightbulb,
+  Keyboard,
+  Smile
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -220,7 +227,14 @@ import { RichHtmlDirective } from './directives/rich-html.directive'
       ArrowUpRight,
       ArrowDownLeft,
       Undo,
-      Redo
+      Redo,
+      Bug,
+      Image,
+      Table,
+      RemoveFormatting,
+      Lightbulb,
+      Keyboard,
+      Smile
     })
   ],
   exports: [
