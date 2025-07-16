@@ -3,6 +3,8 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { UserService } from '../../../core/services/user.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { FileService } from '../../../core/services/file.service';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 @Component({
@@ -19,6 +21,17 @@ export class ProfileComponent implements OnInit, OnDestroy {
   avatarPreview: string | null = null;
   error: string | null = null;
   
+  // Image upload state
+  imagePreviewUrl: SafeUrl | null = null;
+  uploadProgress: number | null = null;
+  uploading: boolean = false;
+  uploadError: string | null = null;
+  
+  // Location picker state
+  showLocationPicker = false;
+  currentLocationCoords: { lat: number; lng: number } | undefined = undefined;
+  pendingLocation: any = null;
+  
   private destroy$ = new Subject<void>();
   private saveSubject$ = new Subject<{ field: string; value: any }>();
 
@@ -26,7 +39,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private userService: UserService,
     private fb: FormBuilder,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private fileService: FileService,
+    private sanitizer: DomSanitizer
   ) {
     this.initializeForm();
     this.setupAutoSave();
@@ -42,7 +57,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
       department: [''],
       timezone: ['UTC'],
       language: ['en'],
-      bio: ['', [Validators.maxLength(500)]],
+      bio: ['', [Validators.maxLength(5000)]],
       location: [''],
       website: ['', [Validators.pattern('https?://.+')]],
       linkedin: [''],
@@ -137,6 +152,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
     if (!user || !this.profileForm) return;
     
     try {
+      // Get metadata values with safe access
+      const metadata = (user as any).metadata || {};
+      
       this.profileForm.patchValue({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
@@ -146,11 +164,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
         department: user.department || '',
         timezone: user.timezone || 'UTC',
         language: user.language || 'en',
-        bio: (user as any).bio || '',
-        location: (user as any).location || '',
-        website: (user as any).website || '',
-        linkedin: (user as any).linkedin || '',
-        twitter: (user as any).twitter || ''
+        bio: metadata.bio || '',
+        location: metadata.location || '',
+        website: metadata.website || '',
+        linkedin: metadata.linkedin || '',
+        twitter: metadata.twitter || ''
       }, { emitEvent: false }); // Don't trigger save on initial load
       this.avatarPreview = user.avatar_url || null;
     } catch (error) {
@@ -162,12 +180,34 @@ export class ProfileComponent implements OnInit, OnDestroy {
   private saveField(field: string, value: any): void {
     if (!this.user || this.isSaving) return;
 
+    // List of fields that belong in metadata
+    const metadataFields = ['bio', 'location', 'website', 'linkedin', 'twitter'];
+    const isMetadataField = metadataFields.includes(field);
+
     // Check if the value actually changed
-    const currentValue = (this.user as any)[field];
+    const currentUser = this.user as any;
+    const currentValue = isMetadataField 
+      ? currentUser.metadata?.[field] 
+      : currentUser[field];
+    
     if (currentValue === value) return;
 
     this.isSaving = true;
-    const updates: Partial<User> = { [field]: value };
+    let updates: Partial<User>;
+
+    if (isMetadataField) {
+      // For metadata fields, we need to update the entire metadata object
+      const currentMetadata = currentUser.metadata || {};
+      updates = {
+        metadata: {
+          ...currentMetadata,
+          [field]: value
+        }
+      };
+    } else {
+      // For regular fields, update directly
+      updates = { [field]: value };
+    }
 
     this.userService.updateUser(this.user.uuid, updates).subscribe({
       next: (user) => {
@@ -182,7 +222,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.isSaving = false;
         // Revert the field value
         if (this.profileForm && this.user) {
-          this.profileForm.get(field)?.setValue((this.user as any)[field], { emitEvent: false });
+          const revertValue = isMetadataField
+            ? (this.user as any).metadata?.[field]
+            : (this.user as any)[field];
+          this.profileForm.get(field)?.setValue(revertValue || '', { emitEvent: false });
         }
       }
     });
@@ -197,37 +240,96 @@ export class ProfileComponent implements OnInit, OnDestroy {
         control.classList.remove('saved');
       }, 2000);
     }
-  }
-
-  onFileSelected(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        this.toastService.error('Please select an image file');
-        return;
+    
+    // For tiptap editor, also add the class to the parent app-tiptap-editor element
+    if (field === 'bio') {
+      const tiptapEditor = document.querySelector('app-tiptap-editor[formControlName="bio"]');
+      if (tiptapEditor) {
+        tiptapEditor.classList.add('saved');
+        setTimeout(() => {
+          tiptapEditor.classList.remove('saved');
+        }, 2000);
       }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        this.toastService.error('Image size should be less than 5MB');
-        return;
-      }
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.avatarPreview = e.target?.result as string;
-        // TODO: Upload avatar and save
-        this.uploadAvatar(file);
-      };
-      reader.readAsDataURL(file);
     }
   }
 
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    
+    const file = input.files[0];
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      this.toastService.error('Please select an image file');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      this.toastService.error('Image size should be less than 5MB');
+      return;
+    }
+
+    this.uploadError = null;
+    this.uploading = true;
+    this.uploadProgress = 0;
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.imagePreviewUrl = this.sanitizer.bypassSecurityTrustUrl(e.target.result);
+      this.avatarPreview = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to S3
+    this.uploadAvatar(file);
+  }
+
   private uploadAvatar(file: File): void {
-    // TODO: Implement avatar upload
-    this.toastService.info('Avatar upload feature coming soon!');
+    if (!this.user) return;
+
+    this.fileService.uploadFileViaS3(file).subscribe({
+      next: (uploadedFile: any) => {
+        const url = uploadedFile.cdn_url || uploadedFile.download_url || uploadedFile.url;
+        this.avatarPreview = url;
+        this.uploading = false;
+        this.uploadProgress = null;
+        
+        // Update user avatar
+        this.saveField('avatar_url', url);
+      },
+      error: (err: any) => {
+        this.uploadError = 'Failed to upload avatar. Please try again.';
+        this.uploading = false;
+        this.uploadProgress = null;
+        this.toastService.error(this.uploadError);
+        
+        // Reset the file input
+        const input = document.getElementById('avatar-upload') as HTMLInputElement;
+        if (input) {
+          input.value = '';
+        }
+      }
+    });
+  }
+
+  clearAvatarUpload(): void {
+    this.imagePreviewUrl = null;
+    this.avatarPreview = null;
+    this.uploadError = null;
+    
+    // Clear the file input
+    const input = document.getElementById('avatar-upload') as HTMLInputElement;
+    if (input) {
+      input.value = '';
+    }
+    
+    // Update user avatar to null
+    if (this.user) {
+      this.saveField('avatar_url', null);
+    }
   }
 
   get fullName(): string {
@@ -244,6 +346,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
     const firstInitial = firstName.charAt(0) || '';
     const lastInitial = lastName.charAt(0) || '';
     return `${firstInitial}${lastInitial}`.toUpperCase();
+  }
+
+  get bioCharacterCount(): number {
+    const bioValue = this.profileForm?.get('bio')?.value || '';
+    // Strip HTML tags to count actual text characters
+    return bioValue.replace(/<[^>]*>/g, '').length;
   }
 
   getDisplayDate(dateStr: string | null | undefined): string {
@@ -272,5 +380,70 @@ export class ProfileComponent implements OnInit, OnDestroy {
     if (!uuid) return;
     navigator.clipboard.writeText(uuid);
     this.toastService.success('User ID copied to clipboard!');
+  }
+  
+  openLocationPicker(): void {
+    // Try to get location coordinates from user metadata first
+    const metadata = (this.user as any)?.metadata || {};
+    
+    if (metadata.location_coordinates) {
+      // Use stored coordinates from metadata
+      this.currentLocationCoords = {
+        lat: metadata.location_coordinates.lat,
+        lng: metadata.location_coordinates.lng
+      };
+    } else {
+      // Fallback: try to parse from location string
+      const currentLocation = this.profileForm?.get('location')?.value || metadata.location;
+      
+      if (typeof currentLocation === 'string' && currentLocation.includes(',')) {
+        // Try to parse lat,lng format
+        const parts = currentLocation.split(',').map(p => parseFloat(p.trim()));
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          this.currentLocationCoords = { lat: parts[0], lng: parts[1] };
+        }
+      } else {
+        // No valid location found, use undefined to trigger default
+        this.currentLocationCoords = undefined;
+      }
+    }
+    
+    this.pendingLocation = null; // Clear any previous pending location
+    this.showLocationPicker = true;
+  }
+  
+  onLocationSelected(location: any): void {
+    if (location) {
+      // Store the pending location without closing the modal
+      this.pendingLocation = location;
+    }
+  }
+  
+  confirmLocationSelection(): void {
+    if (this.pendingLocation) {
+      // Store the location as a formatted string with coordinates
+      const locationString = this.pendingLocation.address || `${this.pendingLocation.lat.toFixed(6)}, ${this.pendingLocation.lng.toFixed(6)}`;
+      
+      // Update form value
+      this.profileForm?.get('location')?.setValue(locationString);
+      
+      // Store coordinates in metadata
+      const metadata = (this.user as any)?.metadata || {};
+      const updatedMetadata = {
+        ...metadata,
+        location: locationString,
+        location_coordinates: {
+          lat: this.pendingLocation.lat,
+          lng: this.pendingLocation.lng
+        }
+      };
+      
+      // Save metadata
+      this.saveField('metadata', updatedMetadata);
+      
+      // Clear pending location and close modal
+      this.pendingLocation = null;
+      this.showLocationPicker = false;
+    }
   }
 } 
