@@ -25,6 +25,17 @@ interface UserAttributes {
         push: boolean
         in_app: boolean
     }
+    metadata: {
+        bio?: string
+        location?: string
+        website?: string
+        twitter?: string
+        linkedin?: string
+        github?: string
+        skills?: string[]
+        interests?: string[]
+        [key: string]: any
+    }
     disabled_at: Date | null
     source: string
     role: string | null
@@ -34,7 +45,7 @@ interface UserAttributes {
 }
 
 // Define user creation attributes
-interface UserCreationAttributes extends Optional<UserAttributes, 'uuid' | 'first_name' | 'last_name' | 'avatar_url' | 'job_title' | 'department' | 'disabled_at' | 'created_at' | 'updated_at'> {}
+interface UserCreationAttributes extends Optional<UserAttributes, 'uuid' | 'first_name' | 'last_name' | 'avatar_url' | 'job_title' | 'department' | 'metadata' | 'disabled_at' | 'created_at' | 'updated_at'> {}
 
 // Extend Sequelize Model Class
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -53,6 +64,17 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
         email: boolean
         push: boolean
         in_app: boolean
+    }
+    public metadata!: {
+        bio?: string
+        location?: string
+        website?: string
+        twitter?: string
+        linkedin?: string
+        github?: string
+        skills?: string[]
+        interests?: string[]
+        [key: string]: any
     }
     public disabled_at!: Date | null
     public source!: string
@@ -206,6 +228,11 @@ User.init({
             push: true,
             in_app: true
         }
+    },
+    metadata: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        defaultValue: {}
     },
     disabled_at: {
         type: DataTypes.DATE,

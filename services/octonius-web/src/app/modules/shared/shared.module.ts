@@ -113,7 +113,9 @@ import { LucideAngularModule,
   CheckCircle2,
   Briefcase,
   Building2,
-  Edit3
+  Edit3,
+  Camera,
+  Navigation
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -121,6 +123,7 @@ import { NavbarComponent } from './components/navbar/navbar.component'
 import { TopbarComponent } from './components/topbar/topbar.component'
 import { TiptapEditorComponent } from '../../core/components/tiptap-editor/tiptap-editor.component'
 import { RichHtmlDirective } from './directives/rich-html.directive'
+import { LocationPickerComponent } from './components/location-picker/location-picker.component'
 
 @NgModule({
   imports: [
@@ -129,6 +132,7 @@ import { RichHtmlDirective } from './directives/rich-html.directive'
     NavbarComponent,
     TiptapEditorComponent,
     RichHtmlDirective,
+    LocationPickerComponent,
     LucideAngularModule.pick({ 
       Home, 
       User, 
@@ -242,7 +246,9 @@ import { RichHtmlDirective } from './directives/rich-html.directive'
       CheckCircle2,
       Briefcase,
       Building2,
-      Edit3
+      Edit3,
+      Camera,
+      Navigation
     })
   ],
   exports: [
@@ -251,7 +257,8 @@ import { RichHtmlDirective } from './directives/rich-html.directive'
     TopbarComponent,
     NavbarComponent,
     TiptapEditorComponent,
-    RichHtmlDirective
+    RichHtmlDirective,
+    LocationPickerComponent
   ],
   providers: [AuthGuard, NonAuthGuard]
 })

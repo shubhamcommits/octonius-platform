@@ -35,6 +35,8 @@
     "@tiptap/extension-text-align": "^2.24.2",
     "@tiptap/extension-underline": "^2.24.2",
     "@tiptap/starter-kit": "^2.24.2",
+    "@types/leaflet": "^1.9.20",
+    "leaflet": "^1.9.4",
     "lucide-angular": "^0.510.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

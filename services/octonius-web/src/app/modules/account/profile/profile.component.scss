@@ -5,15 +5,19 @@
 
 .profile-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, hsl(var(--b1)) 0%, hsl(var(--b2)) 100%);
+  background: hsl(var(--b1));
+  
+  // Professional card styling
+  .bg-base-100\/80 {
+    background: hsl(var(--b1) / 0.95);
+  }
   
   // Modern card hover effects
   .bg-base-100\/60 {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
     &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
   }
   
@@ -25,7 +29,7 @@
   textarea,
   select {
     &:focus {
-      transform: translateY(-1px);
+      // Removed transform effect - only shadow changes on focus
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
     }
     
@@ -37,20 +41,14 @@
   
   // Button animations
   button {
-    transition: all 0.2s ease;
-    
-    &:hover:not(:disabled) {
-      transform: translateY(-2px);
-    }
-    
-    &:active:not(:disabled) {
-      transform: translateY(0);
-    }
+    transition: all 0.2s ease
   }
   
-  // Avatar glow effect
-  .group:hover .absolute.-inset-1 {
-    animation: pulse-glow 2s ease-in-out infinite;
+  // Avatar hover effect
+  .group:hover {
+    .absolute.bottom-0.right-0 {
+      transform: scale(1.05);
+    }
   }
   
   // Label animations
@@ -122,16 +120,6 @@
 }
 
 // Keyframe animations
-@keyframes pulse-glow {
-  0%, 100% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.05);
-  }
-}
 
 // Remove all old styles
 @keyframes gradient-shift {
@@ -199,8 +187,52 @@
 // Save indicator animation
 input.saved,
 textarea.saved,
-select.saved {
+select.saved,
+app-tiptap-editor.saved {
   animation: save-pulse 2s ease-out;
+}
+
+// TipTap editor styling in profile
+app-tiptap-editor {
+  ::ng-deep {
+    .tiptap-container {
+      .tiptap-editor-wrapper {
+        border: 1px solid hsl(var(--b3) / 0.5);
+        border-radius: 0.75rem;
+        background-color: hsl(var(--b2) / 0.5);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        &:focus-within {
+          border-color: hsl(var(--p));
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+      }
+      
+      .editor-content {
+        padding: 0.75rem 1rem;
+        min-height: 150px;
+        max-height: 200px;
+        overflow-y: auto;
+        
+        .ProseMirror {
+          font-size: 1rem;
+          line-height: 1.5;
+          
+          &:focus {
+            outline: none;
+          }
+          
+          p {
+            margin: 0 0 0.5rem 0;
+            
+            &:last-child {
+              margin-bottom: 0;
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 @keyframes save-pulse {
