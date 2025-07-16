@@ -1,0 +1,114 @@
+<div class="location-picker-container flex flex-col h-full">
+  <!-- Search Bar -->
+  <div class="search-container relative mb-3 flex-shrink-0" style="position: relative; z-index: 1001;">
+    <div class="relative">
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery"
+        (input)="searchLocation()"
+        (focus)="onSearchFocus()"
+        (blur)="onSearchBlur()"
+        [placeholder]="placeholder"
+        class="input input-bordered input-sm w-full pr-20 pl-10"
+        [class.input-primary]="showResults">
+      
+      <!-- Search Icon -->
+      <div class="absolute left-3 top-1/2 -translate-y-1/2">
+        <lucide-icon name="Search" class="w-4 h-4 text-base-content/50"></lucide-icon>
+      </div>
+      
+      <!-- Clear Button -->
+      <button 
+        *ngIf="searchQuery" 
+        (click)="clearSearch()"
+        class="btn btn-ghost btn-xs absolute right-10 top-1/2 -translate-y-1/2"
+        type="button">
+        <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
+      </button>
+      
+      <!-- Current Location Button -->
+      <button 
+        (click)="getCurrentLocation()"
+        class="btn btn-ghost btn-xs absolute right-1 top-1/2 -translate-y-1/2 tooltip tooltip-left"
+        data-tip="Use my location"
+        type="button">
+        <lucide-icon name="Navigation" class="w-4 h-4"></lucide-icon>
+      </button>
+    </div>
+    
+    <!-- Search Results Dropdown -->
+    <div 
+      *ngIf="showResults && (searchResults.length > 0 || isSearching)"
+      class="absolute z-[1000] w-full mt-2 bg-base-100 rounded-lg shadow-xl border border-base-300 max-h-60 overflow-y-auto"
+      style="z-index: 1000 !important;">
+      
+      <!-- Loading -->
+      <div *ngIf="isSearching" class="p-4 text-center">
+        <span class="loading loading-spinner loading-sm"></span>
+        <span class="ml-2 text-sm text-base-content/60">Searching...</span>
+      </div>
+      
+      <!-- Results -->
+      <div *ngIf="!isSearching && searchResults.length > 0">
+        <button 
+          *ngFor="let result of searchResults"
+          (click)="selectSearchResult(result); $event.stopPropagation()"
+          (mousedown)="$event.preventDefault()"
+          class="w-full text-left p-3 hover:bg-base-200 transition-colors border-b border-base-300 last:border-b-0 cursor-pointer"
+          type="button">
+          <div class="flex items-start gap-3">
+            <lucide-icon name="MapPin" class="w-4 h-4 text-base-content/60 mt-0.5 flex-shrink-0"></lucide-icon>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-base-content line-clamp-2">
+                {{ result.display_name }}
+              </div>
+              <div class="text-xs text-base-content/60">
+                {{ result.lat | number:'1.6-6' }}, {{ result.lon | number:'1.6-6' }}
+              </div>
+            </div>
+          </div>
+        </button>
+      </div>
+      
+      <!-- No Results -->
+      <div *ngIf="!isSearching && searchResults.length === 0" class="p-4 text-center text-sm text-base-content/60">
+        No locations found
+      </div>
+    </div>
+  </div>
+  
+  <!-- Map Container -->
+  <div class="map-wrapper relative rounded-lg overflow-hidden border border-base-300 shadow-sm flex-1 min-h-0">
+    <div #mapContainer class="w-full h-full relative bg-base-200">
+      <!-- Loading Indicator -->
+      <div *ngIf="!map" class="absolute inset-0 flex items-center justify-center bg-base-200/80">
+        <div class="text-center">
+          <span class="loading loading-spinner loading-md text-primary"></span>
+          <p class="mt-2 text-xs text-base-content/60">Loading map...</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Map Instructions -->
+    <div class="absolute top-2 left-2 bg-base-100/90 backdrop-blur-sm rounded-md p-2 shadow-md pointer-events-none">
+      <p class="text-xs text-base-content/70">
+        <lucide-icon name="Info" class="w-3 h-3 inline mr-1"></lucide-icon>
+        Click map or drag marker to adjust
+      </p>
+    </div>
+  </div>
+  
+  <!-- Selected Location Info -->
+  <div *ngIf="selectedLocation" class="mt-3 p-3 bg-base-200/30 rounded-lg border border-base-300 flex-shrink-0">
+    <div class="flex items-start gap-2">
+      <lucide-icon name="MapPin" class="w-4 h-4 text-primary mt-0.5 flex-shrink-0"></lucide-icon>
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-medium text-base-content">Selected Location</p>
+        <p class="text-xs text-base-content/70 mt-1 break-words">{{ selectedLocation.address || searchQuery }}</p>
+        <p class="text-xs text-base-content/50 mt-1 font-mono">
+          {{ selectedLocation.lat | number:'1.6-6' }}, {{ selectedLocation.lng | number:'1.6-6' }}
+        </p>
+      </div>
+    </div>
+  </div>
+</div> 

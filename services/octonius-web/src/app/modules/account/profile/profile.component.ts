@@ -1,8 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { UserService } from '../../../core/services/user.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { FileService } from '../../../core/services/file.service';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
@@ -10,20 +13,41 @@ import { ToastService } from '../../../core/services/toast.service';
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
   user: User | null = null;
-  profileForm: FormGroup;
-  isEditing = false;
+  profileForm: FormGroup | null = null;
   isLoading = false;
+  isSaving = false;
   avatarPreview: string | null = null;
   error: string | null = null;
+  
+  // Image upload state
+  imagePreviewUrl: SafeUrl | null = null;
+  uploadProgress: number | null = null;
+  uploading: boolean = false;
+  uploadError: string | null = null;
+  
+  // Location picker state
+  showLocationPicker = false;
+  currentLocationCoords: { lat: number; lng: number } | undefined = undefined;
+  pendingLocation: any = null;
+  
+  private destroy$ = new Subject<void>();
+  private saveSubject$ = new Subject<{ field: string; value: any }>();
 
   constructor(
     private authService: AuthService,
     private userService: UserService,
     private fb: FormBuilder,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private fileService: FileService,
+    private sanitizer: DomSanitizer
   ) {
+    this.initializeForm();
+    this.setupAutoSave();
+  }
+
+  private initializeForm(): void {
     this.profileForm = this.fb.group({
       first_name: ['', [Validators.required, Validators.minLength(2)]],
       last_name: ['', [Validators.required, Validators.minLength(2)]],
@@ -33,7 +57,7 @@ export class ProfileComponent implements OnInit {
       department: [''],
       timezone: ['UTC'],
       language: ['en'],
-      bio: ['', [Validators.maxLength(500)]],
+      bio: ['', [Validators.maxLength(5000)]],
       location: [''],
       website: ['', [Validators.pattern('https?://.+')]],
       linkedin: [''],
@@ -41,13 +65,55 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  private setupAutoSave(): void {
+    // Setup auto-save with debouncing
+    this.saveSubject$
+      .pipe(
+        debounceTime(1000), // Wait 1 second after user stops typing
+        distinctUntilChanged((prev, curr) => prev.field === curr.field && prev.value === curr.value),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(({ field, value }) => {
+        this.saveField(field, value);
+      });
+  }
+
   ngOnInit(): void {
     this.loadUserData();
+    this.setupFormListeners();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private setupFormListeners(): void {
+    if (!this.profileForm) return;
+
+    // Listen to form value changes
+    Object.keys(this.profileForm.controls).forEach(key => {
+      if (key !== 'email') { // Skip email as it's disabled
+        this.profileForm?.get(key)?.valueChanges
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(value => {
+            if (this.profileForm?.get(key)?.valid) {
+              this.saveSubject$.next({ field: key, value });
+            }
+          });
+      }
+    });
   }
 
   loadUserData(): void {
     this.isLoading = true;
     this.error = null;
+    
+    // Ensure form is initialized
+    if (!this.profileForm) {
+      this.initializeForm();
+    }
+    
     this.userService.getCurrentUser().subscribe({
       next: (user_data: User) => {
         if (user_data) {
@@ -83,106 +149,187 @@ export class ProfileComponent implements OnInit {
   }
 
   populateForm(user: User | null): void {
-    if (!user) return;
-    this.profileForm.patchValue({
-      first_name: user.first_name || '',
-      last_name: user.last_name || '',
-      email: user.email || '',
-      phone: user.phone || '',
-      job_title: user.job_title || '',
-      department: user.department || '',
-      timezone: user.timezone || 'UTC',
-      language: user.language || 'en',
-      bio: (user as any).bio || '',
-      location: (user as any).location || '',
-      website: (user as any).website || '',
-      linkedin: (user as any).linkedin || '',
-      twitter: (user as any).twitter || ''
-    });
-    this.avatarPreview = user.avatar_url || null;
-  }
-
-  toggleEdit(): void {
-    this.isEditing = !this.isEditing;
-    if (!this.isEditing) {
-      // Reset form if canceling
-      this.populateForm(this.user);
-    }
-  }
-
-  onFileSelected(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        this.toastService.error('Please select an image file');
-        return;
-      }
+    if (!user || !this.profileForm) return;
+    
+    try {
+      // Get metadata values with safe access
+      const metadata = (user as any).metadata || {};
       
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        this.toastService.error('Image size should be less than 5MB');
-        return;
-      }
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.avatarPreview = e.target?.result as string;
-      };
-      reader.readAsDataURL(file);
+      this.profileForm.patchValue({
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        job_title: user.job_title || '',
+        department: user.department || '',
+        timezone: user.timezone || 'UTC',
+        language: user.language || 'en',
+        bio: metadata.bio || '',
+        location: metadata.location || '',
+        website: metadata.website || '',
+        linkedin: metadata.linkedin || '',
+        twitter: metadata.twitter || ''
+      }, { emitEvent: false }); // Don't trigger save on initial load
+      this.avatarPreview = user.avatar_url || null;
+    } catch (error) {
+      console.error('Error populating form:', error);
+      this.toastService.error('Error loading profile data');
     }
   }
 
-  saveProfile(): void {
-    if (this.profileForm.invalid) {
-      this.toastService.error('Please fill all required fields correctly');
-      return;
-    }
+  private saveField(field: string, value: any): void {
+    if (!this.user || this.isSaving) return;
 
-    this.isLoading = true;
-    const formData = this.profileForm.getRawValue();
+    // List of fields that belong in metadata
+    const metadataFields = ['bio', 'location', 'website', 'linkedin', 'twitter'];
+    const isMetadataField = metadataFields.includes(field);
 
-    if (!this.user) {
-      this.toastService.error('User data is missing. Cannot update profile.');
-      this.isLoading = false;
-      return;
-    }
+    // Check if the value actually changed
+    const currentUser = this.user as any;
+    const currentValue = isMetadataField 
+      ? currentUser.metadata?.[field] 
+      : currentUser[field];
+    
+    if (currentValue === value) return;
 
-    // Build updates object with only changed fields
-    const updates: Partial<User> = {};
-    for (const key of Object.keys(formData)) {
-      const value = formData[key];
-      if (
-        value !== (this.user as any)[key] &&
-        value !== null &&
-        value !== ''
-      ) {
-        updates[key as keyof User] = value;
-      }
-    }
+    this.isSaving = true;
+    let updates: Partial<User>;
 
-    if (Object.keys(updates).length === 0) {
-      this.toastService.info('No changes to update.');
-      this.isLoading = false;
-      this.isEditing = false;
-      return;
+    if (isMetadataField) {
+      // For metadata fields, we need to update the entire metadata object
+      const currentMetadata = currentUser.metadata || {};
+      updates = {
+        metadata: {
+          ...currentMetadata,
+          [field]: value
+        }
+      };
+    } else {
+      // For regular fields, update directly
+      updates = { [field]: value };
     }
 
     this.userService.updateUser(this.user.uuid, updates).subscribe({
       next: (user) => {
-        this.toastService.success('Profile updated successfully');
-        this.isEditing = false;
-        this.isLoading = false;
         this.user = user;
         this.authService.setCurrentUser(user);
-        this.populateForm(this.user);
+        this.isSaving = false;
+        // Show subtle feedback
+        this.showSaveIndicator(field);
       },
       error: (err) => {
-        this.toastService.error('Failed to update profile. Please try again.');
-        this.isLoading = false;
+        this.toastService.error(`Failed to update ${field}`);
+        this.isSaving = false;
+        // Revert the field value
+        if (this.profileForm && this.user) {
+          const revertValue = isMetadataField
+            ? (this.user as any).metadata?.[field]
+            : (this.user as any)[field];
+          this.profileForm.get(field)?.setValue(revertValue || '', { emitEvent: false });
+        }
       }
     });
+  }
+
+  private showSaveIndicator(field: string): void {
+    // Add a visual indicator that the field was saved
+    const control = document.querySelector(`[formControlName="${field}"]`);
+    if (control) {
+      control.classList.add('saved');
+      setTimeout(() => {
+        control.classList.remove('saved');
+      }, 2000);
+    }
+    
+    // For tiptap editor, also add the class to the parent app-tiptap-editor element
+    if (field === 'bio') {
+      const tiptapEditor = document.querySelector('app-tiptap-editor[formControlName="bio"]');
+      if (tiptapEditor) {
+        tiptapEditor.classList.add('saved');
+        setTimeout(() => {
+          tiptapEditor.classList.remove('saved');
+        }, 2000);
+      }
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    
+    const file = input.files[0];
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      this.toastService.error('Please select an image file');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      this.toastService.error('Image size should be less than 5MB');
+      return;
+    }
+
+    this.uploadError = null;
+    this.uploading = true;
+    this.uploadProgress = 0;
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.imagePreviewUrl = this.sanitizer.bypassSecurityTrustUrl(e.target.result);
+      this.avatarPreview = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to S3
+    this.uploadAvatar(file);
+  }
+
+  private uploadAvatar(file: File): void {
+    if (!this.user) return;
+
+    this.fileService.uploadFileViaS3(file).subscribe({
+      next: (uploadedFile: any) => {
+        const url = uploadedFile.cdn_url || uploadedFile.download_url || uploadedFile.url;
+        this.avatarPreview = url;
+        this.uploading = false;
+        this.uploadProgress = null;
+        
+        // Update user avatar
+        this.saveField('avatar_url', url);
+      },
+      error: (err: any) => {
+        this.uploadError = 'Failed to upload avatar. Please try again.';
+        this.uploading = false;
+        this.uploadProgress = null;
+        this.toastService.error(this.uploadError);
+        
+        // Reset the file input
+        const input = document.getElementById('avatar-upload') as HTMLInputElement;
+        if (input) {
+          input.value = '';
+        }
+      }
+    });
+  }
+
+  clearAvatarUpload(): void {
+    this.imagePreviewUrl = null;
+    this.avatarPreview = null;
+    this.uploadError = null;
+    
+    // Clear the file input
+    const input = document.getElementById('avatar-upload') as HTMLInputElement;
+    if (input) {
+      input.value = '';
+    }
+    
+    // Update user avatar to null
+    if (this.user) {
+      this.saveField('avatar_url', null);
+    }
   }
 
   get fullName(): string {
@@ -201,6 +348,12 @@ export class ProfileComponent implements OnInit {
     return `${firstInitial}${lastInitial}`.toUpperCase();
   }
 
+  get bioCharacterCount(): number {
+    const bioValue = this.profileForm?.get('bio')?.value || '';
+    // Strip HTML tags to count actual text characters
+    return bioValue.replace(/<[^>]*>/g, '').length;
+  }
+
   getDisplayDate(dateStr: string | null | undefined): string {
     if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
@@ -209,7 +362,7 @@ export class ProfileComponent implements OnInit {
   }
 
   updateNotificationPreference(type: 'email' | 'push' | 'in_app', checked: boolean): void {
-    if (!this.user || !this.isEditing) return;
+    if (!this.user) return;
     
     if (!this.user.notification_preferences) {
       this.user.notification_preferences = {
@@ -220,12 +373,77 @@ export class ProfileComponent implements OnInit {
     }
     
     this.user.notification_preferences[type] = checked;
-    this.authService.setCurrentUser(this.user);
+    this.saveField('notification_preferences', this.user.notification_preferences);
   }
 
   copyUuid(uuid: string | undefined) {
     if (!uuid) return;
     navigator.clipboard.writeText(uuid);
     this.toastService.success('User ID copied to clipboard!');
+  }
+  
+  openLocationPicker(): void {
+    // Try to get location coordinates from user metadata first
+    const metadata = (this.user as any)?.metadata || {};
+    
+    if (metadata.location_coordinates) {
+      // Use stored coordinates from metadata
+      this.currentLocationCoords = {
+        lat: metadata.location_coordinates.lat,
+        lng: metadata.location_coordinates.lng
+      };
+    } else {
+      // Fallback: try to parse from location string
+      const currentLocation = this.profileForm?.get('location')?.value || metadata.location;
+      
+      if (typeof currentLocation === 'string' && currentLocation.includes(',')) {
+        // Try to parse lat,lng format
+        const parts = currentLocation.split(',').map(p => parseFloat(p.trim()));
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          this.currentLocationCoords = { lat: parts[0], lng: parts[1] };
+        }
+      } else {
+        // No valid location found, use undefined to trigger default
+        this.currentLocationCoords = undefined;
+      }
+    }
+    
+    this.pendingLocation = null; // Clear any previous pending location
+    this.showLocationPicker = true;
+  }
+  
+  onLocationSelected(location: any): void {
+    if (location) {
+      // Store the pending location without closing the modal
+      this.pendingLocation = location;
+    }
+  }
+  
+  confirmLocationSelection(): void {
+    if (this.pendingLocation) {
+      // Store the location as a formatted string with coordinates
+      const locationString = this.pendingLocation.address || `${this.pendingLocation.lat.toFixed(6)}, ${this.pendingLocation.lng.toFixed(6)}`;
+      
+      // Update form value
+      this.profileForm?.get('location')?.setValue(locationString);
+      
+      // Store coordinates in metadata
+      const metadata = (this.user as any)?.metadata || {};
+      const updatedMetadata = {
+        ...metadata,
+        location: locationString,
+        location_coordinates: {
+          lat: this.pendingLocation.lat,
+          lng: this.pendingLocation.lng
+        }
+      };
+      
+      // Save metadata
+      this.saveField('metadata', updatedMetadata);
+      
+      // Clear pending location and close modal
+      this.pendingLocation = null;
+      this.showLocationPicker = false;
+    }
   }
 } 

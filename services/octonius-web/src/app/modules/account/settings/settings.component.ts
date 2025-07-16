@@ -36,7 +36,7 @@ interface WorkplaceStats {
 export class SettingsComponent implements OnInit {
   workplace: WorkplaceData | null = null;
   workplaceStats: WorkplaceStats | null = null;
-  settingsForm: FormGroup;
+  settingsForm: FormGroup | null = null;
   isEditing = false;
   isLoading = false;
   logoPreview: string | null = null;
@@ -75,6 +75,10 @@ export class SettingsComponent implements OnInit {
     private authService: AuthService,
     private toastService: ToastService
   ) {
+    this.initializeForm();
+  }
+
+  private initializeForm(): void {
     this.settingsForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3)]],
       description: ['', [Validators.maxLength(500)]],
@@ -94,6 +98,11 @@ export class SettingsComponent implements OnInit {
   loadWorkplaceData(): void {
     this.isLoading = true;
     const workplaceId = this.currentUser?.current_workplace_id;
+    
+    // Ensure form is initialized
+    if (!this.settingsForm) {
+      this.initializeForm();
+    }
     
     if (!workplaceId) {
       this.toastService.error('No workplace selected');
@@ -138,19 +147,26 @@ export class SettingsComponent implements OnInit {
   }
 
   populateForm(workplace: WorkplaceData): void {
-    this.settingsForm.patchValue({
-      name: workplace.name,
-      description: workplace.description || '',
-      website: workplace.website || '',
-      industry: workplace.industry || '',
-      size: workplace.size || '',
-      timezone: workplace.timezone
-    });
+    if (!this.settingsForm) return;
+    
+    try {
+      this.settingsForm.patchValue({
+        name: workplace.name,
+        description: workplace.description || '',
+        website: workplace.website || '',
+        industry: workplace.industry || '',
+        size: workplace.size || '',
+        timezone: workplace.timezone
+      });
+    } catch (error) {
+      console.error('Error populating settings form:', error);
+      this.toastService.error('Error loading workplace data');
+    }
   }
 
   toggleEdit(): void {
     this.isEditing = !this.isEditing;
-    if (!this.isEditing && this.workplace) {
+    if (!this.isEditing && this.workplace && this.settingsForm) {
       // Reset form if canceling
       this.populateForm(this.workplace);
       this.logoPreview = this.workplace.logo_url || null;
@@ -182,7 +198,7 @@ export class SettingsComponent implements OnInit {
   }
 
   saveSettings(): void {
-    if (this.settingsForm.invalid) {
+    if (!this.settingsForm || this.settingsForm.invalid) {
       this.toastService.error('Please fill all required fields correctly');
       return;
     }
