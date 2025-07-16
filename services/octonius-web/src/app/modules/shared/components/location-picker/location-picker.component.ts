@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { LucideAngularModule } from 'lucide-angular';
+import { ThemeService } from '../../../../core/services/theme.service';
+import { Subscription } from 'rxjs';
 
 interface LocationData {
   lat: number;
@@ -37,13 +39,18 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   selectedLocation: LocationData | null = null;
   private searchTimeout: any;
   private pendingMarker: { lat: number; lng: number } | null = null;
+  private themeSubscription: Subscription | null = null;
+  private currentTileLayer: L.TileLayer | null = null;
   
   // Default to San Francisco if no initial location
   defaultLat = 37.7749;
   defaultLng = -122.4194;
   defaultZoom = 13;
   
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private themeService: ThemeService
+  ) {}
   
   ngOnInit(): void {
     // Use local assets for Leaflet icons
@@ -60,6 +67,13 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
       popupAnchor: [1, -34],
       tooltipAnchor: [16, -28],
       shadowSize: [41, 41]
+    });
+    
+    // Subscribe to theme changes
+    this.themeSubscription = this.themeService.currentTheme$.subscribe(theme => {
+      if (this.map) {
+        this.updateMapTheme(theme);
+      }
     });
   }
   
@@ -79,6 +93,9 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
     }
     if (this.searchTimeout) {
       clearTimeout(this.searchTimeout);
+    }
+    if (this.themeSubscription) {
+      this.themeSubscription.unsubscribe();
     }
   }
   
@@ -123,14 +140,8 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
         attributionControl: true
       });
       
-      // Add OpenStreetMap tiles with error handling
-      const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
-      });
-      
-      tileLayer.addTo(this.map);
+      // Add theme-aware tile layer
+      this.addTileLayer(this.themeService.getCurrentTheme());
       
       // Add event listeners
       this.map.on('click', (e: L.LeafletMouseEvent) => {
@@ -342,6 +353,35 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
       );
     } else {
       alert('Geolocation is not supported by your browser.');
+    }
+  }
+  
+  private addTileLayer(theme: string): void {
+    // Remove existing tile layer
+    if (this.currentTileLayer) {
+      this.map?.removeLayer(this.currentTileLayer);
+    }
+    
+    // Create new tile layer based on theme
+    if (theme === 'night') {
+      // Dark theme - CartoDB Dark Matter
+      this.currentTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+      });
+    } else {
+      // Light theme - CartoDB Positron
+      this.currentTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+      });
+    }
+    
+    // Add to map
+    this.currentTileLayer.addTo(this.map!);
+  }
+  
+  private updateMapTheme(theme: string): void {
+    if (this.map) {
+      this.addTileLayer(theme);
     }
   }
 } 
