@@ -4,16 +4,215 @@
 }
 
 .profile-container {
-  animation: fadeIn 0.3s ease-in-out;
+  min-height: 100vh;
+  background: linear-gradient(135deg, hsl(var(--b1)) 0%, hsl(var(--b2)) 100%);
+  
+  // Modern card hover effects
+  .bg-base-100\/60 {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    }
+  }
+  
+  // Input styling
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    &:focus {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    
+    &[readonly] {
+      background-color: hsl(var(--b2) / 0.3);
+      opacity: 0.8;
+    }
+  }
+  
+  // Button animations
+  button {
+    transition: all 0.2s ease;
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+    
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  }
+  
+  // Avatar glow effect
+  .group:hover .absolute.-inset-1 {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  // Label animations
+  label {
+    transition: color 0.2s ease;
+  }
+  
+  .space-y-2:focus-within label {
+    color: hsl(var(--p));
+  }
+  
+  // Card glass effect
+  .backdrop-blur-xl {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+  
+  // Smooth scrollbar
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: hsl(var(--b2) / 0.3);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: hsl(var(--b3) / 0.5);
+    border-radius: 4px;
+    
+    &:hover {
+      background: hsl(var(--b3) / 0.8);
+    }
+  }
+  
+  // Responsive typography
+  @media (max-width: 1024px) {
+    .text-5xl {
+      font-size: 2.5rem;
+    }
+    
+    .text-2xl {
+      font-size: 1.5rem;
+    }
+    
+    .text-xl {
+      font-size: 1.125rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .text-5xl {
+      font-size: 2rem;
+    }
+    
+    .w-36 {
+      width: 7rem;
+      height: 7rem;
+    }
+    
+    .p-10 {
+      padding: 2rem;
+    }
+    
+    .p-8 {
+      padding: 1.5rem;
+    }
+  }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+// Keyframe animations
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
+}
+
+// Remove all old styles
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+// Custom focus states
+.form-control {
+  &:focus-within {
+    .label-text {
+      color: hsl(var(--p));
+      font-weight: 600;
+    }
+  }
+}
+
+// Enhanced skeleton loading
+.animate-pulse {
+  .bg-base-300 {
+    background: linear-gradient(90deg, hsl(var(--b3)) 25%, hsl(var(--b2)) 50%, hsl(var(--b3)) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+}
+
+// Modern badges
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+// Elegant transitions
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+// Save indicator animation
+input.saved,
+textarea.saved,
+select.saved {
+  animation: save-pulse 2s ease-out;
+}
+
+@keyframes save-pulse {
+  0% {
+    border-color: hsl(var(--su));
+    box-shadow: 0 0 0 0 hsl(var(--su) / 0.4);
+  }
+  50% {
+    border-color: hsl(var(--su));
+    box-shadow: 0 0 0 4px hsl(var(--su) / 0);
+  }
+  100% {
+    border-color: hsl(var(--b3) / 0.5);
   }
 } 

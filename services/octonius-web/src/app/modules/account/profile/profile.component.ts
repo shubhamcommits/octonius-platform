@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { UserService } from '../../../core/services/user.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
@@ -10,13 +11,16 @@ import { ToastService } from '../../../core/services/toast.service';
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
   user: User | null = null;
-  profileForm: FormGroup;
-  isEditing = false;
+  profileForm: FormGroup | null = null;
   isLoading = false;
+  isSaving = false;
   avatarPreview: string | null = null;
   error: string | null = null;
+  
+  private destroy$ = new Subject<void>();
+  private saveSubject$ = new Subject<{ field: string; value: any }>();
 
   constructor(
     private authService: AuthService,
@@ -24,6 +28,11 @@ export class ProfileComponent implements OnInit {
     private fb: FormBuilder,
     private toastService: ToastService
   ) {
+    this.initializeForm();
+    this.setupAutoSave();
+  }
+
+  private initializeForm(): void {
     this.profileForm = this.fb.group({
       first_name: ['', [Validators.required, Validators.minLength(2)]],
       last_name: ['', [Validators.required, Validators.minLength(2)]],
@@ -41,13 +50,55 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  private setupAutoSave(): void {
+    // Setup auto-save with debouncing
+    this.saveSubject$
+      .pipe(
+        debounceTime(1000), // Wait 1 second after user stops typing
+        distinctUntilChanged((prev, curr) => prev.field === curr.field && prev.value === curr.value),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(({ field, value }) => {
+        this.saveField(field, value);
+      });
+  }
+
   ngOnInit(): void {
     this.loadUserData();
+    this.setupFormListeners();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private setupFormListeners(): void {
+    if (!this.profileForm) return;
+
+    // Listen to form value changes
+    Object.keys(this.profileForm.controls).forEach(key => {
+      if (key !== 'email') { // Skip email as it's disabled
+        this.profileForm?.get(key)?.valueChanges
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(value => {
+            if (this.profileForm?.get(key)?.valid) {
+              this.saveSubject$.next({ field: key, value });
+            }
+          });
+      }
+    });
   }
 
   loadUserData(): void {
     this.isLoading = true;
     this.error = null;
+    
+    // Ensure form is initialized
+    if (!this.profileForm) {
+      this.initializeForm();
+    }
+    
     this.userService.getCurrentUser().subscribe({
       next: (user_data: User) => {
         if (user_data) {
@@ -83,30 +134,68 @@ export class ProfileComponent implements OnInit {
   }
 
   populateForm(user: User | null): void {
-    if (!user) return;
-    this.profileForm.patchValue({
-      first_name: user.first_name || '',
-      last_name: user.last_name || '',
-      email: user.email || '',
-      phone: user.phone || '',
-      job_title: user.job_title || '',
-      department: user.department || '',
-      timezone: user.timezone || 'UTC',
-      language: user.language || 'en',
-      bio: (user as any).bio || '',
-      location: (user as any).location || '',
-      website: (user as any).website || '',
-      linkedin: (user as any).linkedin || '',
-      twitter: (user as any).twitter || ''
-    });
-    this.avatarPreview = user.avatar_url || null;
+    if (!user || !this.profileForm) return;
+    
+    try {
+      this.profileForm.patchValue({
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        job_title: user.job_title || '',
+        department: user.department || '',
+        timezone: user.timezone || 'UTC',
+        language: user.language || 'en',
+        bio: (user as any).bio || '',
+        location: (user as any).location || '',
+        website: (user as any).website || '',
+        linkedin: (user as any).linkedin || '',
+        twitter: (user as any).twitter || ''
+      }, { emitEvent: false }); // Don't trigger save on initial load
+      this.avatarPreview = user.avatar_url || null;
+    } catch (error) {
+      console.error('Error populating form:', error);
+      this.toastService.error('Error loading profile data');
+    }
   }
 
-  toggleEdit(): void {
-    this.isEditing = !this.isEditing;
-    if (!this.isEditing) {
-      // Reset form if canceling
-      this.populateForm(this.user);
+  private saveField(field: string, value: any): void {
+    if (!this.user || this.isSaving) return;
+
+    // Check if the value actually changed
+    const currentValue = (this.user as any)[field];
+    if (currentValue === value) return;
+
+    this.isSaving = true;
+    const updates: Partial<User> = { [field]: value };
+
+    this.userService.updateUser(this.user.uuid, updates).subscribe({
+      next: (user) => {
+        this.user = user;
+        this.authService.setCurrentUser(user);
+        this.isSaving = false;
+        // Show subtle feedback
+        this.showSaveIndicator(field);
+      },
+      error: (err) => {
+        this.toastService.error(`Failed to update ${field}`);
+        this.isSaving = false;
+        // Revert the field value
+        if (this.profileForm && this.user) {
+          this.profileForm.get(field)?.setValue((this.user as any)[field], { emitEvent: false });
+        }
+      }
+    });
+  }
+
+  private showSaveIndicator(field: string): void {
+    // Add a visual indicator that the field was saved
+    const control = document.querySelector(`[formControlName="${field}"]`);
+    if (control) {
+      control.classList.add('saved');
+      setTimeout(() => {
+        control.classList.remove('saved');
+      }, 2000);
     }
   }
 
@@ -129,60 +218,16 @@ export class ProfileComponent implements OnInit {
       const reader = new FileReader();
       reader.onload = (e) => {
         this.avatarPreview = e.target?.result as string;
+        // TODO: Upload avatar and save
+        this.uploadAvatar(file);
       };
       reader.readAsDataURL(file);
     }
   }
 
-  saveProfile(): void {
-    if (this.profileForm.invalid) {
-      this.toastService.error('Please fill all required fields correctly');
-      return;
-    }
-
-    this.isLoading = true;
-    const formData = this.profileForm.getRawValue();
-
-    if (!this.user) {
-      this.toastService.error('User data is missing. Cannot update profile.');
-      this.isLoading = false;
-      return;
-    }
-
-    // Build updates object with only changed fields
-    const updates: Partial<User> = {};
-    for (const key of Object.keys(formData)) {
-      const value = formData[key];
-      if (
-        value !== (this.user as any)[key] &&
-        value !== null &&
-        value !== ''
-      ) {
-        updates[key as keyof User] = value;
-      }
-    }
-
-    if (Object.keys(updates).length === 0) {
-      this.toastService.info('No changes to update.');
-      this.isLoading = false;
-      this.isEditing = false;
-      return;
-    }
-
-    this.userService.updateUser(this.user.uuid, updates).subscribe({
-      next: (user) => {
-        this.toastService.success('Profile updated successfully');
-        this.isEditing = false;
-        this.isLoading = false;
-        this.user = user;
-        this.authService.setCurrentUser(user);
-        this.populateForm(this.user);
-      },
-      error: (err) => {
-        this.toastService.error('Failed to update profile. Please try again.');
-        this.isLoading = false;
-      }
-    });
+  private uploadAvatar(file: File): void {
+    // TODO: Implement avatar upload
+    this.toastService.info('Avatar upload feature coming soon!');
   }
 
   get fullName(): string {
@@ -209,7 +254,7 @@ export class ProfileComponent implements OnInit {
   }
 
   updateNotificationPreference(type: 'email' | 'push' | 'in_app', checked: boolean): void {
-    if (!this.user || !this.isEditing) return;
+    if (!this.user) return;
     
     if (!this.user.notification_preferences) {
       this.user.notification_preferences = {
@@ -220,7 +265,7 @@ export class ProfileComponent implements OnInit {
     }
     
     this.user.notification_preferences[type] = checked;
-    this.authService.setCurrentUser(this.user);
+    this.saveField('notification_preferences', this.user.notification_preferences);
   }
 
   copyUuid(uuid: string | undefined) {

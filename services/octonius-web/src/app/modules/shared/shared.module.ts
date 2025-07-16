@@ -109,7 +109,11 @@ import { LucideAngularModule,
   RemoveFormatting,
   Lightbulb,
   Keyboard,
-  Smile
+  Smile,
+  CheckCircle2,
+  Briefcase,
+  Building2,
+  Edit3
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -234,7 +238,11 @@ import { RichHtmlDirective } from './directives/rich-html.directive'
       RemoveFormatting,
       Lightbulb,
       Keyboard,
-      Smile
+      Smile,
+      CheckCircle2,
+      Briefcase,
+      Building2,
+      Edit3
     })
   ],
   exports: [
