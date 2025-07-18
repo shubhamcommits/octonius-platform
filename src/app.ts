@@ -34,6 +34,9 @@ import { AuthRoute } from './auths'
 // Import Workplace Route
 import { WorkplaceRoute } from './workplaces'
 
+// Import Role Route
+import { RoleRoute } from './roles/role.route'
+
 // Import File Route
 import { FileRoute } from './files/file.route'
 
@@ -189,6 +192,7 @@ app.use('/v1/auths', new AuthRoute().router)
 app.use('/v1/notifications', new NotificationRoute().router)
 app.use('/v1/users', new UserRoute().router)
 app.use('/v1/workplaces', new WorkplaceRoute().router)
+app.use('/v1/roles', new RoleRoute().router)
 app.use('/v1/files', new FileRoute().router)
 app.use('/v1/workload', new WorkloadRoute().router)
 app.use('/v1/lounges', new LoungeRoute().router)

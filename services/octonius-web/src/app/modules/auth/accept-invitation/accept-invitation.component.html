@@ -1,0 +1,91 @@
+<div class="min-h-screen flex flex-col items-center justify-center bg-base-100 text-base-content">
+  <h1 class="text-3xl font-bold text-center mb-8 underline decoration-primary">Turn busy into brilliant.</h1>
+  
+  <div class="w-full max-w-sm p-8 bg-base-200 rounded-lg shadow-md flex flex-col items-center">
+    <!-- Verifying State -->
+    <div *ngIf="isVerifying" class="text-center">
+      <span class="loading loading-spinner loading-lg text-primary mb-4"></span>
+      <p class="text-base-content/70">Verifying invitation...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="!isVerifying && error" class="text-center">
+      <div class="w-16 h-16 mx-auto mb-4 bg-error/20 rounded-full flex items-center justify-center">
+        <lucide-icon name="AlertCircle" class="w-8 h-8 text-error"></lucide-icon>
+      </div>
+      <h2 class="text-2xl font-bold mb-2 text-error">Invalid Invitation</h2>
+      <p class="text-base-content/70 text-sm mb-6">{{ error }}</p>
+      <button type="button" 
+              (click)="router.navigate(['/auths/login'])"
+              class="btn btn-primary btn-sm">
+        Go to Login
+      </button>
+    </div>
+
+    <!-- Accept Form -->
+    <div *ngIf="!isVerifying && !error" class="w-full">
+      <h2 class="text-2xl font-bold mb-2 text-center">Accept Invitation</h2>
+      <p class="text-base-content/70 text-sm mb-2 text-center">
+        You've been invited to join a workplace on
+      </p>
+      <p class="text-base-content text-lg font-semibold mb-6 text-center" *ngIf="invitationData?.workplace?.name">
+        {{ invitationData.workplace.name }}
+      </p>
+      
+      <form [formGroup]="acceptForm" (ngSubmit)="onSubmit()" class="space-y-4">
+        <!-- Email Input -->
+        <label class="form-control w-full">
+          <span class="label-text mb-1">Email Address</span>
+          <div class="relative">
+            <input type="email" 
+                   formControlName="email"
+                   placeholder="Enter your email address..."
+                   class="input input-bordered w-full pr-10"
+                   [ngClass]="{
+                     'input-error': acceptForm.get('email')?.invalid && acceptForm.get('email')?.touched,
+                     'bg-base-200': acceptForm.get('email')?.disabled
+                   }"
+                   required />
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3" *ngIf="acceptForm.get('email')?.disabled">
+              <lucide-icon name="Lock" class="w-4 h-4 text-base-content/50"></lucide-icon>
+            </div>
+          </div>
+          <div class="text-error text-xs mt-1"
+               *ngIf="acceptForm.get('email')?.invalid && acceptForm.get('email')?.touched">
+            <span *ngIf="acceptForm.get('email')?.errors?.['required']">Email is required</span>
+            <span *ngIf="acceptForm.get('email')?.errors?.['email']">Please enter a valid email address</span>
+          </div>
+          <span class="text-xs text-base-content/70 mt-1">
+            This invitation is for this email address only
+          </span>
+        </label>
+        
+        <!-- Accept Button -->
+        <button type="submit" 
+                class="btn btn-primary w-full text-primary-content"
+                [disabled]="isLoading">
+          <span *ngIf="!isLoading">Accept Invitation</span>
+          <span *ngIf="isLoading" class="loading loading-spinner"></span>
+        </button>
+      </form>
+      
+
+    </div>
+
+    <!-- Debug State (remove in production) -->
+    <div class="text-center p-4 bg-warning/20 rounded mt-4">
+      <p class="text-xs font-bold">Debug Info:</p>
+      <p class="text-xs">isVerifying: {{ isVerifying }}</p>
+      <p class="text-xs">error: {{ error || 'none' }}</p>
+      <p class="text-xs">token: {{ token || 'none' }}</p>
+      <p class="text-xs">email: {{ email || 'none' }}</p>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <div class="mt-8 text-xs text-base-content/60 text-center max-w-sm">
+    By accepting this invitation, you acknowledge that you understand and agree to the
+    <a href="#" class="link link-hover text-primary">Terms & Conditions</a> and
+    <a href="#" class="link link-hover text-primary">Privacy Policy</a>
+  </div>
+</div> 

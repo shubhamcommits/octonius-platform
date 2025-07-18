@@ -75,26 +75,10 @@
         <p class="text-base-content/70 mt-1">Manage your workplace configuration and preferences</p>
       </div>
 
-      <!-- Edit Button -->
-      <!-- <button *ngIf="!isEditing" 
-              (click)="toggleEdit()"
-              class="btn btn-primary btn-sm gap-2">
-        <lucide-icon name="Edit" class="w-4 h-4"></lucide-icon>
-        Edit Settings
-      </button> -->
-
-      <!-- Save/Cancel Buttons -->
-      <div *ngIf="isEditing" class="flex gap-2">
-        <!-- <button (click)="saveSettings()" 
-                [disabled]="settingsForm.invalid || isLoading"
-                class="btn btn-primary btn-sm gap-2">
-          <lucide-icon name="Save" class="w-4 h-4"></lucide-icon>
-          Save Changes
-        </button>
-        <button (click)="toggleEdit()" 
-                class="btn btn-ghost btn-sm">
-          Cancel
-        </button> -->
+      <!-- Autosave Status -->
+      <div *ngIf="isSaving" class="flex items-center gap-2 text-base-content/60 bg-base-200/50 px-3 py-1.5 rounded-full">
+        <div class="loading loading-spinner loading-xs"></div>
+        <span class="text-xs">Saving changes...</span>
       </div>
     </div>
 
@@ -177,81 +161,141 @@
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Workplace Name -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Workplace Name</span>
-              <span class="label-text-alt text-error">*</span>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-base-content/70 flex items-center justify-between">
+              <span>Workplace Name</span>
+              <span class="text-base-content/50 text-xs">(Read-only)</span>
             </label>
             <input type="text" 
                    formControlName="name"
-                   [readonly]="!isEditing"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && settingsForm.get('name')?.touched"
-                   [class.input-error]="settingsForm.get('name')?.invalid && settingsForm.get('name')?.touched">
-            <label *ngIf="settingsForm.get('name')?.invalid && settingsForm.get('name')?.touched" 
-                   class="label">
-              <span class="label-text-alt text-error">Workplace name is required (min 3 characters)</span>
-            </label>
+                   placeholder="Enter workplace name"
+                   class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-300/50 text-base-content/70 cursor-not-allowed"
+                   [disabled]="true"
+                   [readonly]="true">
+            <span class="text-xs text-base-content/50 mt-1 block">
+              Workplace name cannot be changed after creation
+            </span>
           </div>
 
           <!-- Website -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Website</span>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-base-content/70">
+              <span>Website</span>
             </label>
             <input type="url" 
                    formControlName="website"
-                   [readonly]="!isEditing"
                    placeholder="https://example.com"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && settingsForm.get('website')?.touched"
-                   [class.input-error]="settingsForm.get('website')?.invalid && settingsForm.get('website')?.touched">
-            <label *ngIf="settingsForm.get('website')?.invalid && settingsForm.get('website')?.touched" 
-                   class="label">
-              <span class="label-text-alt text-error">Please enter a valid URL</span>
-            </label>
+                   class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30"
+                   [class.border-primary]="isFieldValid('website')"
+                   [class.border-error]="isFieldInvalid('website')">
+            <span *ngIf="isFieldInvalid('website')" 
+                  class="text-xs text-error mt-1 block">
+              Please enter a valid URL
+            </span>
           </div>
 
           <!-- Industry -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Industry</span>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-base-content/70">
+              <span>Industry</span>
             </label>
-            <select formControlName="industry"
-                    [disabled]="!isEditing"
-                    class="select select-bordered w-full transition-all duration-300"
-                    [class.select-primary]="isEditing && settingsForm.get('industry')?.touched">
-              <option value="">Select an industry</option>
-              <option *ngFor="let industry of industries" [value]="industry">{{ industry }}</option>
-            </select>
+            <div class="relative">
+              <button type="button"
+                      (click)="toggleDropdown('industry')"
+                      class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30 text-left flex items-center justify-between"
+                      [class.border-primary]="isFieldTouched('industry')">
+                <span [ngClass]="{'text-base-content/30': !settingsForm.get('industry')?.value}">
+                  {{ settingsForm.get('industry')?.value || 'Select an industry' }}
+                </span>
+                <lucide-icon name="ChevronDown" class="w-4 h-4 transition-transform duration-200" 
+                             [class.rotate-180]="openDropdown === 'industry'"></lucide-icon>
+              </button>
+              
+              <!-- Dropdown Menu -->
+              <div *ngIf="openDropdown === 'industry'"
+                   (click)="$event.stopPropagation()"
+                   class="absolute z-50 w-full mt-1 bg-base-100 border border-base-300/50 rounded-xl shadow-lg max-h-60 overflow-auto">
+                <div class="p-1">
+                  <button type="button"
+                          *ngFor="let industry of industries"
+                          (click)="selectOption('industry', industry)"
+                          class="w-full px-3 py-2 text-left rounded-lg hover:bg-base-200 transition-colors duration-150"
+                          [ngClass]="{'bg-primary/10': settingsForm.get('industry')?.value === industry}">
+                    {{ industry }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Company Size -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Company Size</span>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-base-content/70">
+              <span>Company Size</span>
             </label>
-            <select formControlName="size"
-                    [disabled]="!isEditing"
-                    class="select select-bordered w-full transition-all duration-300"
-                    [class.select-primary]="isEditing && settingsForm.get('size')?.touched">
-              <option value="">Select company size</option>
-              <option *ngFor="let size of sizes" [value]="size.value">{{ size.label }}</option>
-            </select>
+            <div class="relative">
+              <button type="button"
+                      (click)="toggleDropdown('size')"
+                      class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30 text-left flex items-center justify-between"
+                      [class.border-primary]="isFieldTouched('size')">
+                <span [ngClass]="{'text-base-content/30': !settingsForm.get('size')?.value}">
+                  {{ getSizeLabel(settingsForm.get('size')?.value) || 'Select company size' }}
+                </span>
+                <lucide-icon name="ChevronDown" class="w-4 h-4 transition-transform duration-200" 
+                             [class.rotate-180]="openDropdown === 'size'"></lucide-icon>
+              </button>
+              
+              <!-- Dropdown Menu -->
+              <div *ngIf="openDropdown === 'size'"
+                   (click)="$event.stopPropagation()"
+                   class="absolute z-50 w-full mt-1 bg-base-100 border border-base-300/50 rounded-xl shadow-lg max-h-60 overflow-auto">
+                <div class="p-1">
+                  <button type="button"
+                          *ngFor="let size of sizes"
+                          (click)="selectOption('size', size.value)"
+                          class="w-full px-3 py-2 text-left rounded-lg hover:bg-base-200 transition-colors duration-150"
+                          [ngClass]="{'bg-primary/10': settingsForm.get('size')?.value === size.value}">
+                    {{ size.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Timezone -->
-          <div class="form-control md:col-span-2">
-            <label class="label">
-              <span class="label-text font-medium">Timezone</span>
-              <span class="label-text-alt text-error">*</span>
+          <div class="space-y-2 md:col-span-2">
+            <label class="text-sm font-medium text-base-content/70 flex items-center justify-between">
+              <span>Timezone</span>
+              <span class="text-error">*</span>
             </label>
-            <select formControlName="timezone"
-                    [disabled]="!isEditing"
-                    class="select select-bordered w-full transition-all duration-300"
-                    [class.select-primary]="isEditing && settingsForm.get('timezone')?.touched">
-              <option *ngFor="let tz of timezones" [value]="tz.value">{{ tz.label }}</option>
-            </select>
+            <div class="relative">
+              <button type="button"
+                      (click)="toggleDropdown('timezone')"
+                      class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30 text-left flex items-center justify-between"
+                      [class.border-primary]="isFieldValid('timezone')"
+                      [class.border-error]="isFieldInvalid('timezone')">
+                <span [ngClass]="{'text-base-content/30': !settingsForm.get('timezone')?.value}">
+                  {{ getTimezoneLabel(settingsForm.get('timezone')?.value) || 'Select timezone' }}
+                </span>
+                <lucide-icon name="ChevronDown" class="w-4 h-4 transition-transform duration-200" 
+                             [class.rotate-180]="openDropdown === 'timezone'"></lucide-icon>
+              </button>
+              
+              <!-- Dropdown Menu -->
+              <div *ngIf="openDropdown === 'timezone'"
+                   (click)="$event.stopPropagation()"
+                   class="absolute z-50 w-full mt-1 bg-base-100 border border-base-300/50 rounded-xl shadow-lg max-h-60 overflow-auto">
+                <div class="p-1">
+                  <button type="button"
+                          *ngFor="let tz of timezones"
+                          (click)="selectOption('timezone', tz.value)"
+                          class="w-full px-3 py-2 text-left rounded-lg hover:bg-base-200 transition-colors duration-150"
+                          [ngClass]="{'bg-primary/10': settingsForm.get('timezone')?.value === tz.value}">
+                    {{ tz.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -259,14 +303,20 @@
         <div class="form-control mt-4">
           <label class="label">
             <span class="label-text font-medium">Description</span>
-            <span class="label-text-alt">{{ settingsForm.get('description')?.value?.length || 0 }}/500</span>
+            <span class="label-text-alt">{{ bioCharacterCount }}/500</span>
           </label>
-          <textarea formControlName="description"
-                    [readonly]="!isEditing"
-                    rows="3"
-                    placeholder="Describe your workplace..."
-                    class="textarea textarea-bordered w-full transition-all duration-300"
-                    [class.textarea-primary]="isEditing && settingsForm.get('description')?.touched"></textarea>
+          <app-tiptap-editor
+            [config]="{
+              placeholder: 'Describe your workplace, its mission, culture, or what makes it unique...',
+              showToolbar: true,
+              showBubbleMenu: true,
+              showCharacterCount: false,
+              minHeight: '120px',
+              toolbarItems: ['bold', 'italic', 'underline', 'link', 'bulletList', 'orderedList']
+            }"
+            formControlName="description"
+            class="w-full">
+          </app-tiptap-editor>
         </div>
       </div>
 
@@ -293,7 +343,7 @@
             </div>
             
             <!-- Upload Overlay -->
-            <div *ngIf="isEditing" 
+            <div *ngIf="!uploading" 
                  class="absolute inset-0 bg-black/50 rounded-xl opacity-0 group-hover:opacity-100 
                         transition-opacity duration-300 flex items-center justify-center cursor-pointer">
               <label for="logo-upload" class="cursor-pointer">
@@ -302,14 +352,27 @@
                        id="logo-upload" 
                        class="hidden" 
                        accept="image/*"
-                       (change)="onLogoSelected($event)">
+                       (change)="onLogoSelected($event)"
+                       [disabled]="uploading">
               </label>
+            </div>
+            
+            <!-- Upload Loading -->
+            <div *ngIf="uploading" class="absolute inset-0 bg-base-100/80 rounded-xl flex items-center justify-center">
+              <span class="loading loading-spinner loading-sm text-primary"></span>
             </div>
           </div>
 
           <div>
             <p class="font-medium">Upload workplace logo</p>
             <p class="text-sm text-base-content/70">Recommended: 256x256px, PNG or SVG</p>
+            <button *ngIf="logoPreview" 
+                    type="button" 
+                    class="btn btn-error btn-xs mt-2"
+                    (click)="clearLogoUpload()">
+              <lucide-icon name="Trash2" class="w-3 h-3"></lucide-icon>
+              Remove Logo
+            </button>
           </div>
         </div>
       </div>
@@ -344,7 +407,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Invite Members -->
           <button type="button"
-                  (click)="inviteMembers()"
+                  (click)="openInviteModal()"
                   class="btn btn-outline btn-primary gap-2">
             <lucide-icon name="UserPlus" class="w-4 h-4"></lucide-icon>
             Invite Members
@@ -358,6 +421,583 @@
           </button>
         </div>
       </div>
+
+      <!-- Members Management -->
+      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-8 border border-base-300/50 shadow-sm">
+        <div class="mb-8">
+          <h2 class="text-xl font-semibold mb-3 flex items-center gap-3">
+            <div class="p-2 bg-primary/10 rounded-lg">
+              <lucide-icon name="Users" class="w-6 h-6 text-primary"></lucide-icon>
+            </div>
+            Workplace Members
+          </h2>
+          
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <p class="text-base-content/60">Manage who has access to your workplace and their permissions</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <button type="button"
+                      (click)="openInviteModal()"
+                      class="btn btn-primary gap-2 shadow-sm hover:shadow-md transition-all">
+                <lucide-icon name="UserPlus" class="w-4 h-4"></lucide-icon>
+                Invite Member
+              </button>
+              <button type="button"
+                      (click)="addExistingUser()"
+                      class="btn btn-outline gap-2">
+                <lucide-icon name="UserCheck" class="w-4 h-4"></lucide-icon>
+                Add Existing User
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs tabs-bordered mb-8">
+          <button type="button"
+                  class="tab"
+                  [class.tab-active]="activeTab === 'members'"
+                  (click)="switchTab('members')">
+            <lucide-icon name="Users" class="w-4 h-4 mr-2"></lucide-icon>
+            Members ({{ workplaceMembersCount }})
+          </button>
+          <button type="button"
+                  class="tab"
+                  [class.tab-active]="activeTab === 'invitations'"
+                  (click)="switchTab('invitations')">
+            <lucide-icon name="Mail" class="w-4 h-4 mr-2"></lucide-icon>
+            Invitations ({{ invitationsCount }})
+          </button>
+          <button type="button"
+                  class="tab"
+                  [class.tab-active]="activeTab === 'roles'"
+                  (click)="switchTab('roles')">
+            <lucide-icon name="Shield" class="w-4 h-4 mr-2"></lucide-icon>
+            Roles ({{ rolesCount }})
+          </button>
+        </div>
+
+        <!-- Members Table -->
+        <div *ngIf="activeTab === 'members'">
+          <app-infinite-scroll-list
+            [items]="workplaceMembers"
+            [loading]="membersPagination.loading"
+            [hasMore]="membersPagination.hasMore"
+            [searchPlaceholder]="'Search members by name or email...'"
+            height="500px"
+            (loadMore)="loadMoreMembers()"
+            (search)="onMembersSearch($event)"
+          >
+            <div class="overflow-x-auto bg-base-100 rounded-lg">
+              <table class="table w-full">
+                <thead class="bg-base-200/50">
+                  <tr>
+                    <th class="text-base-content/70 font-medium text-sm uppercase tracking-wider">Member</th>
+                    <th class="text-base-content/70 font-medium text-sm uppercase tracking-wider">Role</th>
+                    <th class="text-base-content/70 font-medium text-sm uppercase tracking-wider">Status</th>
+                    <th class="text-base-content/70 font-medium text-sm uppercase tracking-wider">Joined</th>
+                    <th class="text-base-content/70 font-medium text-sm uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-base-200">
+                  <tr *ngFor="let member of workplaceMembers" class="hover:bg-base-100/50 transition-colors">
+                <td class="py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="avatar">
+                      <div class="w-12 h-12 rounded-full overflow-hidden ring-2 ring-base-200" 
+                           [ngClass]="{'bg-gradient-to-br from-primary/20 to-primary/10': !member.avatar_url}">
+                        <img *ngIf="member.avatar_url" 
+                             [src]="member.avatar_url" 
+                             [alt]="member.first_name + ' ' + member.last_name"
+                             class="w-full h-full object-cover">
+                        <div *ngIf="!member.avatar_url" 
+                             class="w-full h-full flex items-center justify-center">
+                          <span class="text-primary font-semibold text-base">
+                            {{ getInitials(member.first_name, member.last_name) }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <p class="font-medium text-base-content text-base">
+                        {{ member.first_name }} {{ member.last_name }}
+                      </p>
+                      <p class="text-sm text-base-content/50">{{ member.email }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-4">
+                  <div class="flex gap-2 items-center">
+                    <span *ngIf="member.is_current_user" 
+                          class="badge badge-primary badge-sm">You</span>
+                    <div class="dropdown dropdown-end">
+                      <label tabindex="0" class="btn btn-sm btn-ghost px-3">
+                        <span [ngClass]="{
+                          'text-warning font-medium': member.role === 'admin',
+                          'text-info font-medium': member.role === 'member'
+                        }">
+                          {{ member.role | titlecase }}
+                        </span>
+                        <lucide-icon name="ChevronDown" class="w-4 h-4 ml-1 opacity-60"></lucide-icon>
+                      </label>
+                      <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200">
+                        <li *ngFor="let role of roles">
+                          <a (click)="assignRoleToMember(member.uuid, role.uuid)"
+                             [class.active]="member.role === role.name.toLowerCase()"
+                             class="rounded">
+                            {{ role.name | titlecase }}
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-4">
+                  <span class="badge badge-success badge-sm px-3">Active</span>
+                </td>
+                <td class="py-4">
+                  <span class="text-sm text-base-content/60">
+                    {{ getDisplayDate(member.joined_at) }}
+                  </span>
+                </td>
+                <td class="py-4">
+                  <div class="flex items-center gap-1">
+                    <button *ngIf="!member.is_current_user"
+                            type="button"
+                            class="btn btn-ghost btn-sm btn-square"
+                            (click)="editMember(member)"
+                            tooltip="Edit member">
+                      <lucide-icon name="Edit" class="w-4 h-4"></lucide-icon>
+                    </button>
+                    <button *ngIf="!member.is_current_user"
+                            type="button"
+                            class="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10"
+                            (click)="removeMember(member)"
+                            tooltip="Remove member">
+                      <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Empty state for members -->
+        <div empty-state class="text-center py-16">
+          <div class="bg-base-200/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <lucide-icon name="Users" class="w-10 h-10 text-base-content/30"></lucide-icon>
+          </div>
+          <p class="text-base-content/60 font-medium text-lg mb-2">No members found</p>
+          <p class="text-sm text-base-content/40 max-w-sm mx-auto">Invite team members to collaborate in your workplace</p>
+          <button type="button"
+                  class="btn btn-primary btn-sm mt-4"
+                  (click)="openInviteModal()">
+            <lucide-icon name="UserPlus" class="w-4 h-4 mr-2"></lucide-icon>
+            Invite Members
+          </button>
+        </div>
+      </app-infinite-scroll-list>
+    </div>
+
+    <!-- Invitations Table -->
+    <div *ngIf="activeTab === 'invitations'">
+      <app-infinite-scroll-list
+        [items]="invitations"
+        [loading]="invitationsPagination.loading"
+        [hasMore]="invitationsPagination.hasMore"
+        [searchPlaceholder]="'Search invitations by email...'"
+        height="500px"
+        (loadMore)="loadMoreInvitations()"
+        (search)="onInvitationsSearch($event)"
+      >
+        <div class="overflow-x-auto">
+          <table class="table table-zebra w-full">
+            <thead>
+              <tr>
+                <th class="text-base-content/70 font-medium">EMAIL</th>
+                <th class="text-base-content/70 font-medium">INVITED BY</th>
+                <th class="text-base-content/70 font-medium">ROLE</th>
+                <th class="text-base-content/70 font-medium">STATUS</th>
+                <th class="text-base-content/70 font-medium">INVITED ON</th>
+                <th class="text-base-content/70 font-medium">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let invitation of invitations" class="hover:bg-base-200/50">
+                <td>
+                  <div>
+                    <p class="font-medium text-base-content">{{ invitation.email }}</p>
+                    <p *ngIf="invitation.message" class="text-sm text-base-content/60 italic">{{ invitation.message }}</p>
+                  </div>
+                </td>
+                <td>
+                  <div class="flex items-center gap-3">
+                    <div class="avatar">
+                      <div class="w-8 h-8 rounded-full overflow-hidden" 
+                           [ngClass]="{'bg-primary/20': !invitation.inviter?.avatar_url}">
+                        <img *ngIf="invitation.inviter?.avatar_url" 
+                             [src]="invitation.inviter?.avatar_url" 
+                             [alt]="(invitation.inviter?.first_name || '') + ' ' + (invitation.inviter?.last_name || '')"
+                             class="w-full h-full object-cover">
+                        <div *ngIf="!invitation.inviter?.avatar_url" 
+                             class="w-full h-full flex items-center justify-center">
+                          <span class="text-primary font-semibold text-xs leading-none">
+                            {{ getInitials(invitation.inviter?.first_name || '', invitation.inviter?.last_name || '') }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <p class="text-sm text-base-content">
+                        {{ (invitation.inviter?.first_name || '') }} {{ (invitation.inviter?.last_name || '') }}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge badge-info badge-sm">
+                    {{ invitation.role?.name | titlecase }}
+                  </span>
+                </td>
+                <td>
+                  <span [ngClass]="getInvitationStatusClass(invitation.status)">
+                    {{ invitation.status | titlecase }}
+                  </span>
+                </td>
+                <td>
+                  <span class="text-sm text-base-content/70">
+                    {{ formatInvitationDate(invitation.created_at) }}
+                  </span>
+                </td>
+                <td>
+                  <button *ngIf="invitation.status === 'pending'"
+                          type="button"
+                          class="btn btn-ghost btn-xs text-error"
+                          (click)="cancelInvitation(invitation.uuid)">
+                    <lucide-icon name="X" class="w-3 h-3 mr-1"></lucide-icon>
+                    Cancel
+                  </button>
+                  <span *ngIf="invitation.status !== 'pending'" class="text-sm text-base-content/50">
+                    -
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Empty state for invitations -->
+        <div empty-state class="text-center py-8">
+          <lucide-icon name="Mail" class="w-12 h-12 text-base-content/30 mx-auto mb-3"></lucide-icon>
+          <p class="text-base-content/60">No pending invitations</p>
+          <p class="text-sm text-base-content/40 mt-1">All invitations have been accepted or expired</p>
+        </div>
+      </app-infinite-scroll-list>
+    </div>
+
+        <!-- Roles Table -->
+        <div *ngIf="activeTab === 'roles'">
+          <!-- Add Role Button -->
+          <div class="flex justify-end mb-4">
+            <button type="button"
+                    class="btn btn-primary"
+                    (click)="openRoleModal()">
+              <lucide-icon name="Plus" class="w-4 h-4 mr-2"></lucide-icon>
+              Create Role
+            </button>
+          </div>
+
+          <app-infinite-scroll-list
+            [items]="roles"
+            [loading]="rolesPagination.loading"
+            [hasMore]="rolesPagination.hasMore"
+            [searchPlaceholder]="'Search roles by name...'"
+            height="500px"
+            (loadMore)="loadMoreRoles()"
+            (search)="onRolesSearch($event)"
+          >
+            <div class="overflow-x-auto">
+              <table class="table table-zebra w-full">
+                <thead>
+                  <tr>
+                    <th>Role Name</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Permissions</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let role of roles">
+                <td>
+                  <div class="flex items-center gap-2">
+                    <lucide-icon name="Shield" class="w-4 h-4 text-primary"></lucide-icon>
+                    <span class="font-medium">{{ role.name | titlecase }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="text-sm text-base-content/70">{{ role.description }}</span>
+                </td>
+                <td>
+                  <span class="badge" [class.badge-primary]="role.is_system" [class.badge-secondary]="!role.is_system">
+                    {{ role.is_system ? 'System' : 'Custom' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="text-sm text-base-content/70">
+                    {{ getRolePermissionsDisplay(role) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <button type="button"
+                            class="btn btn-ghost btn-xs"
+                            [disabled]="!canEditRole(role)"
+                            (click)="openRoleModal(role)">
+                      <lucide-icon name="Edit2" class="w-3 h-3"></lucide-icon>
+                    </button>
+                    <button type="button"
+                            class="btn btn-ghost btn-xs text-error"
+                            [disabled]="!canDeleteRole(role)"
+                            (click)="confirmDeleteRole(role)">
+                      <lucide-icon name="Trash2" class="w-3 h-3"></lucide-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Empty state for roles -->
+        <div empty-state class="text-center py-8">
+          <lucide-icon name="Shield" class="w-12 h-12 text-base-content/30 mx-auto mb-3"></lucide-icon>
+          <p class="text-base-content/60">No roles defined</p>
+          <p class="text-sm text-base-content/40 mt-1">Create roles to manage permissions</p>
+        </div>
+      </app-infinite-scroll-list>
+    </div>
+
+
+      </div>
     </form>
+  </div>
+</div>
+
+<!-- Invite Member Modal -->
+<div *ngIf="showInviteModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/50" (click)="closeInviteModal()"></div>
+  
+  <!-- Modal Content -->
+  <div class="relative bg-base-100 rounded-lg shadow-xl w-full max-w-md">
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold">Invite New Member</h3>
+        <button type="button" 
+                class="btn btn-ghost btn-sm btn-circle"
+                (click)="closeInviteModal()">
+          <lucide-icon name="X" class="w-4 h-4"></lucide-icon>
+        </button>
+      </div>
+      
+      <form (ngSubmit)="sendInvitation()" class="space-y-4">
+        <!-- Email Input -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Email Address</span>
+          </label>
+          <input type="email" 
+                 [(ngModel)]="inviteForm.email"
+                 name="email"
+                 placeholder="colleague@example.com"
+                 class="input input-bordered"
+                 required>
+        </div>
+        
+        <!-- Role Selection -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Role</span>
+          </label>
+          <div class="relative">
+            <button type="button"
+                    (click)="showRoleDropdown = !showRoleDropdown"
+                    class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30 text-left flex items-center justify-between"
+                    [class.border-primary]="inviteForm.roleId">
+              <span [ngClass]="{'text-base-content/30': !inviteForm.roleId}">
+                {{ getSelectedRoleLabel() }}
+              </span>
+              <lucide-icon name="ChevronDown" class="w-4 h-4 transition-transform duration-200" 
+                           [class.rotate-180]="showRoleDropdown"></lucide-icon>
+            </button>
+            
+            <!-- Dropdown Menu -->
+            <div *ngIf="showRoleDropdown"
+                 (click)="$event.stopPropagation()"
+                 class="absolute z-50 w-full mt-1 bg-base-100 border border-base-300/50 rounded-xl shadow-lg max-h-60 overflow-auto">
+              <div class="p-1">
+                <button type="button"
+                        *ngFor="let role of availableRoles"
+                        (click)="inviteForm.roleId = role.uuid; showRoleDropdown = false"
+                        class="w-full px-3 py-2 text-left rounded-lg hover:bg-base-200 transition-colors duration-150 flex items-center justify-between"
+                        [ngClass]="{'bg-primary/10': inviteForm.roleId === role.uuid}">
+                  <span>{{ role.label | titlecase }}</span>
+                  <lucide-icon *ngIf="inviteForm.roleId === role.uuid" 
+                               name="Check" 
+                               class="w-4 h-4 text-primary"></lucide-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Personal Message -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Personal Message (Optional)</span>
+          </label>
+          <textarea [(ngModel)]="inviteForm.message"
+                    name="message"
+                    rows="3"
+                    placeholder="Add a personal message to your invitation..."
+                    class="textarea textarea-bordered"></textarea>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex justify-end gap-2 pt-4">
+          <button type="button" 
+                  class="btn btn-ghost"
+                  (click)="closeInviteModal()">
+            Cancel
+          </button>
+          <button type="submit" 
+                  class="btn btn-primary"
+                  [disabled]="sendingInvite || !inviteForm.email || !inviteForm.roleId">
+            <span *ngIf="!sendingInvite">Send Invitation</span>
+            <span *ngIf="sendingInvite" class="loading loading-spinner loading-sm"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Role Management Modal -->
+<div class="modal" [class.modal-open]="showRoleModal">
+  <div class="modal-box max-w-3xl">
+    <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" (click)="closeRoleModal()">✕</button>
+    <h3 class="font-bold text-lg mb-4">
+      {{ editingRole ? 'Edit Role' : 'Create New Role' }}
+    </h3>
+    
+    <form>
+      <!-- Role Name -->
+      <div class="form-control mb-4">
+        <label class="label">
+          <span class="label-text">Role Name <span class="text-error">*</span></span>
+        </label>
+        <input type="text"
+               [(ngModel)]="roleForm.name"
+               name="roleName"
+               placeholder="e.g., Manager, Developer, Viewer"
+               class="input input-bordered"
+               [disabled]="!!editingRole?.is_system">
+      </div>
+      
+      <!-- Role Description -->
+      <div class="form-control mb-4">
+        <label class="label">
+          <span class="label-text">Description <span class="text-error">*</span></span>
+        </label>
+        <textarea [(ngModel)]="roleForm.description"
+                  name="roleDescription"
+                  placeholder="Describe what this role can do"
+                  class="textarea textarea-bordered"
+                  rows="2"
+                  [disabled]="!!editingRole?.is_system"></textarea>
+      </div>
+
+      <!-- Permissions -->
+      <div class="form-control mb-4">
+        <label class="label">
+          <span class="label-text">Permissions</span>
+        </label>
+        
+        <!-- Permission Categories -->
+        <div class="tabs tabs-boxed mb-4" *ngIf="permissionCategories">
+          <button *ngFor="let category of (permissionCategories | keyvalue)"
+                  type="button"
+                  class="tab"
+                  [class.tab-active]="selectedPermissionCategory === category.key"
+                  (click)="selectedPermissionCategory = category.key">
+            {{ getCategoryName(category.key) }}
+          </button>
+        </div>
+
+        <!-- Permissions List -->
+        <div class="border border-base-300 rounded-lg p-4 max-h-96 overflow-y-auto">
+          <div class="mb-3" *ngIf="selectedCategoryPermissionsCount > 0">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input type="checkbox"
+                     class="checkbox checkbox-primary"
+                     [checked]="areAllPermissionsInCategorySelected(selectedPermissionCategory)"
+                     (change)="toggleAllPermissionsInCategory(selectedPermissionCategory)"
+                     [disabled]="!!editingRole?.is_system">
+              <span class="label-text font-medium">Select All in {{ getCategoryName(selectedPermissionCategory) }}</span>
+            </label>
+          </div>
+          
+          <div class="space-y-2">
+            <label *ngFor="let permission of currentCategoryPermissions"
+                   class="label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded p-2">
+              <input type="checkbox"
+                     class="checkbox checkbox-primary"
+                     [checked]="hasPermission(permission.name)"
+                     (change)="togglePermission(permission.name)"
+                     [disabled]="!!editingRole?.is_system">
+              <div class="flex-1">
+                <div class="label-text">{{ permission.description }}</div>
+                <div class="text-xs text-base-content/60">{{ permission.name }}</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Permission Summary -->
+        <div class="text-sm text-base-content/70 mt-2">
+          {{ roleFormPermissionsCount }} permissions selected
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="modal-action">
+        <button type="button" class="btn" (click)="closeRoleModal()">Cancel</button>
+        <button type="button"
+                class="btn btn-primary"
+                [disabled]="savingRole || !roleForm.name || !roleForm.description || editingRole?.is_system"
+                (click)="saveRole()">
+          <span *ngIf="!savingRole">{{ editingRole ? 'Update Role' : 'Create Role' }}</span>
+          <span *ngIf="savingRole" class="loading loading-spinner loading-sm"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Role Confirmation Modal -->
+<div class="modal" [class.modal-open]="showDeleteRoleModal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">Delete Role</h3>
+    <p class="text-base-content/80" *ngIf="deletingRole">
+      Are you sure you want to delete the role "<strong>{{ deletingRole.name | titlecase }}</strong>"? 
+      This action cannot be undone.
+    </p>
+    <div class="modal-action">
+      <button type="button" class="btn" (click)="showDeleteRoleModal = false">Cancel</button>
+      <button type="button" class="btn btn-error" (click)="deleteRole()">Delete Role</button>
+    </div>
   </div>
 </div> 

@@ -61,6 +61,7 @@ import { LucideAngularModule,
   Minus,
   Info,
   AlertTriangle,
+  AlertCircle,
   UserPlus,
   UserMinus,
   UserCheck,
@@ -115,7 +116,9 @@ import { LucideAngularModule,
   Building2,
   Edit3,
   Camera,
-  Navigation
+  Navigation,
+  Edit2,
+  SearchX
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -124,6 +127,7 @@ import { TopbarComponent } from './components/topbar/topbar.component'
 import { TiptapEditorComponent } from '../../core/components/tiptap-editor/tiptap-editor.component'
 import { RichHtmlDirective } from './directives/rich-html.directive'
 import { LocationPickerComponent } from './components/location-picker/location-picker.component'
+import { InfiniteScrollListComponent } from './components/infinite-scroll-list/infinite-scroll-list.component'
 
 @NgModule({
   imports: [
@@ -133,6 +137,7 @@ import { LocationPickerComponent } from './components/location-picker/location-p
     TiptapEditorComponent,
     RichHtmlDirective,
     LocationPickerComponent,
+    InfiniteScrollListComponent,
     LucideAngularModule.pick({ 
       Home, 
       User, 
@@ -194,6 +199,7 @@ import { LocationPickerComponent } from './components/location-picker/location-p
       Minus,
       Info,
       AlertTriangle,
+      AlertCircle,
       UserPlus,
       UserMinus,
       UserCheck,
@@ -248,7 +254,9 @@ import { LocationPickerComponent } from './components/location-picker/location-p
       Building2,
       Edit3,
       Camera,
-      Navigation
+      Navigation,
+      Edit2,
+      SearchX
     })
   ],
   exports: [
@@ -258,7 +266,8 @@ import { LocationPickerComponent } from './components/location-picker/location-p
     NavbarComponent,
     TiptapEditorComponent,
     RichHtmlDirective,
-    LocationPickerComponent
+    LocationPickerComponent,
+    InfiniteScrollListComponent
   ],
   providers: [AuthGuard, NonAuthGuard]
 })

@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
+import { DialogService } from '../../../core/services/dialog.service';
 
 @Component({
     selector: 'app-billing',
@@ -9,7 +10,10 @@ import { AuthService } from '../../../core/services/auth.service';
 })
 export class BillingComponent {
 
-    constructor(private authService: AuthService) { }
+    constructor(
+        private authService: AuthService,
+        private dialogService: DialogService
+    ) { }
 
     // Placeholder for billing data
     plan = {
@@ -26,6 +30,10 @@ export class BillingComponent {
 
     manageBilling() {
         // Placeholder for billing management logic
-        alert('Billing management coming soon!');
+        this.dialogService.alert({
+            title: 'Coming Soon',
+            message: 'Billing management will be available soon!',
+            type: 'info'
+        }).subscribe();
     }
 } 

@@ -52,6 +52,12 @@ export class Workplace extends Model<WorkplaceAttributes, WorkplaceCreationAttri
             as: 'memberships'
         })
 
+        // Workplace has many workplace invitations
+        Workplace.hasMany(models.WorkplaceInvitation, {
+            foreignKey: 'workplace_id',
+            as: 'invitations'
+        })
+
         // Workplace belongs to many users through memberships
         Workplace.belongsToMany(models.User, {
             through: models.WorkplaceMembership,
@@ -84,10 +90,7 @@ Workplace.init({
     },
     logo_url: {
         type: DataTypes.STRING(255),
-        allowNull: true,
-        validate: {
-            isUrl: true
-        }
+        allowNull: true
     },
     website: {
         type: DataTypes.STRING(255),

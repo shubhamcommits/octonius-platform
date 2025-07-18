@@ -16,6 +16,9 @@ import { WorkplaceMembership } from '../workplaces/workplace-membership.model'
 // Import Role model
 import { Role } from '../roles/role.model'
 
+// Import Role service
+import RoleService from '../roles/role.service'
+
 // Import response and error types
 import { AuthResponse, AuthError } from './auth.type'
 
@@ -328,21 +331,23 @@ export class AuthService {
                 active: true
             })
 
-            // Create admin role for the workplace
-            const admin_role = await Role.create({
-                name: 'Admin',
-                description: 'Administrator role with full access',
-                permissions: ['*'],
-                is_system: false,
-                workplace_id: workplace.uuid,
-                active: true
-            })
+            // Create default roles for the workplace
+            const rolesResult = await RoleService.createDefaultRoles(workplace.uuid, user.uuid)
+            if (!rolesResult.success) {
+                throw new Error('Failed to create default roles')
+            }
 
-            // Create workplace membership
+            // Find the owner role
+            const ownerRole = rolesResult.data?.find((role: Role) => role.name === 'owner')
+            if (!ownerRole) {
+                throw new Error('Owner role not found')
+            }
+
+            // Create workplace membership with owner role
             await WorkplaceMembership.create({
                 user_id: user.uuid,
                 workplace_id: workplace.uuid,
-                role_id: admin_role.uuid,
+                role_id: ownerRole.uuid,
                 status: 'active',
                 joined_at: new Date()
             })

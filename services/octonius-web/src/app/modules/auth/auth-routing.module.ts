@@ -22,7 +22,11 @@ const routes: Routes = [
       { path: 'verify-otp', component: VerifyOtpComponent, canActivate: [NonAuthGuard] },
       { path: 'select-workplace', component: SelectWorkplaceComponent },
       { path: 'create-workplace', component: CreateWorkplaceComponent },
-      { path: 'workplace-login', component: WorkplaceLoginComponent }
+      { path: 'workplace-login', component: WorkplaceLoginComponent },
+      { 
+        path: 'accept-invitation', 
+        loadComponent: () => import('./accept-invitation/accept-invitation.component').then(m => m.AcceptInvitationComponent)
+      }
     ]
   }
 ]

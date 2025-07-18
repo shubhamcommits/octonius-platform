@@ -27,3 +27,13 @@ export interface WorkplaceError {
     code: number
     stack: Error
 } 
+
+/**
+ * Interface for successful workplace members response
+ */
+export interface WorkplaceMembersResponse<T> {
+    success: true
+    message: string
+    code: number
+    members: T
+}
