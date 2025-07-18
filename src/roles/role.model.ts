@@ -73,6 +73,12 @@ export class Role extends Model<RoleAttributes, RoleCreationAttributes> implemen
             foreignKey: 'role_id',
             as: 'role_permissions'
         })
+
+        // Role has many workplace invitations
+        Role.hasMany(models.WorkplaceInvitation, {
+            foreignKey: 'role_id',
+            as: 'workplace_invitations'
+        })
     }
 }
 

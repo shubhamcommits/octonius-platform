@@ -114,10 +114,28 @@ export class InboxComponent implements OnInit, OnDestroy {
             next: (response: any) => {
 
               if(response.data.workload) {
-                this.workloadStats = response.data.workload.stats
-                this.recentActivity = response.data.workload.activity
-                this.messages = response.data.workload.messages
-                this.loungeNews = response.data.workload.news
+                this.workloadStats = response.data.workload.stats || {
+                  total: 0,
+                  overdue: 0,
+                  todo: 0,
+                  inProgress: 0,
+                  done: 0
+                }
+                this.recentActivity = response.data.workload.activity || []
+                this.messages = response.data.workload.messages || []
+                this.loungeNews = response.data.workload.news || []
+              } else {
+                // Set default values if workload data is not available
+                this.workloadStats = {
+                  total: 0,
+                  overdue: 0,
+                  todo: 0,
+                  inProgress: 0,
+                  done: 0
+                }
+                this.recentActivity = []
+                this.messages = []
+                this.loungeNews = []
               }
 
               this.isLoading = false

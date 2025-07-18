@@ -112,6 +112,20 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
             sourceKey: 'uuid',
             as: 'task_comments'
         })
+
+        // User has many workplace invitations as inviter
+        User.hasMany(models.WorkplaceInvitation, {
+            foreignKey: 'invited_by',
+            sourceKey: 'uuid',
+            as: 'sent_invitations'
+        })
+
+        // User has many workplace invitations as invitee
+        User.hasMany(models.WorkplaceInvitation, {
+            foreignKey: 'user_id',
+            sourceKey: 'uuid',
+            as: 'received_invitations'
+        })
     }
 
     // Virtual getter for avatar URL with fallback

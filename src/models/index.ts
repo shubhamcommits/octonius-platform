@@ -2,6 +2,7 @@
 import { User } from '../users/user.model'
 import { Workplace } from '../workplaces/workplace.model'
 import { WorkplaceMembership } from '../workplaces/workplace-membership.model'
+import { WorkplaceInvitation } from '../workplaces/workplace-invitation.model'
 import { Role } from '../roles/role.model'
 import { Permission } from '../roles/permission.model'
 import { RolePermission } from '../roles/role-permission.model'
@@ -24,6 +25,7 @@ export {
     User,
     Workplace,
     WorkplaceMembership,
+    WorkplaceInvitation,
     Role,
     Permission,
     RolePermission,
@@ -47,6 +49,7 @@ const models = {
     User,
     Workplace,
     WorkplaceMembership,
+    WorkplaceInvitation,
     Role,
     Permission,
     RolePermission,
