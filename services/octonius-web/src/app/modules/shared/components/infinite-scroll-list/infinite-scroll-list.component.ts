@@ -2,12 +2,12 @@ import { Component, Input, Output, EventEmitter, ElementRef, ViewChild, OnInit, 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, takeUntil, fromEvent, distinctUntilChanged } from 'rxjs';
-import { SharedModule } from '../../shared.module';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-infinite-scroll-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, SharedModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   template: `
     <div class="space-y-6">
       <!-- Search Bar -->

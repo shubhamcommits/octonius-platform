@@ -137,7 +137,7 @@ import { InfiniteScrollListComponent } from './components/infinite-scroll-list/i
     TiptapEditorComponent,
     RichHtmlDirective,
     LocationPickerComponent,
-    InfiniteScrollListComponent,
+    InfiniteScrollListComponent, // Import the standalone component
     LucideAngularModule.pick({ 
       Home, 
       User, 
@@ -267,7 +267,7 @@ import { InfiniteScrollListComponent } from './components/infinite-scroll-list/i
     TiptapEditorComponent,
     RichHtmlDirective,
     LocationPickerComponent,
-    InfiniteScrollListComponent
+    InfiniteScrollListComponent // Export it for use in other modules
   ],
   providers: [AuthGuard, NonAuthGuard]
 })
