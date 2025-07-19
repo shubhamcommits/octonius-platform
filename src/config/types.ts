@@ -9,7 +9,7 @@ export const envSchema = z.object({
   NODE_ENV: z.enum(['dev', 'prod', 'test', 'local']),
   CLUSTER: z.string(),
   DOMAIN: z.string(),
-
+  WEB_APP_BASE_URL: z.string(),
   // AWS
   AWS_ACCOUNT_NUMBER: z.string(),
   AWS_DEFAULT_REGION: z.string(),
