@@ -336,17 +336,100 @@ jobs:
             echo "✅ No changes detected for ${{ needs.determine-action.outputs.environment }}"
             echo "has-changes=false" >> $GITHUB_ENV
           fi
+      - name: 🔍 Check App Runner Status
+        if: env.has-changes == 'true'
+        working-directory: terraform
+        run: |
+          # Try to get the App Runner service ARN from Terraform state
+          SERVICE_ARN=$(terraform output -raw app_runner_service_arn 2>/dev/null || echo "")
+          
+          if [ -n "$SERVICE_ARN" ]; then
+            echo "🔍 Checking App Runner service status..."
+            echo "Service ARN: $SERVICE_ARN"
+            
+            # Check service status
+            STATUS=$(aws apprunner describe-service \
+              --service-arn "$SERVICE_ARN" \
+              --query 'Service.Status' \
+              --output text 2>/dev/null || echo "UNKNOWN")
+            
+            echo "Current status: $STATUS"
+            
+            if [ "$STATUS" = "OPERATION_IN_PROGRESS" ]; then
+              echo "⚠️  App Runner is currently in OPERATION_IN_PROGRESS state"
+              echo "⏳ Waiting for operation to complete (max 5 minutes)..."
+              
+              WAIT_TIME=0
+              MAX_WAIT=300  # 5 minutes
+              
+              while [ "$STATUS" = "OPERATION_IN_PROGRESS" ] && [ $WAIT_TIME -lt $MAX_WAIT ]; do
+                sleep 30
+                WAIT_TIME=$((WAIT_TIME + 30))
+                STATUS=$(aws apprunner describe-service \
+                  --service-arn "$SERVICE_ARN" \
+                  --query 'Service.Status' \
+                  --output text 2>/dev/null || echo "UNKNOWN")
+                echo "Status after ${WAIT_TIME}s: $STATUS"
+              done
+              
+              if [ "$STATUS" = "OPERATION_IN_PROGRESS" ]; then
+                echo "❌ App Runner is still in OPERATION_IN_PROGRESS after 5 minutes"
+                echo "You may need to wait longer or check the AWS Console"
+                exit 1
+              fi
+            fi
+            
+            echo "✅ App Runner is in $STATUS state, ready to proceed"
+          else
+            echo "ℹ️  No existing App Runner service found or unable to retrieve ARN"
+          fi
       - name: 🚀 Apply Infrastructure
         working-directory: terraform
         run: |
-          if [[ -f "tfplan-${{ needs.determine-action.outputs.environment }}" ]]; then
-            echo "🚀 Applying saved plan..."
-            terraform apply tfplan-${{ needs.determine-action.outputs.environment }}
-          else
-            echo "📋 No saved plan found. Creating new plan and applying..."
-            terraform plan -var-file=config/terraform.tfvars -var-file=config/ip_whitelist.tfvars -out=tfplan-${{ needs.determine-action.outputs.environment }}
-            terraform apply tfplan-${{ needs.determine-action.outputs.environment }}
-          fi
+          # Function to apply Terraform with retries for App Runner
+          apply_with_retry() {
+            local max_attempts=3
+            local attempt=1
+            local wait_time=60
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "🔄 Terraform apply attempt $attempt of $max_attempts"
+              
+              if [[ -f "tfplan-${{ needs.determine-action.outputs.environment }}" ]]; then
+                echo "🚀 Applying saved plan..."
+                terraform apply tfplan-${{ needs.determine-action.outputs.environment }} 2>&1 | tee apply.log || exit_code=$?
+              else
+                echo "📋 No saved plan found. Creating new plan and applying..."
+                terraform plan -var-file=config/terraform.tfvars -var-file=config/ip_whitelist.tfvars -out=tfplan-${{ needs.determine-action.outputs.environment }}
+                terraform apply tfplan-${{ needs.determine-action.outputs.environment }} 2>&1 | tee apply.log || exit_code=$?
+              fi
+              
+              # Check if the error is due to App Runner being in OPERATION_IN_PROGRESS
+              if grep -q "OPERATION_IN_PROGRESS" apply.log; then
+                if [ $attempt -lt $max_attempts ]; then
+                  echo "⚠️  App Runner is in OPERATION_IN_PROGRESS state. Waiting $wait_time seconds before retry..."
+                  sleep $wait_time
+                  # Increase wait time for next attempt
+                  wait_time=$((wait_time * 2))
+                  attempt=$((attempt + 1))
+                  # Recreate the plan for the next attempt
+                  rm -f tfplan-${{ needs.determine-action.outputs.environment }}
+                else
+                  echo "❌ Max retries reached. App Runner is still in OPERATION_IN_PROGRESS state."
+                  exit 1
+                fi
+              elif [ "${exit_code:-0}" -eq 0 ]; then
+                echo "✅ Terraform apply successful!"
+                break
+              else
+                echo "❌ Terraform apply failed with exit code: ${exit_code:-1}"
+                exit ${exit_code:-1}
+              fi
+            done
+          }
+          
+          # Execute the apply with retry logic
+          apply_with_retry
       - name: 🗑️ Destroy Infrastructure
         if: ${{ github.event.inputs.action == 'destroy' }}
         working-directory: terraform
@@ -457,7 +540,7 @@ jobs:
 
   deployment-summary:
     name: 📊 Deployment Summary
-    needs: [validate-env, deploy-web]
+    needs: [validate-env, deploy-web, determine-action]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -466,13 +549,24 @@ jobs:
           echo "## 🚀 Deployment Summary for ${{ needs.determine-action.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔄 Action Performed" >> $GITHUB_STEP_SUMMARY
-          echo "- ${{ github.event.inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ github.event.inputs.action || 'deploy' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📅 Deployment Time" >> $GITHUB_STEP_SUMMARY
           echo "- $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Add deployment status
+          if [[ "${{ needs.deploy-web.result }}" == "success" ]]; then
+            echo "### ✅ Deployment Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Deployment Status: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Note:** If the deployment failed due to App Runner being busy, the workflow automatically retries up to 3 times." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔄 Next Steps" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ github.event.inputs.action }}" == "apply" ]]; then
+          if [[ "${{ github.event.inputs.action }}" == "apply" ]] || [[ -z "${{ github.event.inputs.action }}" ]]; then
             echo "1. Verify the deployment in the AWS Console" >> $GITHUB_STEP_SUMMARY
             echo "2. Test the application endpoints" >> $GITHUB_STEP_SUMMARY
             echo "3. Monitor CloudWatch metrics for any issues" >> $GITHUB_STEP_SUMMARY

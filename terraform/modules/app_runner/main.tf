@@ -1,3 +1,14 @@
+# Local values for deployment management
+locals {
+  # Create a hash of all configuration that would trigger a deployment
+  deployment_trigger_hash = sha256(jsonencode({
+    environment_variables = var.environment_variables
+    environment_secrets   = var.environment_secrets
+    image_tag            = var.image_tag
+    force_deployment     = var.force_new_deployment
+  }))
+}
+
 # App Runner Service
 resource "aws_apprunner_service" "main" {
   service_name = "${var.environment}-${var.project_name}-service"
@@ -47,6 +58,7 @@ resource "aws_apprunner_service" "main" {
     var.tags,
     {
       "SecretVersion" = var.force_new_deployment ? timestamp() : "static"
+      "DeploymentTrigger" = local.deployment_trigger_hash
     }
   )
 
@@ -57,6 +69,23 @@ resource "aws_apprunner_service" "main" {
     ignore_changes = [
       source_configuration[0].authentication_configuration
     ]
+  }
+
+  # Wait for any configuration changes to stabilize
+  depends_on = [
+    aws_iam_role_policy_attachment.app_runner_service,
+    aws_iam_role_policy.app_runner_instance,
+    aws_apprunner_vpc_connector.main,
+    time_sleep.wait_for_stabilization
+  ]
+}
+
+# Simple wait to allow App Runner operations to stabilize
+resource "time_sleep" "wait_for_stabilization" {
+  create_duration = "30s"
+  
+  triggers = {
+    deployment_trigger = local.deployment_trigger_hash
   }
 }
 
