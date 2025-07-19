@@ -247,6 +247,7 @@ module "app_runner" {
     NODE_ENV           = var.environment
     CLUSTER            = "false"
     DOMAIN             = "${var.environment}.api.octonius.com"
+    WEB_APP_BASE_URL   = var.environment == "prod" ? "app.octonius.com" : "${var.environment}.app.octonius.com"
     AWS_ACCOUNT_NUMBER = local.account_id
     AWS_DEFAULT_REGION = local.aws_region
     DB_WRITER_HOST     = module.rds.address
