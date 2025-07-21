@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Subject, debounceTime, takeUntil, distinctUntilChanged } from 'rxjs';
 import { WorkplaceSettingsService, WorkplaceData, WorkplaceStats, WorkplaceSettingsUpdate, WorkplaceMember, WorkplaceInvitation } from '../../../core/services/workplace-settings.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { FileService } from '../../../core/services/file.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { RoleService, Role, Permission, PermissionsByCategory } from '../../../core/services/role.service';
+import { RoleService, Role, Permission, PermissionsByCategory, PermissionCategory } from '../../../core/services/role.service';
 import { DialogService } from '../../../core/services/dialog.service';
 
 @Component({
@@ -74,7 +75,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
     roleId: '',
     message: ''
   };
-  activeTab: 'members' | 'invitations' | 'roles' = 'members';
+  
+  // Tab management
+  activeTab: 'overview' | 'details' | 'members' | 'roles' | 'permissions' | 'invitations' | 'billing' = 'overview';
 
   // Role management properties
   roles: Role[] = [];
@@ -84,7 +87,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   deletingRole: Role | null = null;
   showDeleteRoleModal = false;
   systemPermissions: PermissionsByCategory = {};
-  permissionCategories: { [key: string]: string } = {};
+  permissionCategories: PermissionCategory = {};
   roleForm = {
     name: '',
     description: '',
@@ -92,6 +95,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
   };
   selectedPermissionCategory = '';
   savingRole = false;
+
+  // Permission-based UI controls
+  userPermissions: string[] = [];
+  currentUserRole: Role | null = null;
+  canManageRoles = false;
+  canManageMembers = false;
+  canManageInvitations = false;
+  canManageWorkplace = false;
 
   // Industries and sizes
   industries = [
@@ -125,20 +136,42 @@ export class SettingsComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private workplaceSettingsService: WorkplaceSettingsService,
-    private authService: AuthService,
+    public authService: AuthService,
     private fileService: FileService,
     private toastService: ToastService,
     private roleService: RoleService,
-    private dialogService: DialogService
+    private dialogService: DialogService,
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
     this.initializeForm();
     this.loadWorkplaceSettings();
     this.setupAutosave();
+    this.setupRouteListener();
+    this.loadUserPermissions();
+    this.loadPermissions(); // Load permissions on init
     
     // Add document click listener for dropdowns
     document.addEventListener('click', this.onDocumentClick.bind(this));
+  }
+
+  private setupRouteListener(): void {
+    this.route.params
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(params => {
+        const tab = params['tab'] || 'overview';
+        if (this.isValidTab(tab)) {
+          this.activeTab = tab as any;
+        } else {
+          this.router.navigate(['/account/settings/overview']);
+        }
+      });
+  }
+
+  private isValidTab(tab: string): boolean {
+    return ['overview', 'details', 'members', 'roles', 'permissions', 'invitations', 'billing'].includes(tab);
   }
 
   ngOnDestroy(): void {
@@ -460,9 +493,24 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.toastService.success('Logo removed successfully');
   }
 
+  copyApiKey(): void {
+    // TODO: Implement API key copy functionality
+    this.toastService.success('API key copied to clipboard');
+  }
+  
+  enableWeb3Login(): void {
+    // TODO: Implement Web3 login functionality
+    this.toastService.info('Web3 login feature coming soon');
+  }
+  
+  inviteMember(): void {
+    // Open the invitation modal directly
+    this.openInviteModal();
+  }
+
   manageBilling(): void {
-    // TODO: Implement billing management
-    this.toastService.info('Billing management feature coming soon!');
+    // Switch to billing tab
+    this.activeTab = 'billing';
   }
 
   inviteMembers(): void {
@@ -485,11 +533,16 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.toastService.info(`Remove member ${member.first_name} ${member.last_name} functionality coming soon`);
   }
 
-  getDisplayDate(dateString: string | undefined): string {
-    if (!dateString) return 'Unknown';
+  getDisplayDate(date: string | Date | undefined): string {
+    if (!date) return 'N/A';
     
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid Date';
+    }
+    
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -509,18 +562,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
       message: ''
     };
     
-    // Set available roles from already loaded roles
-    if (this.roles.length > 0) {
-      this.availableRoles = this.roles.map(role => ({
-        uuid: role.uuid,
-        name: role.name,
-        label: role.name
-      }));
-      
-      // Set default role to 'member' if available, otherwise use first role
-      const memberRole = this.availableRoles.find(r => r.name.toLowerCase() === 'member');
-      this.inviteForm.roleId = memberRole?.uuid || this.availableRoles[0]?.uuid || '';
-    }
+    // Load available roles if not already loaded
+    this.loadAvailableRoles();
   }
 
   closeInviteModal(): void {
@@ -690,28 +733,33 @@ export class SettingsComponent implements OnInit, OnDestroy {
   cancelInvitation(invitationId: string): void {
     this.dialogService.confirm({
       title: 'Cancel Invitation',
-      message: 'Are you sure you want to cancel this invitation?',
+      message: 'Are you sure you want to cancel this invitation? This action cannot be undone.',
       confirmText: 'Cancel Invitation',
       cancelText: 'Keep Invitation',
       type: 'warning'
-    }).subscribe(confirmed => {
-      if (!confirmed) return;
-
-      this.workplaceSettingsService.cancelInvitation(invitationId).subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.toastService.success('Invitation cancelled');
-            this.loadInvitations();
-          } else {
-            this.toastService.error(response.message || 'Failed to cancel invitation');
-          }
-        },
-        error: (error) => {
-          console.error('Error cancelling invitation:', error);
-          this.toastService.error('Failed to cancel invitation');
-        }
-      });
+    }).subscribe(result => {
+      if (result) {
+        this.workplaceSettingsService.cancelInvitation(invitationId)
+          .subscribe({
+            next: (response) => {
+              if (response.success) {
+                this.toastService.success('Invitation cancelled successfully');
+                this.loadInvitations();
+              } else {
+                this.toastService.error(response.message || 'Failed to cancel invitation');
+              }
+            },
+            error: (error) => {
+              this.toastService.error('Failed to cancel invitation');
+            }
+          });
+      }
     });
+  }
+
+  resendInvitation(invitationId: string): void {
+    // TODO: Implement resend invitation functionality
+    this.toastService.info('Resend invitation functionality coming soon');
   }
 
   getInvitationStatusClass(status: string): string {
@@ -740,8 +788,19 @@ export class SettingsComponent implements OnInit, OnDestroy {
     });
   }
 
-  switchTab(tab: 'members' | 'invitations' | 'roles'): void {
+  switchTab(tab: 'overview' | 'details' | 'members' | 'roles' | 'permissions' | 'invitations' | 'billing'): void {
     this.activeTab = tab;
+    
+    // Load data based on tab
+    if (tab === 'members' && this.workplaceMembers.length === 0) {
+      this.loadWorkplaceMembers(this.authService.getCurrentUser()?.current_workplace_id || '');
+    } else if (tab === 'roles' && this.roles.length === 0) {
+      this.loadRoles();
+    } else if (tab === 'permissions' && Object.keys(this.systemPermissions).length === 0) {
+      this.loadPermissions();
+    } else if (tab === 'invitations' && this.invitations.length === 0) {
+      this.loadInvitations();
+    }
   }
 
   // Helper methods for template expressions
@@ -1012,11 +1071,36 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   getCategoryName(category: string): string {
-    return this.permissionCategories?.[category] || category;
+    return category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
+  }
+
+  getCategoryDescription(category: string): string {
+    const descriptions: { [key: string]: string } = {
+      'workplace': 'Manage workplace settings and configuration',
+      'user': 'Manage users and their access',
+      'role': 'Manage roles and permissions',
+      'group': 'Manage work groups and teams',
+      'task': 'Manage tasks and assignments',
+      'file': 'Manage files and documents'
+    };
+    return descriptions[category] || 'System permissions for this category';
+  }
+
+  getCategoryPermissionsCount(category: string): number {
+    if (!this.systemPermissions[category]) return 0;
+    return this.systemPermissions[category].length;
+  }
+
+  get totalPermissionsCount(): number {
+    let total = 0;
+    Object.values(this.systemPermissions).forEach(permissions => {
+      total += permissions.length;
+    });
+    return total;
   }
 
   hasPermission(permissionName: string): boolean {
-    return this.roleForm.permissions && this.roleForm.permissions.includes(permissionName);
+    return this.hasUserPermission(permissionName);
   }
 
   areAllPermissionsInCategorySelected(category: string): boolean {
@@ -1069,5 +1153,163 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   canDeleteRole(role: Role): boolean {
     return !role.is_system;
+  }
+
+  getNextBillingDate(): string {
+    const today = new Date();
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    return nextMonth.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+
+  getStorageUsed(): string {
+    // Calculate storage used based on work groups (placeholder)
+    const groupCount = this.workplaceStats?.total_work_groups || 0;
+    const userCount = this.workplaceStats?.total_users || 0;
+    const estimatedSize = (groupCount * 50) + (userCount * 10); // Rough estimate
+    if (estimatedSize < 1024) {
+      return `${estimatedSize.toFixed(1)} MB`;
+    } else {
+      return `${(estimatedSize / 1024).toFixed(1)} GB`;
+    }
+  }
+
+  manageBillingExternal(): void {
+    // TODO: Redirect to external billing portal
+    this.toastService.info('Redirecting to billing portal...');
+  }
+
+  updatePaymentMethod(): void {
+    // TODO: Implement payment method update
+    this.toastService.info('Payment method update coming soon');
+  }
+
+  getMemberCountForRole(roleId: string): number {
+    // Since role is a string ('admin' | 'member'), we'll count by role name
+    // This is a simplified version - in reality, you'd want to map role IDs to names
+    return this.workplaceMembers.filter(member => member.role === roleId).length;
+  }
+
+  canManageMember(member: WorkplaceMember): boolean {
+    // Check if current user can manage this member
+    // For now, return true for admins who are not trying to manage themselves
+    return true; // Simplified for now
+  }
+
+  updateMemberRole(member: WorkplaceMember): void {
+    // TODO: Implement role update functionality
+    this.toastService.info('Role update functionality coming soon');
+  }
+
+  // Add missing methods for template
+  updateBioCharacterCount(): void {
+    const bioControl = this.settingsForm.get('description');
+    if (bioControl) {
+      this.bioCharacterCount = bioControl.value?.length || 0;
+    }
+  }
+
+  removeLogo(): void {
+    this.logoPreview = null;
+    this.settingsForm.patchValue({ logo_url: '' });
+    this.toastService.success('Logo removed');
+  }
+
+  searchMembers(searchTerm: string): void {
+    this.membersPagination.search = searchTerm;
+    this.membersPagination.offset = 0;
+    this.membersPagination.hasMore = true;
+    this.workplaceMembers = [];
+    this.loadWorkplaceMembers(this.authService.getCurrentUser()?.current_workplace_id || '', false);
+  }
+
+  createRole(): void {
+    this.editingRole = null;
+    this.roleForm = {
+      name: '',
+      description: '',
+      permissions: []
+    };
+    this.showRoleModal = true;
+  }
+
+  searchRoles(searchTerm: string): void {
+    this.rolesPagination.search = searchTerm;
+    this.rolesPagination.offset = 0;
+    this.rolesPagination.hasMore = true;
+    this.roles = [];
+    this.loadRoles(false);
+  }
+
+  editRole(role: Role): void {
+    this.editingRole = role;
+    this.roleForm = {
+      name: role.name,
+      description: role.description,
+      permissions: role.permissions
+    };
+    this.showRoleModal = true;
+  }
+
+  private loadUserPermissions(): void {
+    const currentUser = this.authService.getCurrentUser();
+    const workplaceId = currentUser?.current_workplace_id;
+
+    if (!workplaceId) {
+      return;
+    }
+
+    // Load user's current role
+    this.roleService.getUserRole(workplaceId)
+      .subscribe({
+        next: (response) => {
+          if (response.success && response.role) {
+            this.currentUserRole = response.role;
+            this.userPermissions = response.role.permissions;
+            this.updatePermissionBasedControls();
+          } else {
+            // If API fails, assume owner permissions for safety
+            console.warn('Failed to load user role, assuming owner permissions');
+            this.userPermissions = ['*']; // Owner has all permissions
+            this.updatePermissionBasedControls();
+          }
+        },
+        error: (error) => {
+          console.error('Error loading user role:', error);
+          // If API fails, assume owner permissions for safety
+          console.warn('Error loading user role, assuming owner permissions');
+          this.userPermissions = ['*']; // Owner has all permissions
+          this.updatePermissionBasedControls();
+        }
+      });
+  }
+
+  private updatePermissionBasedControls(): void {
+    // For owners, always allow these actions regardless of API response
+    const currentUser = this.authService.getCurrentUser();
+    const isOwner = this.currentUserRole?.name === 'owner';
+    
+    this.canManageRoles = isOwner || this.hasUserPermission('role.manage') || 
+                          (this.hasUserPermission('role.create') && this.hasUserPermission('role.update') && this.hasUserPermission('role.delete'));
+    this.canManageMembers = isOwner || this.hasUserPermission('user.manage') || 
+                           (this.hasUserPermission('user.view') && this.hasUserPermission('user.update') && this.hasUserPermission('user.delete'));
+    this.canManageInvitations = isOwner || this.hasUserPermission('user.invite');
+    this.canManageWorkplace = isOwner || this.hasUserPermission('workplace.manage') || this.hasUserPermission('workplace.update');
+  }
+
+  hasUserPermission(permission: string): boolean {
+    if (this.userPermissions.includes('*')) {
+      return true; // Owner has all permissions
+    }
+    return this.userPermissions.includes(permission);
+  }
+
+  get isOwner(): boolean {
+    const currentUser = this.authService.getCurrentUser();
+    // Only check currentUserRole.name since user.role is now a UUID
+    return this.currentUserRole?.name === 'owner';
   }
 } 

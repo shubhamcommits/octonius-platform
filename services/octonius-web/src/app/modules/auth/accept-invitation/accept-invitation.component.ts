@@ -146,6 +146,9 @@ export class AcceptInvitationComponent implements OnInit {
                 this.authService.setCurrentUser(data.user);
               }
               
+              // Store onboarding flag for new users
+              localStorage.setItem('showOnboarding', 'true');
+              
               this.toastService.info('Please complete your profile to continue');
               // Navigate to profile page instead of welcome
               console.log('Navigating to /account/profile');
@@ -163,7 +166,7 @@ export class AcceptInvitationComponent implements OnInit {
                 if (data.user) {
                   this.authService.setCurrentUser(data.user);
                 }
-                this.toastService.success('Successfully joined the workplace!');
+                this.toastService.success(`🎉 Welcome to ${data.workplace.name}! You've successfully joined the workplace.`);
                 console.log('Navigating to /myspace');
                 this.router.navigate(['/myspace']).then(
                   (success: boolean) => console.log('Navigation success:', success),

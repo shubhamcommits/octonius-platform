@@ -352,8 +352,11 @@ export class AuthService {
                 joined_at: new Date()
             })
 
-            // Update user's current workplace
-            await user.update({ current_workplace_id: workplace.uuid })
+            // Update user's current workplace and role
+            await user.update({ 
+                current_workplace_id: workplace.uuid,
+                role: ownerRole.uuid // Set the role UUID on the user
+            })
 
             // Ensure private group exists for the user in this workplace
             try {

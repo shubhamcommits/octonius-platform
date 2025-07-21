@@ -102,6 +102,10 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
     onResendOtp(): void {
         if (this.canResendOtp && !this.isLoading) {
             this.isLoading = true
+            // Reset OTP field and clear any errors
+            this.verifyOtpForm.get('otp')?.setValue('')
+            this.otpError = ''
+            
             this.authService.requestOtp(this.email)
                 .pipe(finalize(() => this.isLoading = false))
                 .subscribe({

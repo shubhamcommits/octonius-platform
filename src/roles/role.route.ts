@@ -29,6 +29,15 @@ export class RoleRoute {
       }
     )
 
+    // Get current user's role in a workplace
+    this.router.get('/:workplace_id/user/role',
+      verifyAccessToken,
+      isLoggedIn,
+      (req: Request, res: Response) => {
+        roleController.getUserRole(req, res)
+      }
+    )
+
     // Create a new role
     this.router.post('/:workplace_id/roles',
       verifyAccessToken,

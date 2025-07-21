@@ -27,6 +27,10 @@ export interface PermissionsByCategory {
   [category: string]: Permission[];
 }
 
+export interface PermissionCategory {
+  [key: string]: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -86,13 +90,27 @@ export class RoleService {
     success: boolean; 
     message: string; 
     permissions: PermissionsByCategory;
-    categories: { [key: string]: string };
+    categories: PermissionCategory;
   }> {
     return this.http.get<{ 
       success: boolean; 
       message: string; 
       permissions: PermissionsByCategory;
-      categories: { [key: string]: string };
+      categories: PermissionCategory;
     }>(`${this.apiUrl}/permissions`);
+  }
+
+  // Check if user has a specific permission
+  checkUserPermission(workplaceId: string, permission: string): Observable<{ success: boolean; hasPermission: boolean }> {
+    return this.http.get<{ success: boolean; hasPermission: boolean }>(
+      `${this.apiUrl}/${workplaceId}/permissions/check/${permission}`
+    );
+  }
+
+  // Get user's current role
+  getUserRole(workplaceId: string): Observable<{ success: boolean; role: Role | null }> {
+    return this.http.get<{ success: boolean; role: Role | null }>(
+      `${this.apiUrl}/${workplaceId}/user/role`
+    );
   }
 } 
