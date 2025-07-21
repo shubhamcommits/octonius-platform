@@ -267,6 +267,10 @@ jobs:
             "shubham-macbook" = {
               cidr        = "183.83.153.50/32"
               description = "Shubham Macbook IP"
+            },
+            "shubham-macbook-vpn" = {
+              cidr        = "165.225.0.0/16"
+              description = "Shubham Macbook VPN IP"
             }
           }
           EOF
@@ -286,6 +290,10 @@ jobs:
             "shubham-macbook" = {
               cidr        = "183.83.153.50/32"
               description = "Shubham Macbook IP"
+            },
+            "shubham-macbook-vpn" = {
+              cidr        = "165.225.0.0/16"
+              description = "Shubham Macbook VPN IP"
             }
           }
           EOF
