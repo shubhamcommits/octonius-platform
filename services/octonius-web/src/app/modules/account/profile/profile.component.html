@@ -1,471 +1,600 @@
-<div class="profile-container">
+<div class="profile-container max-w-6xl mx-auto p-6">
   <!-- Skeleton Loader -->
   <ng-container *ngIf="isLoading && !error">
     <div class="animate-pulse space-y-8">
       <!-- Header Skeleton -->
-      <div class="flex items-start justify-between">
-        <div class="flex items-center gap-6">
-          <div class="w-24 h-24 rounded-2xl bg-base-300"></div>
-          <div class="space-y-2 flex-1">
-            <div class="h-6 w-40 bg-base-300 rounded"></div>
-            <div class="h-4 w-32 bg-base-300 rounded"></div>
+      <div class="bg-base-100/80 backdrop-blur-xl rounded-3xl p-8 border border-base-300/30 shadow-2xl">
+        <div class="flex items-center gap-8">
+          <div class="w-32 h-32 rounded-3xl bg-base-300"></div>
+          <div class="flex-1 space-y-4">
+            <div class="h-8 w-64 bg-base-300 rounded-2xl"></div>
+            <div class="h-6 w-48 bg-base-300 rounded-xl"></div>
+            <div class="h-10 w-40 bg-base-300 rounded-2xl"></div>
           </div>
         </div>
-        <div class="h-10 w-32 bg-base-300 rounded"></div>
       </div>
 
-      <!-- Account Info Skeleton -->
-      <div class="bg-base-100/50 rounded-xl p-6 border border-base-300/50">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/4 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/3 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/3 bg-base-300 rounded mb-2"></div>
+      <!-- Content Skeleton -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-8">
+          <div class="bg-base-100/80 backdrop-blur-xl rounded-3xl p-8 border border-base-300/30 shadow-2xl">
+            <div class="h-6 w-48 bg-base-300 rounded-xl mb-6"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-4">
+                <div class="h-4 w-24 bg-base-300 rounded"></div>
+                <div class="h-12 w-full bg-base-300 rounded-xl"></div>
+              </div>
+              <div class="space-y-4">
+                <div class="h-4 w-24 bg-base-300 rounded"></div>
+                <div class="h-12 w-full bg-base-300 rounded-xl"></div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <!-- Personal Info Skeleton -->
-      <div class="bg-base-100/50 rounded-xl p-6 border border-base-300/50">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-        </div>
-      </div>
-
-      <!-- Bio Skeleton -->
-      <div class="bg-base-100/50 rounded-xl p-6 border border-base-300/50">
-        <div class="h-4 w-1/4 bg-base-300 rounded mb-2"></div>
-        <div class="h-20 w-full bg-base-300 rounded"></div>
-      </div>
-
-      <!-- Preferences Skeleton -->
-      <div class="bg-base-100/50 rounded-xl p-6 border border-base-300/50">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-        </div>
-        <div class="flex gap-4">
-          <div class="h-4 w-24 bg-base-300 rounded"></div>
-          <div class="h-4 w-24 bg-base-300 rounded"></div>
-          <div class="h-4 w-24 bg-base-300 rounded"></div>
-        </div>
-      </div>
-
-      <!-- Additional Info Skeleton -->
-      <div class="bg-base-100/50 rounded-xl p-6 border border-base-300/50">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
+        
+        <div class="space-y-8">
+          <div class="bg-base-100/80 backdrop-blur-xl rounded-3xl p-8 border border-base-300/30 shadow-2xl">
+            <div class="h-6 w-32 bg-base-300 rounded-xl mb-6"></div>
+            <div class="space-y-4">
+              <div class="h-4 w-full bg-base-300 rounded"></div>
+              <div class="h-4 w-3/4 bg-base-300 rounded"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </ng-container>
 
   <!-- Profile Content -->
-  <div *ngIf="!isLoading" class="space-y-8">
-    <!-- Header Section with Avatar -->
-    <div class="flex items-start justify-between">
-      <div class="flex items-center gap-6">
-        <!-- Avatar with Upload -->
-        <div class="relative group">
-          <div class="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20 
-                      backdrop-blur-xl border-2 border-base-300/50 shadow-xl">
-            <img *ngIf="avatarPreview" 
-                 [src]="avatarPreview" 
-                 [alt]="fullName"
-                 class="w-full h-full object-cover">
-            <div *ngIf="!avatarPreview" 
-                 class="w-full h-full flex items-center justify-center text-2xl font-bold text-primary">
-              {{ initials }}
+  <div *ngIf="!isLoading && profileForm" class="space-y-8">
+    <!-- Hero Section -->
+    <div class="relative">
+      <!-- Content Container -->
+      <div class="relative bg-base-200/30 rounded-2xl border border-base-300/20">
+        <!-- Top Banner Section -->
+        <div class="relative h-24 bg-gradient-to-r from-base-300/50 to-base-200/50 rounded-t-2xl overflow-hidden">
+          <!-- Subtle Pattern -->
+          <div class="absolute inset-0 opacity-5">
+            <div class="absolute inset-0" style="background-image: radial-gradient(circle at 20% 80%, hsl(var(--bc)) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(var(--bc)) 0%, transparent 50%)"></div>
+          </div>
+        </div>
+        
+        <!-- Profile Content -->
+        <div class="relative px-8 pb-8 -mt-12">
+          <div class="flex flex-col lg:flex-row items-start lg:items-end gap-8">
+            <!-- Avatar Section -->
+            <div class="relative group z-10">
+              <div class="relative">
+                <div class="w-32 h-32 rounded-full overflow-hidden bg-base-100 border-4 border-base-100 shadow-lg">
+                  <img *ngIf="avatarPreview" 
+                       [src]="avatarPreview" 
+                       [alt]="fullName"
+                       class="w-full h-full object-cover">
+                  <div *ngIf="!avatarPreview" 
+                       class="w-full h-full flex items-center justify-center text-4xl font-medium text-base-content/70 bg-gradient-to-br from-base-200 to-base-300">
+                    {{ initials }}
+                  </div>
+                </div>
+                
+                <!-- Upload Button -->
+                <div class="absolute bottom-0 right-0 bg-base-100 rounded-full p-1 shadow-md border border-base-300">
+                  <label for="avatar-upload" class="cursor-pointer block p-2 hover:bg-base-200 rounded-full transition-colors">
+                    <lucide-icon name="Camera" class="w-4 h-4 text-base-content/70"></lucide-icon>
+                    <input type="file" 
+                           id="avatar-upload" 
+                           class="hidden" 
+                           accept="image/*"
+                           (change)="onFileSelected($event)"
+                           [disabled]="uploading">
+                  </label>
+                </div>
+                
+                <!-- Upload Loading -->
+                <div *ngIf="uploading" class="absolute inset-0 bg-base-100/80 rounded-full flex items-center justify-center">
+                  <span class="loading loading-spinner loading-sm text-primary"></span>
+                </div>
+              </div>
+              
+              <!-- Upload Error -->
+              <div *ngIf="uploadError" class="absolute -bottom-6 left-0 right-0 text-center">
+                <span class="text-error text-xs">{{ uploadError }}</span>
+              </div>
+            </div>
+
+            <!-- User Info -->
+            <div class="flex-1">
+              <div class="space-y-4">
+                <div>
+                  <h1 class="text-3xl font-semibold text-base-content">
+                    {{ fullName }}
+                  </h1>
+                  <p class="text-base text-base-content/70 mt-1">{{ user?.email }}</p>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-3 text-sm">
+                  <span *ngIf="user?.job_title" class="flex items-center gap-1.5 text-base-content/60">
+                    <lucide-icon name="Briefcase" class="w-4 h-4"></lucide-icon>
+                    {{ user?.job_title }}
+                  </span>
+                  <span *ngIf="user?.job_title && user?.department" class="text-base-content/40">•</span>
+                  <span *ngIf="user?.department" class="flex items-center gap-1.5 text-base-content/60">
+                    <lucide-icon name="Building2" class="w-4 h-4"></lucide-icon>
+                    {{ user?.department }}
+                  </span>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-3">
+                  <div class="flex items-center gap-1.5 text-sm">
+                    <div class="w-2 h-2 rounded-full" 
+                         [ngClass]="user?.active ? 'bg-success' : 'bg-error'"></div>
+                    <span class="text-base-content/70">{{ user?.active ? 'Active' : 'Inactive' }}</span>
+                  </div>
+                  <span class="text-base-content/40">•</span>
+                  <span class="text-sm text-base-content/70">
+                    Member since {{ getDisplayDate(user?.created_at) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Status Indicator -->
+            <div class="lg:ml-auto">
+              <div *ngIf="isSaving" class="flex items-center gap-2 text-base-content/60 bg-base-200/50 px-3 py-1.5 rounded-full">
+                <div class="loading loading-spinner loading-xs"></div>
+                <span class="text-xs">Saving changes...</span>
+              </div>
             </div>
           </div>
-          
-          <!-- Upload Overlay -->
-          <div *ngIf="isEditing" 
-               class="absolute inset-0 bg-black/50 rounded-2xl opacity-0 group-hover:opacity-100 
-                      transition-opacity duration-300 flex items-center justify-center cursor-pointer">
-            <label for="avatar-upload" class="cursor-pointer">
-              <lucide-icon name="Upload" class="w-6 h-6 text-white"></lucide-icon>
-              <input type="file" 
-                     id="avatar-upload" 
-                     class="hidden" 
-                     accept="image/*"
-                     (change)="onFileSelected($event)">
-            </label>
-          </div>
         </div>
-
-        <!-- User Info -->
-        <div>
-          <h1 class="text-2xl font-bold">{{ fullName }}</h1>
-          <p class="text-base-content/70">{{ user?.email }}</p>
-        </div>
-      </div>
-
-      <!-- Edit Button -->
-      <button *ngIf="!isEditing" 
-              (click)="toggleEdit()"
-              class="btn btn-primary btn-sm gap-2">
-        <lucide-icon name="Edit" class="w-4 h-4"></lucide-icon>
-        Edit Profile
-      </button>
-
-      <!-- Save/Cancel Buttons -->
-      <div *ngIf="isEditing" class="flex gap-2">
-        <button (click)="saveProfile()" 
-                [disabled]="profileForm.invalid || isLoading"
-                class="btn btn-primary btn-sm gap-2">
-          <lucide-icon name="Save" class="w-4 h-4"></lucide-icon>
-          Save Changes
-        </button>
-        <button (click)="toggleEdit()" 
-                class="btn btn-ghost btn-sm">
-          Cancel
-        </button>
       </div>
     </div>
 
-    <!-- Profile Form -->
-    <form [formGroup]="profileForm" class="space-y-6">
-      <!-- Account Information Section (Read-only) -->
-      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
-        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <lucide-icon name="Shield" class="w-5 h-5 text-primary"></lucide-icon>
-          Account Information
-        </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- User ID -->
+    <!-- Main Content Grid -->
+    <div *ngIf="profileForm" [formGroup]="profileForm" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Left Column - Main Info -->
+      <div class="lg:col-span-2 space-y-8">
+        <!-- Personal Information -->
+        <div class="bg-base-200/50 rounded-2xl p-8 border border-base-300/20">
+          <div class="flex items-center gap-3 mb-8">
+            <div class="w-12 h-12 rounded-xl bg-base-300/50 flex items-center justify-center">
+              <lucide-icon name="User" class="w-5 h-5 text-base-content/70"></lucide-icon>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold">Personal Information</h2>
+              <p class="text-base-content/60 text-sm">Your basic profile details</p>
+            </div>
+          </div>
+          
+          <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- First Name -->
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-base-content/70 flex items-center justify-between">
+                  <span>First Name</span>
+                  <span class="text-error">*</span>
+                </label>
+                <input type="text" 
+                       formControlName="first_name"
+                       placeholder="Enter your first name"
+                       class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30"
+                       [ngClass]="{
+                         'border-primary': profileForm.get('first_name')?.touched && profileForm.get('first_name')?.valid,
+                         'border-error': profileForm.get('first_name')?.invalid && profileForm.get('first_name')?.touched
+                       }">
+                <span *ngIf="profileForm.get('first_name')?.invalid && profileForm.get('first_name')?.touched" 
+                      class="text-xs text-error mt-1 block">
+                  First name is required (min 2 characters)
+                </span>
+              </div>
+
+              <!-- Last Name -->
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-base-content/70 flex items-center justify-between">
+                  <span>Last Name</span>
+                  <span class="text-error">*</span>
+                </label>
+                <input type="text" 
+                       formControlName="last_name"
+                       placeholder="Enter your last name"
+                       class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30"
+                       [ngClass]="{
+                         'border-primary': profileForm.get('last_name')?.touched && profileForm.get('last_name')?.valid,
+                         'border-error': profileForm.get('last_name')?.invalid && profileForm.get('last_name')?.touched
+                       }">
+                <span *ngIf="profileForm.get('last_name')?.invalid && profileForm.get('last_name')?.touched" 
+                      class="text-xs text-error mt-1 block">
+                  Last name is required (min 2 characters)
+                </span>
+              </div>
+
+              <!-- Email -->
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-semibold text-base">Email Address</span>
+                </label>
+                <input type="email" 
+                       formControlName="email"
+                       readonly
+                       class="input input-bordered input-lg w-full bg-base-200/30 opacity-70">
+              </div>
+
+              <!-- Phone -->
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-semibold text-base">Phone Number</span>
+                </label>
+                <input type="tel" 
+                       formControlName="phone"
+                       placeholder="+1 (555) 123-4567"
+                       class="input input-bordered input-lg w-full transition-all duration-300 bg-base-200/50">
+              </div>
+
+              <!-- Job Title -->
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-semibold text-base">Job Title</span>
+                </label>
+                <input type="text" 
+                       formControlName="job_title"
+                       placeholder="Software Engineer"
+                       class="input input-bordered input-lg w-full transition-all duration-300 bg-base-200/50">
+              </div>
+
+              <!-- Department -->
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-semibold text-base">Department</span>
+                </label>
+                <input type="text" 
+                       formControlName="department"
+                       placeholder="Engineering"
+                       class="input input-bordered input-lg w-full transition-all duration-300 bg-base-200/50">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bio Section -->
+        <div class="bg-base-200/50 rounded-2xl p-8 border border-base-300/20">
+          <div class="flex items-center gap-3 mb-8">
+            <div class="w-12 h-12 rounded-xl bg-base-300/50 flex items-center justify-center">
+              <lucide-icon name="FileText" class="w-5 h-5 text-base-content/70"></lucide-icon>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold">About Me</h2>
+              <p class="text-base-content/60 text-sm">Tell us about yourself</p>
+            </div>
+          </div>
+          
           <div class="form-control">
             <label class="label">
-              <span class="label-text font-medium">User ID</span>
+              <span class="label-text font-semibold text-base">Bio</span>
+              <span class="label-text-alt">{{ bioCharacterCount }}/5000</span>
             </label>
-            <div class="flex items-center gap-2">
-              <span class="font-mono bg-base-200 px-2 py-1 rounded text-xs cursor-pointer"
-                    [title]="user?.uuid">
-                {{ user?.uuid ? (user?.uuid | slice:0:8) + '...' + (user?.uuid | slice:-6) : '' }}
-              </span>
-              <button class="btn btn-xs btn-ghost" type="button" (click)="copyUuid(user?.uuid)">
-                <lucide-icon name="Copy" class="w-4 h-4"></lucide-icon>
+            <app-tiptap-editor
+              [config]="{
+                placeholder: 'Tell us about yourself, your interests, or what you\'re working on...',
+                showToolbar: true,
+                showBubbleMenu: true,
+                showCharacterCount: false,
+                minHeight: '200px',
+                toolbarItems: ['bold', 'italic', 'underline', 'link', 'bulletList', 'orderedList']
+              }"
+              formControlName="bio"
+              class="w-full">
+            </app-tiptap-editor>
+          </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="bg-base-200/50 rounded-2xl p-8 border border-base-300/20">
+          <div class="flex items-center gap-3 mb-8">
+            <div class="w-12 h-12 rounded-xl bg-base-300/50 flex items-center justify-center">
+              <lucide-icon name="Globe" class="w-5 h-5 text-base-content/70"></lucide-icon>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold">Additional Information</h2>
+              <p class="text-base-content/60 text-sm">Your online presence and location</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Location -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text font-semibold text-base">Location</span>
+              </label>
+              <div class="relative">
+                <input type="text" 
+                       formControlName="location"
+                       placeholder="San Francisco, CA"
+                       readonly
+                       class="input input-bordered input-lg w-full transition-all duration-300 bg-base-200/50 pr-12 cursor-pointer"
+                       [class.input-primary]="profileForm.get('location')?.value"
+                       (click)="openLocationPicker()">
+                <button type="button"
+                        (click)="openLocationPicker()"
+                        class="btn btn-ghost btn-sm absolute right-1 top-1/2 -translate-y-1/2">
+                  <lucide-icon name="MapPin" class="w-4 h-4"></lucide-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- Website -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text font-semibold text-base">Website</span>
+              </label>
+              <input type="url" 
+                     formControlName="website"
+                     placeholder="https://example.com"
+                     class="input input-bordered input-lg w-full transition-all duration-300 bg-base-200/50"
+                     [class.input-primary]="profileForm.get('website')?.touched"
+                     [class.input-error]="profileForm.get('website')?.invalid && profileForm.get('website')?.touched">
+              <label *ngIf="profileForm.get('website')?.invalid && profileForm.get('website')?.touched" 
+                     class="label">
+                <span class="label-text-alt text-error">Please enter a valid URL</span>
+              </label>
+            </div>
+
+            <!-- LinkedIn -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text font-semibold text-base">LinkedIn</span>
+              </label>
+              <input type="text" 
+                     formControlName="linkedin"
+                     placeholder="linkedin.com/in/username"
+                     class="input input-bordered input-lg w-full transition-all duration-300 bg-base-200/50"
+                     [class.input-primary]="profileForm.get('linkedin')?.touched">
+            </div>
+
+            <!-- Twitter -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text font-semibold text-base">Twitter</span>
+              </label>
+              <input type="text" 
+                     formControlName="twitter"
+                     placeholder="@username"
+                     class="input input-bordered input-lg w-full transition-all duration-300 bg-base-200/50"
+                     [class.input-primary]="profileForm.get('twitter')?.touched">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column - Sidebar -->
+      <div class="space-y-8">
+        <!-- Avatar Management -->
+        <div class="bg-base-200/50 rounded-2xl p-8 border border-base-300/20" *ngIf="avatarPreview">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-12 h-12 rounded-xl bg-base-300/50 flex items-center justify-center">
+              <lucide-icon name="Image" class="w-5 h-5 text-base-content/70"></lucide-icon>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold">Avatar Settings</h2>
+              <p class="text-base-content/60 text-sm">Manage your profile picture</p>
+            </div>
+          </div>
+          
+          <div class="space-y-4">
+            <div class="text-center">
+              <img [src]="avatarPreview" 
+                   [alt]="fullName"
+                   class="w-24 h-24 rounded-full mx-auto mb-4 object-cover border-2 border-base-300">
+              <button type="button" 
+                      class="btn btn-error btn-sm w-full"
+                      (click)="clearAvatarUpload()">
+                <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
+                Remove Avatar
               </button>
             </div>
           </div>
+        </div>
 
-          <!-- Account Status -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Account Status</span>
-            </label>
-            <div class="flex items-center gap-2">
-              <div class="badge badge-success" *ngIf="user?.active">Active</div>
-              <div class="badge badge-error" *ngIf="!user?.active">Inactive</div>
+        <!-- Account Information -->
+        <div class="bg-base-200/50 rounded-2xl p-8 border border-base-300/20">
+          <div class="flex items-center gap-3 mb-8">
+            <div class="w-12 h-12 rounded-xl bg-base-300/50 flex items-center justify-center">
+              <lucide-icon name="Shield" class="w-5 h-5 text-base-content/70"></lucide-icon>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold">Account Info</h2>
+              <p class="text-base-content/60 text-sm">System information</p>
             </div>
           </div>
-
-          <!-- Created Date -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Member Since</span>
-            </label>
-            <input type="text" 
-                   [value]="getDisplayDate(user?.created_at)"
-                   readonly
-                   class="input input-bordered w-full opacity-70">
-          </div>
-
-          <!-- Last Updated -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Last Updated</span>
-            </label>
-            <input type="text" 
-                   [value]="getDisplayDate(user?.updated_at)"
-                   readonly
-                   class="input input-bordered w-full opacity-70">
-          </div>
-        </div>
-      </div>
-
-      <!-- Personal Information Section -->
-      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
-        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <lucide-icon name="User" class="w-5 h-5 text-primary"></lucide-icon>
-          Personal Information
-        </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- First Name -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">First Name</span>
-              <span class="label-text-alt text-error">*</span>
-            </label>
-            <input type="text" 
-                   formControlName="first_name"
-                   [readonly]="!isEditing"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && profileForm.get('first_name')?.touched"
-                   [class.input-error]="profileForm.get('first_name')?.invalid && profileForm.get('first_name')?.touched">
-            <label *ngIf="profileForm.get('first_name')?.invalid && profileForm.get('first_name')?.touched" 
-                   class="label">
-              <span class="label-text-alt text-error">First name is required (min 2 characters)</span>
-            </label>
-          </div>
-
-          <!-- Last Name -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Last Name</span>
-              <span class="label-text-alt text-error">*</span>
-            </label>
-            <input type="text" 
-                   formControlName="last_name"
-                   [readonly]="!isEditing"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && profileForm.get('last_name')?.touched"
-                   [class.input-error]="profileForm.get('last_name')?.invalid && profileForm.get('last_name')?.touched">
-            <label *ngIf="profileForm.get('last_name')?.invalid && profileForm.get('last_name')?.touched" 
-                   class="label">
-              <span class="label-text-alt text-error">Last name is required (min 2 characters)</span>
-            </label>
-          </div>
-
-          <!-- Email (Read-only) -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Email</span>
-            </label>
-            <input type="email" 
-                   formControlName="email"
-                   readonly
-                   class="input input-bordered w-full opacity-70">
-          </div>
-
-          <!-- Phone -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Phone</span>
-            </label>
-            <input type="tel" 
-                   formControlName="phone"
-                   [readonly]="!isEditing"
-                   placeholder="+1 (555) 123-4567"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && profileForm.get('phone')?.touched">
-          </div>
-
-          <!-- Job Title -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Job Title</span>
-            </label>
-            <input type="text" 
-                   formControlName="job_title"
-                   [readonly]="!isEditing"
-                   placeholder="Software Engineer"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && profileForm.get('job_title')?.touched">
-          </div>
-
-          <!-- Department -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Department</span>
-            </label>
-            <input type="text" 
-                   formControlName="department"
-                   [readonly]="!isEditing"
-                   placeholder="Engineering"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && profileForm.get('department')?.touched">
-          </div>
-        </div>
-      </div>
-
-      <!-- Bio Section -->
-      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
-        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <lucide-icon name="FileText" class="w-5 h-5 text-primary"></lucide-icon>
-          About
-        </h2>
-        
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text font-medium">Bio</span>
-            <span class="label-text-alt">{{ profileForm.get('bio')?.value?.length || 0 }}/500</span>
-          </label>
-          <textarea formControlName="bio"
-                    [readonly]="!isEditing"
-                    rows="4"
-                    placeholder="Tell us about yourself..."
-                    class="textarea textarea-bordered w-full transition-all duration-300"
-                    [class.textarea-primary]="isEditing && profileForm.get('bio')?.touched"></textarea>
-        </div>
-      </div>
-
-      <!-- Preferences Section -->
-      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
-        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <lucide-icon name="Settings" class="w-5 h-5 text-primary"></lucide-icon>
-          Preferences & Settings
-        </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Timezone -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Timezone</span>
-            </label>
-            <select formControlName="timezone"
-                    [disabled]="!isEditing"
-                    class="select select-bordered w-full transition-all duration-300"
-                    [class.select-primary]="isEditing && profileForm.get('timezone')?.touched">
-              <option value="UTC">UTC</option>
-              <option value="America/New_York">Eastern Time (ET)</option>
-              <option value="America/Chicago">Central Time (CT)</option>
-              <option value="America/Denver">Mountain Time (MT)</option>
-              <option value="America/Los_Angeles">Pacific Time (PT)</option>
-              <option value="Europe/London">London (GMT)</option>
-              <option value="Europe/Paris">Paris (CET)</option>
-              <option value="Asia/Tokyo">Tokyo (JST)</option>
-              <option value="Asia/Shanghai">Shanghai (CST)</option>
-              <option value="Asia/Kolkata">India (IST)</option>
-            </select>
-          </div>
-
-          <!-- Language -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Language</span>
-            </label>
-            <select formControlName="language"
-                    [disabled]="!isEditing"
-                    class="select select-bordered w-full transition-all duration-300"
-                    [class.select-primary]="isEditing && profileForm.get('language')?.touched">
-              <option value="en">English</option>
-              <option value="es">Español</option>
-              <option value="fr">Français</option>
-              <option value="de">Deutsch</option>
-              <option value="it">Italiano</option>
-              <option value="pt">Português</option>
-              <option value="ru">Русский</option>
-              <option value="zh">中文</option>
-              <option value="ja">日本語</option>
-              <option value="ko">한국어</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Notification Preferences -->
-        <div class="mt-6">
-          <h3 class="text-md font-medium mb-3">Notification Preferences</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          <div class="space-y-6">
+            <!-- User ID -->
             <div class="form-control">
-              <label class="label cursor-pointer justify-start gap-3">
-                <input #emailNotif type="checkbox" 
-                       [checked]="user?.notification_preferences?.email"
-                       [disabled]="!isEditing"
-                       (change)="updateNotificationPreference('email', emailNotif.checked)"
-                       class="checkbox checkbox-primary">
-                <span class="label-text">Email Notifications</span>
+              <label class="label">
+                <span class="label-text font-semibold text-sm">User ID</span>
               </label>
+              <div class="flex items-center gap-2">
+                <span class="font-mono bg-base-200/50 px-3 py-2 rounded-xl text-xs cursor-pointer border border-base-300/30"
+                      [title]="user?.uuid">
+                  {{ user?.uuid ? (user?.uuid | slice:0:8) + '...' + (user?.uuid | slice:-6) : '' }}
+                </span>
+                <button class="btn btn-xs btn-ghost" type="button" (click)="copyUuid(user?.uuid)">
+                  <lucide-icon name="Copy" class="w-4 h-4"></lucide-icon>
+                </button>
+              </div>
             </div>
+
+            <!-- Account Status -->
             <div class="form-control">
-              <label class="label cursor-pointer justify-start gap-3">
-                <input #pushNotif type="checkbox" 
-                       [checked]="user?.notification_preferences?.push"
-                       [disabled]="!isEditing"
-                       (change)="updateNotificationPreference('push', pushNotif.checked)"
-                       class="checkbox checkbox-primary">
-                <span class="label-text">Push Notifications</span>
+              <label class="label">
+                <span class="label-text font-semibold text-sm">Status</span>
               </label>
+              <div class="flex items-center gap-2">
+                <div class="badge badge-success badge-lg" *ngIf="user?.active">
+                  <lucide-icon name="CheckCircle" class="w-4 h-4 mr-1"></lucide-icon>
+                  Active
+                </div>
+                <div class="badge badge-error badge-lg" *ngIf="!user?.active">
+                  <lucide-icon name="XCircle" class="w-4 h-4 mr-1"></lucide-icon>
+                  Inactive
+                </div>
+              </div>
             </div>
+
+            <!-- Created Date -->
             <div class="form-control">
-              <label class="label cursor-pointer justify-start gap-3">
-                <input #inAppNotif type="checkbox" 
-                       [checked]="user?.notification_preferences?.in_app"
-                       [disabled]="!isEditing"
-                       (change)="updateNotificationPreference('in_app', inAppNotif.checked)"
-                       class="checkbox checkbox-primary">
-                <span class="label-text">In-App Notifications</span>
+              <label class="label">
+                <span class="label-text font-semibold text-sm">Member Since</span>
               </label>
+              <div class="flex items-center gap-2">
+                <lucide-icon name="Calendar" class="w-4 h-4 text-base-content/60"></lucide-icon>
+                <span class="text-base-content/80">{{ getDisplayDate(user?.created_at) }}</span>
+              </div>
+            </div>
+
+            <!-- Last Updated -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text font-semibold text-sm">Last Updated</span>
+              </label>
+              <div class="flex items-center gap-2">
+                <lucide-icon name="Clock" class="w-4 h-4 text-base-content/60"></lucide-icon>
+                <span class="text-base-content/80">{{ getDisplayDate(user?.updated_at) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preferences -->
+        <div class="bg-base-200/50 rounded-2xl p-8 border border-base-300/20">
+          <div class="flex items-center gap-3 mb-8">
+            <div class="w-12 h-12 rounded-xl bg-base-300/50 flex items-center justify-center">
+              <lucide-icon name="Settings" class="w-5 h-5 text-base-content/70"></lucide-icon>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold">Preferences</h2>
+              <p class="text-base-content/60 text-sm">Your settings</p>
+            </div>
+          </div>
+          
+          <div class="space-y-6">
+            <!-- Timezone -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text font-semibold text-sm">Timezone</span>
+              </label>
+              <select formControlName="timezone"
+                      class="select select-bordered w-full transition-all duration-300 bg-base-200/50"
+                      [class.select-primary]="profileForm.get('timezone')?.touched">
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">Eastern Time (ET)</option>
+                <option value="America/Chicago">Central Time (CT)</option>
+                <option value="America/Denver">Mountain Time (MT)</option>
+                <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                <option value="Europe/London">London (GMT)</option>
+                <option value="Europe/Paris">Paris (CET)</option>
+                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                <option value="Asia/Shanghai">Shanghai (CST)</option>
+                <option value="Asia/Kolkata">India (IST)</option>
+              </select>
+            </div>
+
+            <!-- Language -->
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text font-semibold text-sm">Language</span>
+              </label>
+              <select formControlName="language"
+                      class="select select-bordered w-full transition-all duration-300 bg-base-200/50"
+                      [class.select-primary]="profileForm.get('language')?.touched">
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="it">Italiano</option>
+                <option value="pt">Português</option>
+                <option value="ru">Русский</option>
+                <option value="zh">中文</option>
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+              </select>
+            </div>
+
+            <!-- Notification Preferences -->
+            <div class="space-y-4">
+              <h3 class="text-sm font-semibold text-base-content/80">Notifications</h3>
+              <div class="space-y-3">
+                <div class="form-control">
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input #emailNotif type="checkbox" 
+                           [checked]="user?.notification_preferences?.email"
+                           (change)="updateNotificationPreference('email', emailNotif.checked)"
+                           class="checkbox checkbox-primary">
+                    <span class="label-text text-sm">Email</span>
+                  </label>
+                </div>
+                <div class="form-control">
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input #pushNotif type="checkbox" 
+                           [checked]="user?.notification_preferences?.push"
+                           (change)="updateNotificationPreference('push', pushNotif.checked)"
+                           class="checkbox checkbox-primary">
+                    <span class="label-text text-sm">Push</span>
+                  </label>
+                </div>
+                <div class="form-control">
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input #inAppNotif type="checkbox" 
+                           [checked]="user?.notification_preferences?.in_app"
+                           (change)="updateNotificationPreference('in_app', inAppNotif.checked)"
+                           class="checkbox checkbox-primary">
+                    <span class="label-text text-sm">In-App</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Additional Information -->
-      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
-        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <lucide-icon name="Globe" class="w-5 h-5 text-primary"></lucide-icon>
-          Additional Information
-        </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Location -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Location</span>
-            </label>
-            <input type="text" 
-                   formControlName="location"
-                   [readonly]="!isEditing"
-                   placeholder="San Francisco, CA"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && profileForm.get('location')?.touched">
-          </div>
-
-          <!-- Website -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Website</span>
-            </label>
-            <input type="url" 
-                   formControlName="website"
-                   [readonly]="!isEditing"
-                   placeholder="https://example.com"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && profileForm.get('website')?.touched"
-                   [class.input-error]="profileForm.get('website')?.invalid && profileForm.get('website')?.touched">
-            <label *ngIf="profileForm.get('website')?.invalid && profileForm.get('website')?.touched" 
-                   class="label">
-              <span class="label-text-alt text-error">Please enter a valid URL</span>
-            </label>
-          </div>
-
-          <!-- LinkedIn -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">LinkedIn</span>
-            </label>
-            <input type="text" 
-                   formControlName="linkedin"
-                   [readonly]="!isEditing"
-                   placeholder="linkedin.com/in/username"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && profileForm.get('linkedin')?.touched">
-          </div>
-
-          <!-- Twitter -->
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Twitter</span>
-            </label>
-            <input type="text" 
-                   formControlName="twitter"
-                   [readonly]="!isEditing"
-                   placeholder="@username"
-                   class="input input-bordered w-full transition-all duration-300"
-                   [class.input-primary]="isEditing && profileForm.get('twitter')?.touched">
-          </div>
-        </div>
+    </div>
+  </div>
+  
+  <!-- Location Picker Modal -->
+  <div *ngIf="showLocationPicker" class="modal modal-open">
+    <div class="modal-box max-w-3xl w-11/12 h-[85vh] p-0 flex flex-col" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-4 border-b border-base-300">
+        <h3 class="font-bold text-lg">Select Location</h3>
+        <button type="button" 
+                (click)="showLocationPicker = false; pendingLocation = null"
+                class="btn btn-sm btn-circle btn-ghost">
+          <lucide-icon name="X" class="w-4 h-4"></lucide-icon>
+        </button>
       </div>
-    </form>
+      
+      <!-- Location Picker Content -->
+      <div class="flex-1 p-4 min-h-0 overflow-hidden">
+        <app-location-picker
+          [initialLocation]="currentLocationCoords"
+          [height]="'100%'"
+          [visible]="showLocationPicker"
+          (locationSelected)="onLocationSelected($event)">
+        </app-location-picker>
+      </div>
+      
+      <!-- Modal Actions -->
+      <div class="flex justify-end gap-2 p-4 border-t border-base-300">
+        <button type="button" 
+                (click)="showLocationPicker = false; pendingLocation = null"
+                class="btn btn-ghost btn-sm">
+          Cancel
+        </button>
+        <button type="button"
+                (click)="confirmLocationSelection()"
+                class="btn btn-primary btn-sm"
+                [disabled]="!pendingLocation">
+          Select Location
+        </button>
+      </div>
+    </div>
+    <div class="modal-backdrop bg-black/50" (click)="showLocationPicker = false; pendingLocation = null"></div>
   </div>
 </div> 

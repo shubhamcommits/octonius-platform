@@ -117,6 +117,9 @@ export class WorkplaceLoginComponent implements OnDestroy {
   
   requestOtp(): void {
     this.isLoading = true
+    // Reset OTP field and clear any errors
+    this.loginForm.get('otp')?.setValue('')
+    
     this.authService.requestOtp(this.email)
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
@@ -188,6 +191,8 @@ export class WorkplaceLoginComponent implements OnDestroy {
   
   onResendOtp(): void {
     if (this.canResendOtp && !this.isLoading) {
+      // Reset OTP field before requesting new OTP
+      this.loginForm.get('otp')?.setValue('')
       this.requestOtp()
     }
   }

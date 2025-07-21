@@ -1,9 +1,10 @@
-import { Component } from '@angular/core'
+import { Component, OnInit } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { RouterModule, Router, ActivatedRoute, NavigationEnd } from '@angular/router'
 import { SharedModule } from '../../shared/shared.module'
 import { AuthService } from '../../../core/services/auth.service'
 import { ThemeService } from '../../../core/services/theme.service'
+import { DialogService } from '../../../core/services/dialog.service'
 import { filter, map } from 'rxjs/operators'
 
 @Component({
@@ -13,14 +14,15 @@ import { filter, map } from 'rxjs/operators'
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss']
 })
-export class LayoutComponent {
+export class LayoutComponent implements OnInit {
   breadcrumb: string = 'inbox';
 
   constructor(
     private authService: AuthService,
     private router: Router,
     private activatedRoute: ActivatedRoute,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private dialogService: DialogService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
@@ -58,6 +60,48 @@ export class LayoutComponent {
    */
   toggleTheme() {
     this.themeService.toggleTheme();
+  }
+
+  ngOnInit(): void {
+    // Check if we should show onboarding dialog
+    this.checkOnboarding();
+  }
+
+  /**
+   * Check if onboarding dialog should be shown
+   */
+  private checkOnboarding(): void {
+    const showOnboarding = localStorage.getItem('showOnboarding');
+    if (showOnboarding === 'true') {
+      // Show onboarding dialog after a short delay
+      setTimeout(() => {
+        this.showOnboardingDialog();
+      }, 1000); // 1 second delay
+    }
+  }
+
+  /**
+   * Show the onboarding dialog
+   */
+  private showOnboardingDialog(): void {
+    // Create and show the onboarding dialog
+    const dialogRef = this.dialogService.confirm({
+      title: 'Welcome to Your New Workplace! 🎉',
+      message: 'Your workplace has been successfully created and you\'re all set up as the owner. To get the most out of your experience, we recommend completing your profile first.',
+      confirmText: 'Complete Profile',
+      cancelText: 'Skip for Now',
+      type: 'info',
+      icon: 'Info'
+    });
+
+    dialogRef.subscribe(confirmed => {
+      if (confirmed) {
+        // Navigate to profile page
+        this.router.navigate(['/account/profile']);
+      }
+      // Clear the onboarding flag
+      localStorage.removeItem('showOnboarding');
+    });
   }
 
   /**

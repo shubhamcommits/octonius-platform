@@ -61,6 +61,7 @@ import { LucideAngularModule,
   Minus,
   Info,
   AlertTriangle,
+  AlertCircle,
   UserPlus,
   UserMinus,
   UserCheck,
@@ -109,7 +110,17 @@ import { LucideAngularModule,
   RemoveFormatting,
   Lightbulb,
   Keyboard,
-  Smile
+  Smile,
+  CheckCircle2,
+  Briefcase,
+  Building2,
+  Edit3,
+  Camera,
+  Navigation,
+  Edit2,
+  SearchX,
+  CreditCard,
+  Key
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -117,6 +128,8 @@ import { NavbarComponent } from './components/navbar/navbar.component'
 import { TopbarComponent } from './components/topbar/topbar.component'
 import { TiptapEditorComponent } from '../../core/components/tiptap-editor/tiptap-editor.component'
 import { RichHtmlDirective } from './directives/rich-html.directive'
+import { LocationPickerComponent } from './components/location-picker/location-picker.component'
+import { InfiniteScrollListComponent } from './components/infinite-scroll-list/infinite-scroll-list.component'
 
 @NgModule({
   imports: [
@@ -125,6 +138,8 @@ import { RichHtmlDirective } from './directives/rich-html.directive'
     NavbarComponent,
     TiptapEditorComponent,
     RichHtmlDirective,
+    LocationPickerComponent,
+    InfiniteScrollListComponent, // Import the standalone component
     LucideAngularModule.pick({ 
       Home, 
       User, 
@@ -186,6 +201,7 @@ import { RichHtmlDirective } from './directives/rich-html.directive'
       Minus,
       Info,
       AlertTriangle,
+      AlertCircle,
       UserPlus,
       UserMinus,
       UserCheck,
@@ -234,7 +250,17 @@ import { RichHtmlDirective } from './directives/rich-html.directive'
       RemoveFormatting,
       Lightbulb,
       Keyboard,
-      Smile
+      Smile,
+      CheckCircle2,
+      Briefcase,
+      Building2,
+      Edit3,
+      Camera,
+      Navigation,
+      Edit2,
+      SearchX,
+      CreditCard,
+      Key
     })
   ],
   exports: [
@@ -243,7 +269,9 @@ import { RichHtmlDirective } from './directives/rich-html.directive'
     TopbarComponent,
     NavbarComponent,
     TiptapEditorComponent,
-    RichHtmlDirective
+    RichHtmlDirective,
+    LocationPickerComponent,
+    InfiniteScrollListComponent // Export it for use in other modules
   ],
   providers: [AuthGuard, NonAuthGuard]
 })

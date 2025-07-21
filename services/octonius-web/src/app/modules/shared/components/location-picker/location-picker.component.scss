@@ -1,0 +1,110 @@
+@import 'leaflet/dist/leaflet.css';
+
+.location-picker-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  
+  .map-wrapper {
+    position: relative;
+    background-color: hsl(var(--b2));
+    flex: 1;
+    min-height: 0;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 90%, hsl(var(--b1) / 0.1) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+  }
+  
+  // Override Leaflet styles for better integration
+  :host ::ng-deep {
+    .leaflet-container {
+      font-family: inherit;
+      background-color: hsl(var(--b2));
+    }
+    
+    .leaflet-control-zoom {
+      border: 1px solid hsl(var(--bc) / 0.2);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      
+      a {
+        background-color: hsl(var(--b1));
+        color: hsl(var(--bc));
+        border-bottom: 1px solid hsl(var(--bc) / 0.2);
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background-color: hsl(var(--b2));
+          transform: scale(1.05);
+        }
+        
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+    }
+    
+    .leaflet-bar {
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+    
+    // Custom marker animation
+    .leaflet-marker-icon {
+      transition: none !important;
+      animation: dropIn 0.5s ease-out;
+    }
+    
+    .leaflet-popup-content-wrapper {
+      background-color: hsl(var(--b1));
+      color: hsl(var(--bc));
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+    
+    .leaflet-popup-tip {
+      background-color: hsl(var(--b1));
+    }
+  }
+}
+
+@keyframes dropIn {
+  0% {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(5px);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Search results dropdown animation
+.search-container {
+  position: relative;
+  z-index: 1002;
+  
+  .absolute {
+    animation: slideDown 0.2s ease-out;
+    z-index: 1003 !important;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

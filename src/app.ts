@@ -34,6 +34,9 @@ import { AuthRoute } from './auths'
 // Import Workplace Route
 import { WorkplaceRoute } from './workplaces'
 
+// Import Role Route
+import { RoleRoute } from './roles/role.route'
+
 // Import File Route
 import { FileRoute } from './files/file.route'
 
@@ -48,6 +51,9 @@ import { GroupRoute } from './groups/group.route'
 
 // Import Circuit Breaker components
 import { CircuitBreakerRoute, circuitBreakerManager } from './shared/circuit-breakers'
+
+// Import permission initializer
+import { initializePermissionsOnStartup } from './shared/permission-initializer'
 
 // Define the express application
 const app = express()
@@ -184,11 +190,30 @@ app.get('/health', async (req: Request, res: Response, next: NextFunction) => {
 // Add request timer middleware
 app.use(requestTimer)
 
+// Initialize permissions and roles during startup
+initializePermissionsOnStartup()
+    .then(() => {
+        appLogger('Permission Initialization', {
+            level: 'info',
+            message: 'Permissions initialized successfully during startup',
+            environment: NODE_ENV,
+        });
+    })
+    .catch((error) => {
+        appLogger('Permission Initialization', {
+            level: 'error',
+            message: 'Permission initialization failed during startup',
+            error: error.message,
+            environment: NODE_ENV,
+        });
+    });
+
 // Correct REST naming
 app.use('/v1/auths', new AuthRoute().router)
 app.use('/v1/notifications', new NotificationRoute().router)
 app.use('/v1/users', new UserRoute().router)
 app.use('/v1/workplaces', new WorkplaceRoute().router)
+app.use('/v1/roles', new RoleRoute().router)
 app.use('/v1/files', new FileRoute().router)
 app.use('/v1/workload', new WorkloadRoute().router)
 app.use('/v1/lounges', new LoungeRoute().router)
@@ -227,15 +252,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 // Compressing the application
 app.use(compression())
-
-// Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
-    res.json({
-        status: 'ok',
-        environment: NODE_ENV,
-        timestamp: new Date().toISOString()
-    })
-})
 
 // Version endpoint
 app.get('/version', (req: Request, res: Response) => {

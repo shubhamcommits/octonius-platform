@@ -109,6 +109,10 @@ export class CreateWorkplaceComponent implements OnInit, OnDestroy {
   onResendOtp() {
     if (!this.canResendOtp || this.isLoading) return
     this.isLoading = true
+    // Reset OTP field and clear any errors
+    this.otpForm.get('otp')?.setValue('')
+    this.otpError = ''
+    
     this.authService.requestOtp(this.email)
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
@@ -137,6 +141,10 @@ export class CreateWorkplaceComponent implements OnInit, OnDestroy {
     }
     
     this.isLoading = true
+    // Reset OTP field and clear any errors
+    this.otpForm.get('otp')?.setValue('')
+    this.otpError = ''
+    
     this.authService.requestOtp(this.email)
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
@@ -213,7 +221,14 @@ export class CreateWorkplaceComponent implements OnInit, OnDestroy {
             this.authService.setCurrentUser(response.data.user);
           }
           
-          this.toastService.success('Workplace created successfully!')
+          // Show welcome toast
+          this.toastService.success(`🎉 Welcome to ${workplace_name}! Your workplace is ready.`)
+          
+          // Store onboarding flag for new users
+          if (response.data && response.data.user && (!response.data.user.first_name || !response.data.user.last_name)) {
+            localStorage.setItem('showOnboarding', 'true');
+          }
+          
           this.router.navigate(['/myspace'])
         },
         error: (error) => {

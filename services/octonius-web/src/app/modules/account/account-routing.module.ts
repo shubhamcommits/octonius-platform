@@ -12,7 +12,8 @@ const routes: Routes = [
     children: [
       { path: '', redirectTo: 'profile', pathMatch: 'full' },
       { path: 'profile', component: ProfileComponent },
-      { path: 'settings', component: SettingsComponent },
+      { path: 'settings', redirectTo: 'settings/overview', pathMatch: 'full' },
+      { path: 'settings/:tab', component: SettingsComponent },
       { path: 'billing', component: BillingComponent }
     ]
   }

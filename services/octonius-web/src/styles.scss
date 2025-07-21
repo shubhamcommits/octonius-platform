@@ -3,6 +3,9 @@
 @use 'tailwindcss/components';
 @use 'tailwindcss/utilities';
 
+/* Import Leaflet styles */
+@import 'leaflet/dist/leaflet.css';
+
 /* TipTap Editor Placeholder Styles */
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

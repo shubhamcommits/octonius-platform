@@ -23,6 +23,17 @@ export interface User {
     push: boolean;
     in_app: boolean;
   };
+  metadata?: {
+    bio?: string;
+    location?: string;
+    website?: string;
+    twitter?: string;
+    linkedin?: string;
+    github?: string;
+    skills?: string[];
+    interests?: string[];
+    [key: string]: any;
+  };
   disabled_at: Date | null;
   source: string;
   role: string | null;
