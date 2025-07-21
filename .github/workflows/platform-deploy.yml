@@ -267,6 +267,10 @@ jobs:
             "shubham-macbook" = {
               cidr        = "49.205.240.39/32"
               description = "Shubham Macbook IP"
+            },
+            "shubham-macbook-2" = {
+              cidr        = "165.225.124.233/16"
+              description = "Shubham Macbook IP"
             }
           }
           EOF
@@ -285,6 +289,10 @@ jobs:
           whitelisted_ips = {
             "shubham-macbook" = {
               cidr        = "49.205.240.39/32"
+              description = "Shubham Macbook IP"
+            },
+            "shubham-macbook-2" = {
+              cidr        = "165.225.124.233/16"
               description = "Shubham Macbook IP"
             }
           }
