@@ -265,8 +265,12 @@ jobs:
           cat > config/ip_whitelist.tfvars <<EOF
           whitelisted_ips = {
             "shubham-macbook" = {
-              cidr        = "49.205.240.39/32"
+              cidr        = "183.83.153.50/32"
               description = "Shubham Macbook IP"
+            },
+            "shubham-macbook-vpn" = {
+              cidr        = "165.225.0.0/16"
+              description = "Shubham Macbook VPN IP"
             }
           }
           EOF
@@ -284,8 +288,12 @@ jobs:
           # Whitelisted IPs for bastion host access
           whitelisted_ips = {
             "shubham-macbook" = {
-              cidr        = "49.205.240.39/32"
+              cidr        = "183.83.153.50/32"
               description = "Shubham Macbook IP"
+            },
+            "shubham-macbook-vpn" = {
+              cidr        = "165.225.0.0/16"
+              description = "Shubham Macbook VPN IP"
             }
           }
           EOF
