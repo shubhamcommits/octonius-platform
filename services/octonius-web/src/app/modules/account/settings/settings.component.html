@@ -11,56 +11,21 @@
         <div class="h-10 w-32 bg-base-300 rounded"></div>
       </div>
 
-      <!-- Stats Cards Skeleton -->
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div class="h-24 bg-base-300 rounded-xl"></div>
-        <div class="h-24 bg-base-300 rounded-xl"></div>
-        <div class="h-24 bg-base-300 rounded-xl"></div>
-        <div class="h-24 bg-base-300 rounded-xl"></div>
-        <div class="h-24 bg-base-300 rounded-xl"></div>
+      <!-- Tab Navigation Skeleton -->
+      <div class="flex gap-2 border-b border-base-300">
+        <div class="h-10 w-24 bg-base-300 rounded-t"></div>
+        <div class="h-10 w-24 bg-base-300 rounded-t"></div>
+        <div class="h-10 w-24 bg-base-300 rounded-t"></div>
+        <div class="h-10 w-24 bg-base-300 rounded-t"></div>
+        <div class="h-10 w-24 bg-base-300 rounded-t"></div>
       </div>
 
-      <!-- Basic Info Skeleton -->
-      <div class="bg-base-100/50 rounded-xl p-6 border border-base-300/50">
-        <div class="h-6 w-40 bg-base-300 rounded mb-4"></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2"></div>
-          <div class="h-4 w-1/2 bg-base-300 rounded mb-2 md:col-span-2"></div>
-        </div>
-        <div class="h-4 w-1/3 bg-base-300 rounded mt-4 mb-2"></div>
-        <div class="h-16 w-full bg-base-300 rounded"></div>
-      </div>
-
-      <!-- Logo Skeleton -->
-      <div class="bg-base-100/50 rounded-xl p-6 border border-base-300/50">
-        <div class="h-6 w-40 bg-base-300 rounded mb-4"></div>
-        <div class="flex items-center gap-6">
-          <div class="w-24 h-24 rounded-xl bg-base-300"></div>
-          <div class="space-y-2">
-            <div class="h-4 w-32 bg-base-300 rounded"></div>
-            <div class="h-4 w-40 bg-base-300 rounded"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Billing Skeleton -->
-      <div class="bg-base-100/50 rounded-xl p-6 border border-base-300/50">
-        <div class="h-6 w-40 bg-base-300 rounded mb-4"></div>
-        <div class="flex items-center justify-between">
-          <div class="h-4 w-40 bg-base-300 rounded"></div>
-          <div class="h-8 w-32 bg-base-300 rounded"></div>
-        </div>
-      </div>
-
-      <!-- Quick Actions Skeleton -->
-      <div class="bg-base-100/50 rounded-xl p-6 border border-base-300/50">
-        <div class="h-6 w-40 bg-base-300 rounded mb-4"></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="h-10 w-full bg-base-300 rounded"></div>
-          <div class="h-10 w-full bg-base-300 rounded"></div>
+      <!-- Content Area Skeleton -->
+      <div class="bg-base-100/50 rounded-xl p-6 border border-base-300/50 min-h-[400px]">
+        <div class="space-y-4">
+          <div class="h-6 w-48 bg-base-300 rounded"></div>
+          <div class="h-32 w-full bg-base-300 rounded"></div>
+          <div class="h-32 w-full bg-base-300 rounded"></div>
         </div>
       </div>
     </div>
@@ -73,6 +38,14 @@
       <div>
         <h1 class="text-2xl font-bold">Workplace Settings</h1>
         <p class="text-base-content/70 mt-1">Manage your workplace configuration and preferences</p>
+        <div *ngIf="currentUserRole" class="mt-2 flex items-center gap-2">
+          <span class="badge badge-sm badge-outline">
+            {{ currentUserRole.name }}
+          </span>
+          <span class="text-xs text-base-content/60">
+            {{ userPermissions.length }} permissions
+          </span>
+        </div>
       </div>
 
       <!-- Autosave Status -->
@@ -82,846 +55,918 @@
       </div>
     </div>
 
-    <!-- Workplace Stats Cards -->
-    <div *ngIf="workplaceStats" class="grid grid-cols-2 md:grid-cols-5 gap-4">
-      <!-- Total Users -->
-      <div class="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-primary/20 rounded-lg">
-            <lucide-icon name="Users" class="w-5 h-5 text-primary"></lucide-icon>
-          </div>
-          <div>
-            <p class="text-2xl font-bold">{{ workplaceStats.total_users }}</p>
-            <p class="text-xs text-base-content/70">Total Users</p>
-          </div>
-        </div>
-      </div>
+    <!-- Tab Navigation -->
+    <div class="border-b border-base-300">
+      <nav class="-mb-px flex gap-6">
+        <!-- Overview Tab -->
+        <button
+          type="button"
+          (click)="switchTab('overview')"
+          [ngClass]="{
+            'text-primary border-primary': activeTab === 'overview',
+            'text-base-content/60 border-transparent': activeTab !== 'overview'
+          }"
+          class="flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-all duration-200 hover:text-primary">
+          <lucide-icon name="LayoutDashboard" class="w-4 h-4"></lucide-icon>
+          Overview
+        </button>
 
-      <!-- Admins -->
-      <div class="bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl p-4 border border-secondary/20">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-secondary/20 rounded-lg">
-            <lucide-icon name="Shield" class="w-5 h-5 text-secondary"></lucide-icon>
-          </div>
-          <div>
-            <p class="text-2xl font-bold">{{ workplaceStats.total_admins }}</p>
-            <p class="text-xs text-base-content/70">Admins</p>
-          </div>
-        </div>
-      </div>
+        <!-- Details Tab -->
+        <button
+          type="button"
+          (click)="switchTab('details')"
+          [ngClass]="{
+            'text-primary border-primary': activeTab === 'details',
+            'text-base-content/60 border-transparent': activeTab !== 'details'
+          }"
+          class="flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-all duration-200 hover:text-primary">
+          <lucide-icon name="Settings" class="w-4 h-4"></lucide-icon>
+          Details
+        </button>
 
-      <!-- Members -->
-      <div class="bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl p-4 border border-accent/20">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-accent/20 rounded-lg">
-            <lucide-icon name="UserCheck" class="w-5 h-5 text-accent"></lucide-icon>
-          </div>
-          <div>
-            <p class="text-2xl font-bold">{{ workplaceStats.total_members }}</p>
-            <p class="text-xs text-base-content/70">Members</p>
-          </div>
-        </div>
-      </div>
+        <!-- Members Tab -->
+        <button
+          type="button"
+          (click)="switchTab('members')"
+          [ngClass]="{
+            'text-primary border-primary': activeTab === 'members',
+            'text-base-content/60 border-transparent': activeTab !== 'members'
+          }"
+          class="flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-all duration-200 hover:text-primary">
+          <lucide-icon name="Users" class="w-4 h-4"></lucide-icon>
+          Members
+          <span *ngIf="workplaceStats" class="ml-1 px-2 py-0.5 text-xs bg-base-200 rounded-full">
+            {{ workplaceStats.total_users }}
+          </span>
+        </button>
 
-      <!-- Agoras -->
-      <div class="bg-gradient-to-br from-info/10 to-info/5 rounded-xl p-4 border border-info/20">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-info/20 rounded-lg">
-            <lucide-icon name="MessageSquare" class="w-5 h-5 text-info"></lucide-icon>
-          </div>
-          <div>
-            <p class="text-2xl font-bold">{{ workplaceStats.total_agoras }}</p>
-            <p class="text-xs text-base-content/70">Agoras</p>
-          </div>
-        </div>
-      </div>
+        <!-- Roles Tab -->
+        <button
+          type="button"
+          (click)="switchTab('roles')"
+          [ngClass]="{
+            'text-primary border-primary': activeTab === 'roles',
+            'text-base-content/60 border-transparent': activeTab !== 'roles'
+          }"
+          class="flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-all duration-200 hover:text-primary">
+          <lucide-icon name="Shield" class="w-4 h-4"></lucide-icon>
+          Roles
+          <span *ngIf="roles.length > 0" class="ml-1 px-2 py-0.5 text-xs bg-base-200 rounded-full">
+            {{ roles.length }}
+          </span>
+        </button>
 
-      <!-- Work Groups -->
-      <div class="bg-gradient-to-br from-success/10 to-success/5 rounded-xl p-4 border border-success/20">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-success/20 rounded-lg">
-            <lucide-icon name="Users" class="w-5 h-5 text-success"></lucide-icon>
-          </div>
-          <div>
-            <p class="text-2xl font-bold">{{ workplaceStats.total_work_groups }}</p>
-            <p class="text-xs text-base-content/70">Work Groups</p>
-          </div>
-        </div>
-      </div>
+        <!-- Permissions Tab -->
+        <button
+          type="button"
+          (click)="switchTab('permissions')"
+          [ngClass]="{
+            'text-primary border-primary': activeTab === 'permissions',
+            'text-base-content/60 border-transparent': activeTab !== 'permissions'
+          }"
+          class="flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-all duration-200 hover:text-primary">
+          <lucide-icon name="Key" class="w-4 h-4"></lucide-icon>
+          Permissions
+        </button>
+
+        <!-- Invitations Tab -->
+        <button
+          type="button"
+          (click)="switchTab('invitations')"
+          [ngClass]="{
+            'text-primary border-primary': activeTab === 'invitations',
+            'text-base-content/60 border-transparent': activeTab !== 'invitations'
+          }"
+          class="flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-all duration-200 hover:text-primary">
+          <lucide-icon name="Mail" class="w-4 h-4"></lucide-icon>
+          Invitations
+          <span *ngIf="invitations.length > 0" class="ml-1 px-2 py-0.5 text-xs bg-base-200 rounded-full">
+            {{ invitations.length }}
+          </span>
+        </button>
+
+        <!-- Billing Tab -->
+        <button
+          type="button"
+          (click)="switchTab('billing')"
+          [ngClass]="{
+            'text-primary border-primary': activeTab === 'billing',
+            'text-base-content/60 border-transparent': activeTab !== 'billing'
+          }"
+          class="flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-all duration-200 hover:text-primary">
+          <lucide-icon name="FileText" class="w-4 h-4"></lucide-icon>
+          Billing
+        </button>
+      </nav>
     </div>
 
-    <!-- Settings Form -->
-    <form [formGroup]="settingsForm" class="space-y-6">
-      <!-- Basic Information -->
-      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
-        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <lucide-icon name="Settings" class="w-5 h-5 text-primary"></lucide-icon>
-          Basic Information
-        </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Workplace Name -->
-          <div class="space-y-2">
-            <label class="text-sm font-medium text-base-content/70 flex items-center justify-between">
-              <span>Workplace Name</span>
-              <span class="text-base-content/50 text-xs">(Read-only)</span>
-            </label>
-            <input type="text" 
-                   formControlName="name"
-                   placeholder="Enter workplace name"
-                   class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-300/50 text-base-content/70 cursor-not-allowed"
-                   [disabled]="true"
-                   [readonly]="true">
-            <span class="text-xs text-base-content/50 mt-1 block">
-              Workplace name cannot be changed after creation
-            </span>
-          </div>
-
-          <!-- Website -->
-          <div class="space-y-2">
-            <label class="text-sm font-medium text-base-content/70">
-              <span>Website</span>
-            </label>
-            <input type="url" 
-                   formControlName="website"
-                   placeholder="https://example.com"
-                   class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30"
-                   [class.border-primary]="isFieldValid('website')"
-                   [class.border-error]="isFieldInvalid('website')">
-            <span *ngIf="isFieldInvalid('website')" 
-                  class="text-xs text-error mt-1 block">
-              Please enter a valid URL
-            </span>
-          </div>
-
-          <!-- Industry -->
-          <div class="space-y-2">
-            <label class="text-sm font-medium text-base-content/70">
-              <span>Industry</span>
-            </label>
-            <div class="relative">
-              <button type="button"
-                      (click)="toggleDropdown('industry')"
-                      class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30 text-left flex items-center justify-between"
-                      [class.border-primary]="isFieldTouched('industry')">
-                <span [ngClass]="{'text-base-content/30': !settingsForm.get('industry')?.value}">
-                  {{ settingsForm.get('industry')?.value || 'Select an industry' }}
-                </span>
-                <lucide-icon name="ChevronDown" class="w-4 h-4 transition-transform duration-200" 
-                             [class.rotate-180]="openDropdown === 'industry'"></lucide-icon>
-              </button>
-              
-              <!-- Dropdown Menu -->
-              <div *ngIf="openDropdown === 'industry'"
-                   (click)="$event.stopPropagation()"
-                   class="absolute z-50 w-full mt-1 bg-base-100 border border-base-300/50 rounded-xl shadow-lg max-h-60 overflow-auto">
-                <div class="p-1">
-                  <button type="button"
-                          *ngFor="let industry of industries"
-                          (click)="selectOption('industry', industry)"
-                          class="w-full px-3 py-2 text-left rounded-lg hover:bg-base-200 transition-colors duration-150"
-                          [ngClass]="{'bg-primary/10': settingsForm.get('industry')?.value === industry}">
-                    {{ industry }}
-                  </button>
-                </div>
+    <!-- Tab Content Area -->
+    <div class="min-h-[600px]">
+      <!-- Overview Tab Content -->
+      <div *ngIf="activeTab === 'overview'" class="animate-fade-in space-y-6">
+        <!-- Workplace Overview -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
+          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <lucide-icon name="Building2" class="w-5 h-5 text-primary"></lucide-icon>
+            Workplace Overview
+          </h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Workplace Info -->
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-base-content/70">Workplace Name</span>
+                <span class="text-sm text-base-content">{{ workplace?.name || 'N/A' }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-base-content/70">Created</span>
+                <span class="text-sm text-base-content">{{ getDisplayDate(workplace?.created_at) }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-base-content/70">Your Role</span>
+                <span class="badge badge-sm badge-primary">{{ currentUserRole?.name || 'Member' }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-base-content/70">Status</span>
+                <span class="badge badge-sm badge-success">Active</span>
               </div>
             </div>
-          </div>
 
-          <!-- Company Size -->
-          <div class="space-y-2">
-            <label class="text-sm font-medium text-base-content/70">
-              <span>Company Size</span>
-            </label>
-            <div class="relative">
-              <button type="button"
-                      (click)="toggleDropdown('size')"
-                      class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30 text-left flex items-center justify-between"
-                      [class.border-primary]="isFieldTouched('size')">
-                <span [ngClass]="{'text-base-content/30': !settingsForm.get('size')?.value}">
-                  {{ getSizeLabel(settingsForm.get('size')?.value) || 'Select company size' }}
-                </span>
-                <lucide-icon name="ChevronDown" class="w-4 h-4 transition-transform duration-200" 
-                             [class.rotate-180]="openDropdown === 'size'"></lucide-icon>
-              </button>
-              
-              <!-- Dropdown Menu -->
-              <div *ngIf="openDropdown === 'size'"
-                   (click)="$event.stopPropagation()"
-                   class="absolute z-50 w-full mt-1 bg-base-100 border border-base-300/50 rounded-xl shadow-lg max-h-60 overflow-auto">
-                <div class="p-1">
-                  <button type="button"
-                          *ngFor="let size of sizes"
-                          (click)="selectOption('size', size.value)"
-                          class="w-full px-3 py-2 text-left rounded-lg hover:bg-base-200 transition-colors duration-150"
-                          [ngClass]="{'bg-primary/10': settingsForm.get('size')?.value === size.value}">
-                    {{ size.label }}
-                  </button>
-                </div>
+            <!-- Quick Stats -->
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-base-content/70">Total Members</span>
+                <span class="text-sm font-semibold text-base-content">{{ workplaceStats?.total_users || 0 }}</span>
               </div>
-            </div>
-          </div>
-
-          <!-- Timezone -->
-          <div class="space-y-2 md:col-span-2">
-            <label class="text-sm font-medium text-base-content/70 flex items-center justify-between">
-              <span>Timezone</span>
-              <span class="text-error">*</span>
-            </label>
-            <div class="relative">
-              <button type="button"
-                      (click)="toggleDropdown('timezone')"
-                      class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30 text-left flex items-center justify-between"
-                      [class.border-primary]="isFieldValid('timezone')"
-                      [class.border-error]="isFieldInvalid('timezone')">
-                <span [ngClass]="{'text-base-content/30': !settingsForm.get('timezone')?.value}">
-                  {{ getTimezoneLabel(settingsForm.get('timezone')?.value) || 'Select timezone' }}
-                </span>
-                <lucide-icon name="ChevronDown" class="w-4 h-4 transition-transform duration-200" 
-                             [class.rotate-180]="openDropdown === 'timezone'"></lucide-icon>
-              </button>
-              
-              <!-- Dropdown Menu -->
-              <div *ngIf="openDropdown === 'timezone'"
-                   (click)="$event.stopPropagation()"
-                   class="absolute z-50 w-full mt-1 bg-base-100 border border-base-300/50 rounded-xl shadow-lg max-h-60 overflow-auto">
-                <div class="p-1">
-                  <button type="button"
-                          *ngFor="let tz of timezones"
-                          (click)="selectOption('timezone', tz.value)"
-                          class="w-full px-3 py-2 text-left rounded-lg hover:bg-base-200 transition-colors duration-150"
-                          [ngClass]="{'bg-primary/10': settingsForm.get('timezone')?.value === tz.value}">
-                    {{ tz.label }}
-                  </button>
-                </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-base-content/70">Active Groups</span>
+                <span class="text-sm font-semibold text-base-content">{{ workplaceStats?.total_work_groups || 0 }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-base-content/70">Public Agoras</span>
+                <span class="text-sm font-semibold text-base-content">{{ workplaceStats?.total_agoras || 0 }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-base-content/70">Storage Used</span>
+                <span class="text-sm font-semibold text-base-content">{{ getStorageUsed() }}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Description -->
-        <div class="form-control mt-4">
-          <label class="label">
-            <span class="label-text font-medium">Description</span>
-            <span class="label-text-alt">{{ bioCharacterCount }}/500</span>
-          </label>
-          <app-tiptap-editor
-            [config]="{
-              placeholder: 'Describe your workplace, its mission, culture, or what makes it unique...',
-              showToolbar: true,
-              showBubbleMenu: true,
-              showCharacterCount: false,
-              minHeight: '120px',
-              toolbarItems: ['bold', 'italic', 'underline', 'link', 'bulletList', 'orderedList']
-            }"
-            formControlName="description"
-            class="w-full">
-          </app-tiptap-editor>
-        </div>
-      </div>
-
-      <!-- Logo Section -->
-      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
-        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <lucide-icon name="FileImage" class="w-5 h-5 text-primary"></lucide-icon>
-          Workplace Logo
-        </h2>
-        
-        <div class="flex items-center gap-6">
-          <!-- Logo Preview -->
-          <div class="relative group">
-            <div class="w-24 h-24 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20 
-                        backdrop-blur-xl border-2 border-base-300/50 shadow-xl">
-              <img *ngIf="logoPreview" 
-                   [src]="logoPreview" 
-                   alt="Workplace Logo"
-                   class="w-full h-full object-contain">
-              <div *ngIf="!logoPreview" 
-                   class="w-full h-full flex items-center justify-center">
-                <lucide-icon name="FileImage" class="w-8 h-8 text-base-content/50"></lucide-icon>
+        <!-- Quick Actions -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
+          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <lucide-icon name="Zap" class="w-5 h-5 text-primary"></lucide-icon>
+            Quick Actions
+          </h2>
+          
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <!-- Invite Member -->
+            <button 
+              type="button"
+              (click)="showInviteModal = true"
+              class="flex flex-col items-center gap-3 p-4 rounded-lg border border-base-300/50 bg-base-200/30 hover:bg-base-200/50 transition-all duration-200 group">
+              <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <lucide-icon name="UserPlus" class="w-5 h-5 text-primary"></lucide-icon>
               </div>
-            </div>
-            
-            <!-- Upload Overlay -->
-            <div *ngIf="!uploading" 
-                 class="absolute inset-0 bg-black/50 rounded-xl opacity-0 group-hover:opacity-100 
-                        transition-opacity duration-300 flex items-center justify-center cursor-pointer">
-              <label for="logo-upload" class="cursor-pointer">
-                <lucide-icon name="Upload" class="w-6 h-6 text-white"></lucide-icon>
-                <input type="file" 
-                       id="logo-upload" 
-                       class="hidden" 
-                       accept="image/*"
-                       (change)="onLogoSelected($event)"
-                       [disabled]="uploading">
-              </label>
-            </div>
-            
-            <!-- Upload Loading -->
-            <div *ngIf="uploading" class="absolute inset-0 bg-base-100/80 rounded-xl flex items-center justify-center">
-              <span class="loading loading-spinner loading-sm text-primary"></span>
-            </div>
-          </div>
+              <div class="text-center">
+                <div class="text-sm font-medium text-base-content">Invite Member</div>
+                <div class="text-xs text-base-content/60">Add new team member</div>
+              </div>
+            </button>
 
-          <div>
-            <p class="font-medium">Upload workplace logo</p>
-            <p class="text-sm text-base-content/70">Recommended: 256x256px, PNG or SVG</p>
-            <button *ngIf="logoPreview" 
-                    type="button" 
-                    class="btn btn-error btn-xs mt-2"
-                    (click)="clearLogoUpload()">
-              <lucide-icon name="Trash2" class="w-3 h-3"></lucide-icon>
-              Remove Logo
+            <!-- Manage Billing -->
+            <button 
+              type="button"
+              (click)="switchTab('billing')"
+              class="flex flex-col items-center gap-3 p-4 rounded-lg border border-base-300/50 bg-base-200/30 hover:bg-base-200/50 transition-all duration-200 group">
+              <div class="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
+                <lucide-icon name="CreditCard" class="w-5 h-5 text-success"></lucide-icon>
+              </div>
+              <div class="text-center">
+                <div class="text-sm font-medium text-base-content">Manage Billing</div>
+                <div class="text-xs text-base-content/60">Update payment info</div>
+              </div>
+            </button>
+
+            <!-- View Analytics -->
+            <button 
+              type="button"
+              class="flex flex-col items-center gap-3 p-4 rounded-lg border border-base-300/50 bg-base-200/30 hover:bg-base-200/50 transition-all duration-200 group">
+              <div class="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center group-hover:bg-info/20 transition-colors">
+                <lucide-icon name="BarChart3" class="w-5 h-5 text-info"></lucide-icon>
+              </div>
+              <div class="text-center">
+                <div class="text-sm font-medium text-base-content">View Analytics</div>
+                <div class="text-xs text-base-content/60">Usage insights</div>
+              </div>
+            </button>
+
+            <!-- Export Data -->
+            <button 
+              type="button"
+              class="flex flex-col items-center gap-3 p-4 rounded-lg border border-base-300/50 bg-base-200/30 hover:bg-base-200/50 transition-all duration-200 group">
+              <div class="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
+                <lucide-icon name="Download" class="w-5 h-5 text-warning"></lucide-icon>
+              </div>
+              <div class="text-center">
+                <div class="text-sm font-medium text-base-content">Export Data</div>
+                <div class="text-xs text-base-content/60">Backup workspace</div>
+              </div>
             </button>
           </div>
         </div>
-      </div>
 
-      <!-- Billing Section -->
-      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
-        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <lucide-icon name="FileText" class="w-5 h-5 text-primary"></lucide-icon>
-          Billing
-        </h2>
-        
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="font-medium">Business Plan (2000€ / month)</p>
-            <p class="text-sm text-base-content/70">Your current subscription plan</p>
-          </div>
-          <button type="button" 
-                  (click)="manageBilling()"
-                  class="btn btn-outline btn-sm">
-            Manage billing
-          </button>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
-        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <lucide-icon name="Zap" class="w-5 h-5 text-primary"></lucide-icon>
-          Quick Actions
-        </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Invite Members -->
-          <button type="button"
-                  (click)="openInviteModal()"
-                  class="btn btn-outline btn-primary gap-2">
-            <lucide-icon name="UserPlus" class="w-4 h-4"></lucide-icon>
-            Invite Members
-          </button>
-
-          <!-- Download CSV -->
-          <button type="button"
-                  class="btn btn-outline gap-2">
-            <lucide-icon name="Download" class="w-4 h-4"></lucide-icon>
-            Download member list (CSV)
-          </button>
-        </div>
-      </div>
-
-      <!-- Members Management -->
-      <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-8 border border-base-300/50 shadow-sm">
-        <div class="mb-8">
-          <h2 class="text-xl font-semibold mb-3 flex items-center gap-3">
-            <div class="p-2 bg-primary/10 rounded-lg">
-              <lucide-icon name="Users" class="w-6 h-6 text-primary"></lucide-icon>
-            </div>
-            Workplace Members
+        <!-- Recent Activity (Placeholder) -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
+          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <lucide-icon name="Clock" class="w-5 h-5 text-primary"></lucide-icon>
+            Recent Activity
           </h2>
           
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p class="text-base-content/60">Manage who has access to your workplace and their permissions</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-              <button type="button"
-                      (click)="openInviteModal()"
-                      class="btn btn-primary gap-2 shadow-sm hover:shadow-md transition-all">
-                <lucide-icon name="UserPlus" class="w-4 h-4"></lucide-icon>
-                Invite Member
-              </button>
-              <button type="button"
-                      (click)="addExistingUser()"
-                      class="btn btn-outline gap-2">
-                <lucide-icon name="UserCheck" class="w-4 h-4"></lucide-icon>
-                Add Existing User
-              </button>
-            </div>
+          <div class="text-center py-8 text-base-content/60">
+            <lucide-icon name="Clock" class="w-12 h-12 mx-auto mb-3 opacity-30"></lucide-icon>
+            <p>Activity tracking coming soon</p>
           </div>
         </div>
+      </div>
 
-        <!-- Tabs -->
-        <div class="tabs tabs-bordered mb-8">
-          <button type="button"
-                  class="tab"
-                  [class.tab-active]="activeTab === 'members'"
-                  (click)="switchTab('members')">
-            <lucide-icon name="Users" class="w-4 h-4 mr-2"></lucide-icon>
-            Members ({{ workplaceMembersCount }})
-          </button>
-          <button type="button"
-                  class="tab"
-                  [class.tab-active]="activeTab === 'invitations'"
-                  (click)="switchTab('invitations')">
-            <lucide-icon name="Mail" class="w-4 h-4 mr-2"></lucide-icon>
-            Invitations ({{ invitationsCount }})
-          </button>
-          <button type="button"
-                  class="tab"
-                  [class.tab-active]="activeTab === 'roles'"
-                  (click)="switchTab('roles')">
-            <lucide-icon name="Shield" class="w-4 h-4 mr-2"></lucide-icon>
-            Roles ({{ rolesCount }})
+      <!-- Details Tab Content -->
+      <div *ngIf="activeTab === 'details'" class="animate-fade-in">
+        <form [formGroup]="settingsForm" class="space-y-6">
+          <!-- Basic Information -->
+          <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <lucide-icon name="Settings" class="w-5 h-5 text-primary"></lucide-icon>
+              Basic Information
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Workplace Name -->
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-base-content/70 flex items-center justify-between">
+                  <span>Workplace Name</span>
+                  <span class="text-base-content/50 text-xs">(Read-only)</span>
+                </label>
+                <input type="text" 
+                       formControlName="name"
+                       placeholder="Enter workplace name"
+                       class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-300/50 text-base-content/70 cursor-not-allowed"
+                       [disabled]="true"
+                       [readonly]="true">
+                <span class="text-xs text-base-content/50 mt-1 block">
+                  Workplace name cannot be changed after creation
+                </span>
+              </div>
+
+              <!-- Website -->
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-base-content/70">
+                  <span>Website</span>
+                </label>
+                <input type="url" 
+                       formControlName="website"
+                       placeholder="https://example.com"
+                       class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30"
+                       [class.border-primary]="isFieldValid('website')"
+                       [class.border-error]="isFieldInvalid('website')">
+                <span *ngIf="isFieldInvalid('website')" 
+                      class="text-xs text-error mt-1 block">
+                  Please enter a valid URL
+                </span>
+              </div>
+
+              <!-- Industry -->
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-base-content/70">
+                  <span>Industry</span>
+                </label>
+                <input type="text" 
+                       formControlName="industry"
+                       placeholder="Technology, Finance, Healthcare..."
+                       class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30">
+              </div>
+
+              <!-- Size -->
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-base-content/70">
+                  <span>Company Size</span>
+                </label>
+                <input type="text" 
+                       formControlName="size"
+                       placeholder="1-10, 11-50, 51-200..."
+                       class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30">
+              </div>
+
+              <!-- Bio/Description -->
+              <div class="md:col-span-2 space-y-2">
+                <label class="text-sm font-medium text-base-content/70 flex items-center justify-between">
+                  <span>Description</span>
+                  <span class="text-xs text-base-content/50">{{ bioCharacterCount }}/500</span>
+                </label>
+                <textarea formControlName="description"
+                          rows="4"
+                          maxlength="500"
+                          placeholder="Tell us about your workplace..."
+                          (input)="updateBioCharacterCount()"
+                          class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30 resize-none">
+                </textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logo Section -->
+          <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <lucide-icon name="FileImage" class="w-5 h-5 text-primary"></lucide-icon>
+              Workplace Logo
+            </h2>
+            
+            <div class="flex items-center gap-6">
+              <!-- Logo Preview -->
+              <div class="relative group">
+                <div class="w-24 h-24 rounded-xl border-2 border-dashed border-base-300 overflow-hidden bg-base-200/30">
+                  <img *ngIf="logoPreview || workplace?.logo_url" 
+                       [src]="logoPreview || workplace?.logo_url" 
+                       alt="Workplace logo"
+                       class="w-full h-full object-cover">
+                  <div *ngIf="!logoPreview && !workplace?.logo_url" 
+                       class="w-full h-full flex items-center justify-center">
+                    <lucide-icon name="Building2" class="w-8 h-8 text-base-content/30"></lucide-icon>
+                  </div>
+                </div>
+                
+                <!-- Upload Overlay -->
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl flex items-center justify-center">
+                  <lucide-icon name="Camera" class="w-6 h-6 text-white"></lucide-icon>
+                </div>
+              </div>
+
+              <!-- Upload Instructions -->
+              <div class="flex-1">
+                <p class="text-sm text-base-content/70 mb-2">
+                  Upload a logo for your workplace. Recommended size: 256x256px
+                </p>
+                <div class="flex items-center gap-3">
+                  <label for="logo-upload" class="btn btn-sm btn-outline btn-primary cursor-pointer">
+                    <lucide-icon name="Upload" class="w-4 h-4"></lucide-icon>
+                    <span>{{ logoPreview || workplace?.logo_url ? 'Change Logo' : 'Upload Logo' }}</span>
+                  </label>
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
+                    (change)="onLogoSelected($event)">
+                  
+                  <button *ngIf="logoPreview || workplace?.logo_url" 
+                          type="button"
+                          (click)="removeLogo()"
+                          class="btn btn-sm btn-ghost btn-error">
+                    <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
+                    Remove
+                  </button>
+
+                  <!-- Upload Progress -->
+                  <div *ngIf="uploading" class="flex items-center gap-2 text-base-content/60">
+                    <div class="loading loading-spinner loading-xs"></div>
+                    <span class="text-xs">Uploading...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Members Tab Content -->
+      <div *ngIf="activeTab === 'members'" class="animate-fade-in space-y-6">
+        <!-- Members Header -->
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Manage Members</h2>
+          <button *ngIf="canManageInvitations || isOwner" 
+                  type="button" 
+                  (click)="showInviteModal = true"
+                  class="btn btn-primary btn-sm">
+            <lucide-icon name="UserPlus" class="w-4 h-4"></lucide-icon>
+            Invite Member
           </button>
         </div>
 
-        <!-- Members Table -->
-        <div *ngIf="activeTab === 'members'">
+        <!-- Members List -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl border border-base-300/50">
           <app-infinite-scroll-list
             [items]="workplaceMembers"
             [loading]="membersPagination.loading"
             [hasMore]="membersPagination.hasMore"
-            [searchPlaceholder]="'Search members by name or email...'"
-            height="500px"
+            [height]="'600px'"
+            [showSearch]="true"
+            searchPlaceholder="Search members..."
             (loadMore)="loadMoreMembers()"
-            (search)="onMembersSearch($event)"
-          >
-            <div class="overflow-x-auto bg-base-100 rounded-lg">
-              <table class="table w-full">
-                <thead class="bg-base-200/50">
-                  <tr>
-                    <th class="text-base-content/70 font-medium text-sm uppercase tracking-wider">Member</th>
-                    <th class="text-base-content/70 font-medium text-sm uppercase tracking-wider">Role</th>
-                    <th class="text-base-content/70 font-medium text-sm uppercase tracking-wider">Status</th>
-                    <th class="text-base-content/70 font-medium text-sm uppercase tracking-wider">Joined</th>
-                    <th class="text-base-content/70 font-medium text-sm uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-base-200">
-                  <tr *ngFor="let member of workplaceMembers" class="hover:bg-base-100/50 transition-colors">
-                <td class="py-4">
-                  <div class="flex items-center gap-3">
-                    <div class="avatar">
-                      <div class="w-12 h-12 rounded-full overflow-hidden ring-2 ring-base-200" 
-                           [ngClass]="{'bg-gradient-to-br from-primary/20 to-primary/10': !member.avatar_url}">
-                        <img *ngIf="member.avatar_url" 
-                             [src]="member.avatar_url" 
-                             [alt]="member.first_name + ' ' + member.last_name"
-                             class="w-full h-full object-cover">
-                        <div *ngIf="!member.avatar_url" 
-                             class="w-full h-full flex items-center justify-center">
-                          <span class="text-primary font-semibold text-base">
-                            {{ getInitials(member.first_name, member.last_name) }}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <p class="font-medium text-base-content text-base">
-                        {{ member.first_name }} {{ member.last_name }}
-                      </p>
-                      <p class="text-sm text-base-content/50">{{ member.email }}</p>
+            (search)="searchMembers($event)">
+            
+            <!-- Member Items -->
+            <div *ngFor="let member of workplaceMembers" 
+                 class="p-4 border-b border-base-300/30 hover:bg-base-200/30 transition-colors">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="avatar">
+                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span class="text-sm font-medium text-primary">
+                        {{ (member.first_name || member.email || '?').charAt(0).toUpperCase() }}
+                      </span>
                     </div>
                   </div>
-                </td>
-                <td class="py-4">
-                  <div class="flex gap-2 items-center">
-                    <span *ngIf="member.is_current_user" 
-                          class="badge badge-primary badge-sm">You</span>
-                    <div class="dropdown dropdown-end">
-                      <label tabindex="0" class="btn btn-sm btn-ghost px-3">
-                        <span [ngClass]="{
-                          'text-warning font-medium': member.role === 'admin',
-                          'text-info font-medium': member.role === 'member'
-                        }">
-                          {{ member.role | titlecase }}
-                        </span>
-                        <lucide-icon name="ChevronDown" class="w-4 h-4 ml-1 opacity-60"></lucide-icon>
-                      </label>
-                      <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200">
-                        <li *ngFor="let role of roles">
-                          <a (click)="assignRoleToMember(member.uuid, role.uuid)"
-                             [class.active]="member.role === role.name.toLowerCase()"
-                             class="rounded">
-                            {{ role.name | titlecase }}
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
+                  <div>
+                    <p class="font-medium" *ngIf="member.first_name || member.last_name">
+                      {{ member.first_name || '' }} {{ member.last_name || '' }}
+                    </p>
+                    <p class="text-sm text-base-content/60">{{ member.email }}</p>
                   </div>
-                </td>
-                <td class="py-4">
-                  <span class="badge badge-success badge-sm px-3">Active</span>
-                </td>
-                <td class="py-4">
-                  <span class="text-sm text-base-content/60">
-                    {{ getDisplayDate(member.joined_at) }}
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="badge badge-sm" [class.badge-primary]="member.role === 'admin'">
+                    {{ member.role }}
                   </span>
-                </td>
-                <td class="py-4">
-                  <div class="flex items-center gap-1">
-                    <button *ngIf="!member.is_current_user"
-                            type="button"
-                            class="btn btn-ghost btn-sm btn-square"
-                            (click)="editMember(member)"
-                            tooltip="Edit member">
-                      <lucide-icon name="Edit" class="w-4 h-4"></lucide-icon>
-                    </button>
-                    <button *ngIf="!member.is_current_user"
-                            type="button"
-                            class="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10"
-                            (click)="removeMember(member)"
-                            tooltip="Remove member">
-                      <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
-                    </button>
+                  <span class="badge badge-sm" 
+                        [class.badge-success]="member.status === 'active'"
+                        [class.badge-error]="member.status === 'inactive'">
+                    {{ member.status }}
+                  </span>
+                  <div class="dropdown dropdown-end" *ngIf="canManageMembers && canManageMember(member)">
+                    <label tabindex="0" class="btn btn-ghost btn-sm btn-circle">
+                      <lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon>
+                    </label>
+                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                      <li><a (click)="updateMemberRole(member)">Change Role</a></li>
+                      <li><a (click)="removeMember(member)" class="text-error">Remove</a></li>
+                    </ul>
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Empty State -->
+            <div empty-state class="text-center py-12">
+              <lucide-icon name="Users" class="w-12 h-12 text-base-content/30 mx-auto mb-3"></lucide-icon>
+              <p class="text-base-content/60">No members found</p>
+            </div>
+          </app-infinite-scroll-list>
         </div>
-        
-        <!-- Empty state for members -->
-        <div empty-state class="text-center py-16">
-          <div class="bg-base-200/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <lucide-icon name="Users" class="w-10 h-10 text-base-content/30"></lucide-icon>
-          </div>
-          <p class="text-base-content/60 font-medium text-lg mb-2">No members found</p>
-          <p class="text-sm text-base-content/40 max-w-sm mx-auto">Invite team members to collaborate in your workplace</p>
-          <button type="button"
-                  class="btn btn-primary btn-sm mt-4"
-                  (click)="openInviteModal()">
-            <lucide-icon name="UserPlus" class="w-4 h-4 mr-2"></lucide-icon>
-            Invite Members
+      </div>
+
+      <!-- Roles Tab Content -->
+      <div *ngIf="activeTab === 'roles'" class="animate-fade-in space-y-6">
+        <!-- Roles Header -->
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Manage Roles</h2>
+          <button *ngIf="canManageRoles" 
+                  type="button" 
+                  (click)="createRole()"
+                  class="btn btn-primary btn-sm">
+            <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon>
+            Create Role
           </button>
         </div>
-      </app-infinite-scroll-list>
-    </div>
 
-    <!-- Invitations Table -->
-    <div *ngIf="activeTab === 'invitations'">
-      <app-infinite-scroll-list
-        [items]="invitations"
-        [loading]="invitationsPagination.loading"
-        [hasMore]="invitationsPagination.hasMore"
-        [searchPlaceholder]="'Search invitations by email...'"
-        height="500px"
-        (loadMore)="loadMoreInvitations()"
-        (search)="onInvitationsSearch($event)"
-      >
-        <div class="overflow-x-auto">
-          <table class="table table-zebra w-full">
-            <thead>
-              <tr>
-                <th class="text-base-content/70 font-medium">EMAIL</th>
-                <th class="text-base-content/70 font-medium">INVITED BY</th>
-                <th class="text-base-content/70 font-medium">ROLE</th>
-                <th class="text-base-content/70 font-medium">STATUS</th>
-                <th class="text-base-content/70 font-medium">INVITED ON</th>
-                <th class="text-base-content/70 font-medium">ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let invitation of invitations" class="hover:bg-base-200/50">
-                <td>
-                  <div>
-                    <p class="font-medium text-base-content">{{ invitation.email }}</p>
-                    <p *ngIf="invitation.message" class="text-sm text-base-content/60 italic">{{ invitation.message }}</p>
-                  </div>
-                </td>
-                <td>
-                  <div class="flex items-center gap-3">
-                    <div class="avatar">
-                      <div class="w-8 h-8 rounded-full overflow-hidden" 
-                           [ngClass]="{'bg-primary/20': !invitation.inviter?.avatar_url}">
-                        <img *ngIf="invitation.inviter?.avatar_url" 
-                             [src]="invitation.inviter?.avatar_url" 
-                             [alt]="(invitation.inviter?.first_name || '') + ' ' + (invitation.inviter?.last_name || '')"
-                             class="w-full h-full object-cover">
-                        <div *ngIf="!invitation.inviter?.avatar_url" 
-                             class="w-full h-full flex items-center justify-center">
-                          <span class="text-primary font-semibold text-xs leading-none">
-                            {{ getInitials(invitation.inviter?.first_name || '', invitation.inviter?.last_name || '') }}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <p class="text-sm text-base-content">
-                        {{ (invitation.inviter?.first_name || '') }} {{ (invitation.inviter?.last_name || '') }}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge badge-info badge-sm">
-                    {{ invitation.role?.name | titlecase }}
-                  </span>
-                </td>
-                <td>
-                  <span [ngClass]="getInvitationStatusClass(invitation.status)">
-                    {{ invitation.status | titlecase }}
-                  </span>
-                </td>
-                <td>
-                  <span class="text-sm text-base-content/70">
-                    {{ formatInvitationDate(invitation.created_at) }}
-                  </span>
-                </td>
-                <td>
-                  <button *ngIf="invitation.status === 'pending'"
-                          type="button"
-                          class="btn btn-ghost btn-xs text-error"
-                          (click)="cancelInvitation(invitation.uuid)">
-                    <lucide-icon name="X" class="w-3 h-3 mr-1"></lucide-icon>
-                    Cancel
-                  </button>
-                  <span *ngIf="invitation.status !== 'pending'" class="text-sm text-base-content/50">
-                    -
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        <!-- Empty state for invitations -->
-        <div empty-state class="text-center py-8">
-          <lucide-icon name="Mail" class="w-12 h-12 text-base-content/30 mx-auto mb-3"></lucide-icon>
-          <p class="text-base-content/60">No pending invitations</p>
-          <p class="text-sm text-base-content/40 mt-1">All invitations have been accepted or expired</p>
-        </div>
-      </app-infinite-scroll-list>
-    </div>
-
-        <!-- Roles Table -->
-        <div *ngIf="activeTab === 'roles'">
-          <!-- Add Role Button -->
-          <div class="flex justify-end mb-4">
-            <button type="button"
-                    class="btn btn-primary"
-                    (click)="openRoleModal()">
-              <lucide-icon name="Plus" class="w-4 h-4 mr-2"></lucide-icon>
-              Create Role
-            </button>
-          </div>
-
+        <!-- Roles List -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl border border-base-300/50">
           <app-infinite-scroll-list
             [items]="roles"
             [loading]="rolesPagination.loading"
             [hasMore]="rolesPagination.hasMore"
-            [searchPlaceholder]="'Search roles by name...'"
-            height="500px"
+            [height]="'600px'"
+            [showSearch]="true"
+            searchPlaceholder="Search roles..."
             (loadMore)="loadMoreRoles()"
-            (search)="onRolesSearch($event)"
-          >
-            <div class="overflow-x-auto">
-              <table class="table table-zebra w-full">
-                <thead>
-                  <tr>
-                    <th>Role Name</th>
-                    <th>Description</th>
-                    <th>Type</th>
-                    <th>Permissions</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let role of roles">
-                <td>
-                  <div class="flex items-center gap-2">
-                    <lucide-icon name="Shield" class="w-4 h-4 text-primary"></lucide-icon>
-                    <span class="font-medium">{{ role.name | titlecase }}</span>
+            (search)="searchRoles($event)">
+            
+            <!-- Role Items -->
+            <div *ngFor="let role of roles" 
+                 class="p-4 border-b border-base-300/30 hover:bg-base-200/30 transition-colors">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="font-medium">{{ role.name }}</p>
+                  <p class="text-sm text-base-content/60">{{ role.description }}</p>
+                  <div class="flex items-center gap-2 mt-2">
+                    <span class="text-xs text-base-content/50">{{ role.permissions.length }} permissions</span>
+                    <span class="text-xs text-base-content/30">•</span>
+                    <span class="text-xs text-base-content/50">{{ getMemberCountForRole(role.uuid) }} members</span>
                   </div>
-                </td>
-                <td>
-                  <span class="text-sm text-base-content/70">{{ role.description }}</span>
-                </td>
-                <td>
-                  <span class="badge" [class.badge-primary]="role.is_system" [class.badge-secondary]="!role.is_system">
-                    {{ role.is_system ? 'System' : 'Custom' }}
-                  </span>
-                </td>
-                <td>
-                  <span class="text-sm text-base-content/70">
-                    {{ getRolePermissionsDisplay(role) }}
-                  </span>
-                </td>
-                <td>
-                  <div class="flex items-center gap-2">
-                    <button type="button"
-                            class="btn btn-ghost btn-xs"
-                            [disabled]="!canEditRole(role)"
-                            (click)="openRoleModal(role)">
-                      <lucide-icon name="Edit2" class="w-3 h-3"></lucide-icon>
-                    </button>
-                    <button type="button"
-                            class="btn btn-ghost btn-xs text-error"
-                            [disabled]="!canDeleteRole(role)"
-                            (click)="confirmDeleteRole(role)">
-                      <lucide-icon name="Trash2" class="w-3 h-3"></lucide-icon>
-                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button *ngIf="canManageRoles" 
+                          type="button" 
+                          (click)="editRole(role)"
+                          class="btn btn-ghost btn-sm"
+                          [disabled]="role.is_system">
+                    <lucide-icon name="Edit2" class="w-4 h-4"></lucide-icon>
+                  </button>
+                  <button *ngIf="canManageRoles" 
+                          type="button" 
+                          (click)="confirmDeleteRole(role)"
+                          class="btn btn-ghost btn-sm text-error"
+                          [disabled]="role.is_system">
+                    <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Empty State -->
+            <div empty-state class="text-center py-12">
+              <lucide-icon name="Shield" class="w-12 h-12 text-base-content/30 mx-auto mb-3"></lucide-icon>
+              <p class="text-base-content/60">No roles found</p>
+            </div>
+          </app-infinite-scroll-list>
+        </div>
+      </div>
+
+      <!-- Permissions Tab Content -->
+      <div *ngIf="activeTab === 'permissions'" class="animate-fade-in space-y-6">
+        <!-- Permissions Header -->
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">System Permissions</h2>
+          <div class="text-sm text-base-content/60">
+            {{ totalPermissionsCount }} permissions defined
+          </div>
+        </div>
+
+        <!-- Permissions Overview -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
+          <h3 class="text-md font-semibold mb-4 flex items-center gap-2">
+            <lucide-icon name="Info" class="w-4 h-4 text-primary"></lucide-icon>
+            Permission Categories
+          </h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div *ngFor="let category of permissionCategories | keyvalue" 
+                 class="bg-base-200/30 rounded-lg p-4 border border-base-300/30">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-medium text-base-content">{{ getCategoryName(category.key) }}</h4>
+                <span class="text-xs text-base-content/60 bg-base-300 px-2 py-1 rounded">
+                  {{ getCategoryPermissionsCount(category.key) }}
+                </span>
+              </div>
+              <p class="text-sm text-base-content/60">{{ getCategoryDescription(category.key) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Permissions List -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl border border-base-300/50">
+          <div class="p-6 border-b border-base-300/30">
+            <h3 class="text-md font-semibold mb-4 flex items-center gap-2">
+              <lucide-icon name="List" class="w-4 h-4 text-primary"></lucide-icon>
+              All Permissions
+            </h3>
+            
+            <!-- Permission Categories Tabs -->
+            <div class="tabs tabs-boxed mb-4" *ngIf="permissionCategories">
+              <button *ngFor="let category of (permissionCategories | keyvalue)"
+                      type="button"
+                      class="tab"
+                      [class.tab-active]="selectedPermissionCategory === category.key"
+                      (click)="selectedPermissionCategory = category.key">
+                {{ getCategoryName(category.key) }}
+                <span class="ml-1 text-xs bg-base-300 px-1.5 py-0.5 rounded">
+                  {{ getCategoryPermissionsCount(category.key) }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Permissions List -->
+          <div class="p-6">
+            <div class="space-y-3" *ngIf="selectedPermissionCategory && currentCategoryPermissions.length > 0">
+              <div *ngFor="let permission of currentCategoryPermissions" 
+                   class="flex items-start justify-between p-4 bg-base-200/20 rounded-lg border border-base-300/20">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <h4 class="font-medium text-base-content">{{ permission.description }}</h4>
+                    <span class="badge badge-sm badge-outline">{{ permission.action }}</span>
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <p class="text-sm text-base-content/60 font-mono">{{ permission.name }}</p>
+                  <p class="text-xs text-base-content/50 mt-1">
+                    Module: {{ permission.module }} | Category: {{ getCategoryName(permission.category) }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="badge badge-sm" 
+                        [class.badge-success]="hasUserPermission(permission.name)"
+                        [class.badge-neutral]="!hasUserPermission(permission.name)">
+                    {{ hasUserPermission(permission.name) ? 'Granted' : 'Not Granted' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Empty State -->
+            <div *ngIf="!selectedPermissionCategory || currentCategoryPermissions.length === 0" 
+                 class="text-center py-12">
+              <lucide-icon name="Key" class="w-12 h-12 text-base-content/30 mx-auto mb-3"></lucide-icon>
+              <p class="text-base-content/60">No permissions found for this category</p>
+            </div>
+          </div>
         </div>
-        
-        <!-- Empty state for roles -->
-        <div empty-state class="text-center py-8">
-          <lucide-icon name="Shield" class="w-12 h-12 text-base-content/30 mx-auto mb-3"></lucide-icon>
-          <p class="text-base-content/60">No roles defined</p>
-          <p class="text-sm text-base-content/40 mt-1">Create roles to manage permissions</p>
+
+        <!-- Current User Permissions -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
+          <h3 class="text-md font-semibold mb-4 flex items-center gap-2">
+            <lucide-icon name="User" class="w-4 h-4 text-primary"></lucide-icon>
+            Your Current Permissions
+          </h3>
+          
+          <div *ngIf="currentUserRole" class="mb-4">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="badge badge-primary">{{ currentUserRole.name }}</span>
+              <span class="text-sm text-base-content/60">{{ userPermissions.length }} permissions</span>
+            </div>
+            <p class="text-sm text-base-content/70">{{ currentUserRole.description }}</p>
+          </div>
+          
+          <div *ngIf="userPermissions.includes('*')" class="alert alert-info">
+            <lucide-icon name="Info" class="w-4 h-4"></lucide-icon>
+            <span>You have all permissions (owner access)</span>
+          </div>
+          
+          <div *ngIf="!userPermissions.includes('*')" class="space-y-2">
+            <div class="text-sm text-base-content/60 mb-3">Your granted permissions:</div>
+            <div class="flex flex-wrap gap-2">
+              <span *ngFor="let permission of userPermissions" 
+                    class="badge badge-sm badge-success">
+                {{ permission }}
+              </span>
+            </div>
+          </div>
         </div>
-      </app-infinite-scroll-list>
+      </div>
+
+      <!-- Invitations Tab Content -->
+      <div *ngIf="activeTab === 'invitations'" class="animate-fade-in space-y-6">
+        <!-- Invitations Header -->
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Manage Invitations</h2>
+          <button *ngIf="canManageInvitations || isOwner" 
+                  type="button" 
+                  (click)="showInviteModal = true"
+                  class="btn btn-primary btn-sm">
+            <lucide-icon name="UserPlus" class="w-4 h-4"></lucide-icon>
+            Send Invitation
+          </button>
+        </div>
+
+        <!-- Invitations List -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl border border-base-300/50">
+          <app-infinite-scroll-list
+            [items]="invitations"
+            [loading]="invitationsPagination.loading"
+            [hasMore]="invitationsPagination.hasMore"
+            [height]="'600px'"
+            [showSearch]="true"
+            searchPlaceholder="Search invitations by email..."
+            (loadMore)="loadMoreInvitations()"
+            (search)="onInvitationsSearch($event)">
+            
+            <!-- Invitation Items -->
+            <div *ngFor="let invitation of invitations" 
+                 class="p-4 border-b border-base-300/30 hover:bg-base-200/30 transition-colors">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="avatar">
+                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span class="text-sm font-medium text-primary">
+                        {{ (invitation.inviter?.first_name || invitation.email || '?').charAt(0).toUpperCase() }}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="font-medium">{{ invitation.email }}</p>
+                    <p *ngIf="invitation.message" class="text-sm text-base-content/60 italic">{{ invitation.message }}</p>
+                    <p class="text-xs text-base-content/50">
+                      Invited by {{ invitation.inviter?.first_name || 'Unknown' }} {{ invitation.inviter?.last_name || '' }}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="badge badge-sm" [class.badge-primary]="invitation.role?.name === 'admin'">
+                    {{ invitation.role?.name || 'Member' }}
+                  </span>
+                  <span class="badge badge-sm" 
+                        [class.badge-warning]="invitation.status === 'pending'"
+                        [class.badge-success]="invitation.status === 'accepted'"
+                        [class.badge-error]="invitation.status === 'rejected'"
+                        [class.badge-neutral]="invitation.status === 'expired'">
+                    {{ invitation.status }}
+                  </span>
+                  <div class="dropdown dropdown-end">
+                    <label tabindex="0" class="btn btn-ghost btn-sm btn-circle">
+                      <lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon>
+                    </label>
+                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                      <li *ngIf="invitation.status === 'pending'">
+                        <a (click)="cancelInvitation(invitation.uuid)" class="text-error">Cancel Invitation</a>
+                      </li>
+                      <li><a (click)="resendInvitation(invitation.uuid)">Resend</a></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Empty State -->
+            <div empty-state class="text-center py-12">
+              <lucide-icon name="Mail" class="w-12 h-12 text-base-content/30 mx-auto mb-3"></lucide-icon>
+              <p class="text-base-content/60">No invitations found</p>
+            </div>
+          </app-infinite-scroll-list>
+        </div>
+      </div>
+
+      <!-- Billing Tab Content -->
+      <div *ngIf="activeTab === 'billing'" class="animate-fade-in space-y-6">
+        <!-- Current Plan -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
+          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <lucide-icon name="FileText" class="w-5 h-5 text-primary"></lucide-icon>
+            Current Plan
+          </h2>
+          
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xl font-bold">Business Plan</p>
+              <p class="text-base-content/60">€2000 / month</p>
+              <div class="mt-4 space-y-2">
+                <div class="flex items-center gap-2 text-sm">
+                  <lucide-icon name="Check" class="w-4 h-4 text-success"></lucide-icon>
+                  <span>Unlimited users</span>
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                  <lucide-icon name="Check" class="w-4 h-4 text-success"></lucide-icon>
+                  <span>Advanced features</span>
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                  <lucide-icon name="Check" class="w-4 h-4 text-success"></lucide-icon>
+                  <span>Priority support</span>
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-sm text-base-content/60">Next billing date</p>
+              <p class="font-medium">{{ getNextBillingDate() }}</p>
+              <button type="button" 
+                      (click)="manageBillingExternal()"
+                      class="btn btn-outline btn-sm mt-4">
+                Manage Subscription
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
+          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <lucide-icon name="CreditCard" class="w-5 h-5 text-primary"></lucide-icon>
+            Payment Method
+          </h2>
+          
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-8 bg-base-300 rounded flex items-center justify-center">
+                <lucide-icon name="CreditCard" class="w-6 h-4 text-base-content/50"></lucide-icon>
+              </div>
+              <div>
+                <p class="font-medium">•••• •••• •••• 4242</p>
+                <p class="text-sm text-base-content/60">Expires 12/25</p>
+              </div>
+            </div>
+            <button type="button" 
+                    (click)="updatePaymentMethod()"
+                    class="btn btn-outline btn-sm">
+              Update
+            </button>
+          </div>
+        </div>
+
+        <!-- Billing History -->
+        <div class="bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-300/50">
+          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <lucide-icon name="Clock" class="w-5 h-5 text-primary"></lucide-icon>
+            Billing History
+          </h2>
+          
+          <div class="text-center py-8 text-base-content/60">
+            <lucide-icon name="FileText" class="w-12 h-12 mx-auto mb-3 opacity-30"></lucide-icon>
+            <p>Billing history will be available soon</p>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
+</div>
 
+<!-- Invitation Modal -->
+<div *ngIf="showInviteModal" class="modal modal-open">
+  <div class="modal-box max-w-md">
+    <h3 class="font-bold text-lg mb-4">Send Invitation</h3>
+    
+    <form (ngSubmit)="sendInvitation()" class="space-y-4">
+      <!-- Email -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Email Address</span>
+        </label>
+        <input type="email" 
+               [(ngModel)]="inviteForm.email"
+               name="email"
+               placeholder="colleague@company.com"
+               class="input input-bordered w-full"
+               required>
+      </div>
 
+      <!-- Role -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Role</span>
+        </label>
+        <select [(ngModel)]="inviteForm.roleId" 
+                name="roleId"
+                class="select select-bordered w-full"
+                required>
+          <option value="">Select a role</option>
+          <option *ngFor="let role of availableRoles" [value]="role.uuid">
+            {{ role.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Message -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Personal Message (Optional)</span>
+        </label>
+        <textarea [(ngModel)]="inviteForm.message"
+                  name="message"
+                  placeholder="Add a personal message to your invitation..."
+                  class="textarea textarea-bordered w-full"
+                  rows="3"></textarea>
+      </div>
+
+      <!-- Actions -->
+      <div class="modal-action">
+        <button type="button" 
+                (click)="closeInviteModal()"
+                class="btn btn-ghost">
+          Cancel
+        </button>
+        <button type="submit" 
+                class="btn btn-primary"
+                [disabled]="sendingInvite">
+          <div *ngIf="sendingInvite" class="loading loading-spinner loading-sm"></div>
+          <span *ngIf="!sendingInvite">Send Invitation</span>
+        </button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Invite Member Modal -->
-<div *ngIf="showInviteModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-  <!-- Backdrop -->
-  <div class="absolute inset-0 bg-black/50" (click)="closeInviteModal()"></div>
-  
-  <!-- Modal Content -->
-  <div class="relative bg-base-100 rounded-lg shadow-xl w-full max-w-md">
-    <div class="p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold">Invite New Member</h3>
-        <button type="button" 
-                class="btn btn-ghost btn-sm btn-circle"
-                (click)="closeInviteModal()">
-          <lucide-icon name="X" class="w-4 h-4"></lucide-icon>
-        </button>
-      </div>
-      
-      <form (ngSubmit)="sendInvitation()" class="space-y-4">
-        <!-- Email Input -->
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">Email Address</span>
-          </label>
-          <input type="email" 
-                 [(ngModel)]="inviteForm.email"
-                 name="email"
-                 placeholder="colleague@example.com"
-                 class="input input-bordered"
-                 required>
-        </div>
-        
-        <!-- Role Selection -->
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">Role</span>
-          </label>
-          <div class="relative">
-            <button type="button"
-                    (click)="showRoleDropdown = !showRoleDropdown"
-                    class="w-full px-4 py-3 rounded-xl border border-base-300/50 bg-base-200/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all duration-200 text-base-content placeholder:text-base-content/30 text-left flex items-center justify-between"
-                    [class.border-primary]="inviteForm.roleId">
-              <span [ngClass]="{'text-base-content/30': !inviteForm.roleId}">
-                {{ getSelectedRoleLabel() }}
-              </span>
-              <lucide-icon name="ChevronDown" class="w-4 h-4 transition-transform duration-200" 
-                           [class.rotate-180]="showRoleDropdown"></lucide-icon>
-            </button>
-            
-            <!-- Dropdown Menu -->
-            <div *ngIf="showRoleDropdown"
-                 (click)="$event.stopPropagation()"
-                 class="absolute z-50 w-full mt-1 bg-base-100 border border-base-300/50 rounded-xl shadow-lg max-h-60 overflow-auto">
-              <div class="p-1">
-                <button type="button"
-                        *ngFor="let role of availableRoles"
-                        (click)="inviteForm.roleId = role.uuid; showRoleDropdown = false"
-                        class="w-full px-3 py-2 text-left rounded-lg hover:bg-base-200 transition-colors duration-150 flex items-center justify-between"
-                        [ngClass]="{'bg-primary/10': inviteForm.roleId === role.uuid}">
-                  <span>{{ role.label | titlecase }}</span>
-                  <lucide-icon *ngIf="inviteForm.roleId === role.uuid" 
-                               name="Check" 
-                               class="w-4 h-4 text-primary"></lucide-icon>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Personal Message -->
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">Personal Message (Optional)</span>
-          </label>
-          <textarea [(ngModel)]="inviteForm.message"
-                    name="message"
-                    rows="3"
-                    placeholder="Add a personal message to your invitation..."
-                    class="textarea textarea-bordered"></textarea>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="flex justify-end gap-2 pt-4">
-          <button type="button" 
-                  class="btn btn-ghost"
-                  (click)="closeInviteModal()">
-            Cancel
-          </button>
-          <button type="submit" 
-                  class="btn btn-primary"
-                  [disabled]="sendingInvite || !inviteForm.email || !inviteForm.roleId">
-            <span *ngIf="!sendingInvite">Send Invitation</span>
-            <span *ngIf="sendingInvite" class="loading loading-spinner loading-sm"></span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Role Management Modal -->
-<div class="modal" [class.modal-open]="showRoleModal">
-  <div class="modal-box max-w-3xl">
-    <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" (click)="closeRoleModal()">✕</button>
+<!-- Role Modal -->
+<div *ngIf="showRoleModal" class="modal modal-open">
+  <div class="modal-box max-w-2xl">
     <h3 class="font-bold text-lg mb-4">
-      {{ editingRole ? 'Edit Role' : 'Create New Role' }}
+      {{ editingRole ? 'Edit Role' : 'Create Role' }}
     </h3>
     
-    <form>
-      <!-- Role Name -->
-      <div class="form-control mb-4">
-        <label class="label">
-          <span class="label-text">Role Name <span class="text-error">*</span></span>
-        </label>
-        <input type="text"
-               [(ngModel)]="roleForm.name"
-               name="roleName"
-               placeholder="e.g., Manager, Developer, Viewer"
-               class="input input-bordered"
-               [disabled]="!!editingRole?.is_system">
-      </div>
-      
-      <!-- Role Description -->
-      <div class="form-control mb-4">
-        <label class="label">
-          <span class="label-text">Description <span class="text-error">*</span></span>
-        </label>
-        <textarea [(ngModel)]="roleForm.description"
-                  name="roleDescription"
-                  placeholder="Describe what this role can do"
-                  class="textarea textarea-bordered"
-                  rows="2"
-                  [disabled]="!!editingRole?.is_system"></textarea>
+    <form (ngSubmit)="saveRole()" class="space-y-6">
+      <!-- Basic Info -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Role Name</span>
+          </label>
+          <input type="text" 
+                 [(ngModel)]="roleForm.name"
+                 name="roleName"
+                 placeholder="e.g., Editor, Moderator"
+                 class="input input-bordered w-full"
+                 required>
+        </div>
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Description</span>
+          </label>
+          <input type="text" 
+                 [(ngModel)]="roleForm.description"
+                 name="roleDescription"
+                 placeholder="Brief description of this role"
+                 class="input input-bordered w-full">
+        </div>
       </div>
 
       <!-- Permissions -->
-      <div class="form-control mb-4">
+      <div class="form-control">
         <label class="label">
           <span class="label-text">Permissions</span>
         </label>
@@ -938,27 +983,25 @@
         </div>
 
         <!-- Permissions List -->
-        <div class="border border-base-300 rounded-lg p-4 max-h-96 overflow-y-auto">
+        <div class="space-y-3" *ngIf="selectedPermissionCategory">
           <div class="mb-3" *ngIf="selectedCategoryPermissionsCount > 0">
-            <label class="label cursor-pointer justify-start gap-3">
-              <input type="checkbox"
-                     class="checkbox checkbox-primary"
+            <label class="label cursor-pointer">
+              <input type="checkbox" 
+                     class="checkbox checkbox-sm"
                      [checked]="areAllPermissionsInCategorySelected(selectedPermissionCategory)"
-                     (change)="toggleAllPermissionsInCategory(selectedPermissionCategory)"
-                     [disabled]="!!editingRole?.is_system">
+                     (change)="toggleAllPermissionsInCategory(selectedPermissionCategory)">
               <span class="label-text font-medium">Select All in {{ getCategoryName(selectedPermissionCategory) }}</span>
             </label>
           </div>
-          
+
           <div class="space-y-2">
             <label *ngFor="let permission of currentCategoryPermissions"
-                   class="label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded p-2">
-              <input type="checkbox"
-                     class="checkbox checkbox-primary"
+                   class="label cursor-pointer">
+              <input type="checkbox" 
+                     class="checkbox checkbox-sm"
                      [checked]="hasPermission(permission.name)"
-                     (change)="togglePermission(permission.name)"
-                     [disabled]="!!editingRole?.is_system">
-              <div class="flex-1">
+                     (change)="togglePermission(permission.name)">
+              <div class="label-text">
                 <div class="label-text">{{ permission.description }}</div>
                 <div class="text-xs text-base-content/60">{{ permission.name }}</div>
               </div>
@@ -967,20 +1010,25 @@
         </div>
 
         <!-- Permission Summary -->
-        <div class="text-sm text-base-content/70 mt-2">
-          {{ roleFormPermissionsCount }} permissions selected
+        <div class="mt-4 p-3 bg-base-200/50 rounded-lg">
+          <span class="text-sm text-base-content/70">
+            {{ roleFormPermissionsCount }} permissions selected
+          </span>
         </div>
       </div>
 
       <!-- Actions -->
       <div class="modal-action">
-        <button type="button" class="btn" (click)="closeRoleModal()">Cancel</button>
-        <button type="button"
+        <button type="button" 
+                (click)="closeRoleModal()"
+                class="btn btn-ghost">
+          Cancel
+        </button>
+        <button type="submit" 
                 class="btn btn-primary"
-                [disabled]="savingRole || !roleForm.name || !roleForm.description || editingRole?.is_system"
-                (click)="saveRole()">
+                [disabled]="savingRole">
+          <div *ngIf="savingRole" class="loading loading-spinner loading-sm"></div>
           <span *ngIf="!savingRole">{{ editingRole ? 'Update Role' : 'Create Role' }}</span>
-          <span *ngIf="savingRole" class="loading loading-spinner loading-sm"></span>
         </button>
       </div>
     </form>
@@ -988,16 +1036,24 @@
 </div>
 
 <!-- Delete Role Confirmation Modal -->
-<div class="modal" [class.modal-open]="showDeleteRoleModal">
+<div *ngIf="showDeleteRoleModal" class="modal modal-open">
   <div class="modal-box">
     <h3 class="font-bold text-lg mb-4">Delete Role</h3>
-    <p class="text-base-content/80" *ngIf="deletingRole">
-      Are you sure you want to delete the role "<strong>{{ deletingRole.name | titlecase }}</strong>"? 
-      This action cannot be undone.
+    <p class="py-4">
+      Are you sure you want to delete the role "{{ deletingRole?.name }}"? 
+      This action cannot be undone and will affect all members with this role.
     </p>
     <div class="modal-action">
-      <button type="button" class="btn" (click)="showDeleteRoleModal = false">Cancel</button>
-      <button type="button" class="btn btn-error" (click)="deleteRole()">Delete Role</button>
+      <button type="button" 
+              (click)="showDeleteRoleModal = false"
+              class="btn btn-ghost">
+        Cancel
+      </button>
+      <button type="button" 
+              (click)="deleteRole()"
+              class="btn btn-error">
+        Delete Role
+      </button>
     </div>
   </div>
-</div> 
+</div>

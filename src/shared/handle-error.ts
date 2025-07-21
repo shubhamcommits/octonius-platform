@@ -45,9 +45,6 @@ export function sendError(res: Response, stack: any, message: any, code: any, ty
  */
 export function logError(res: Response, stack: any, message?: any, code?: any) {
 
-	// Add a new line for better console readability
-	process.stdout.write(`\n`)
-
 	// Print the error
 	console.error('Error: ', stack)
 
@@ -61,9 +58,6 @@ export function logError(res: Response, stack: any, message?: any, code?: any) {
 		url: `${res.req.protocol}://${res.req.get('host')}${res.req.originalUrl}`,
 		details: stackDetails
 	})
-
-	// Add a new line for better console readability
-	process.stdout.write(`\n`)
 }
 
 /**
@@ -75,9 +69,6 @@ export function logError(res: Response, stack: any, message?: any, code?: any) {
  */
 export function sendValidationError(res: Response, errors: any) {
 
-	// Add a new line for better console readability
-	process.stdout.write(`\n`)
-
 	// Log the validation error using the logger utility
 	logger.error('Error', {
 		msg: 'Invalid request parameters.',
@@ -85,9 +76,6 @@ export function sendValidationError(res: Response, errors: any) {
 		url: `${res.req.protocol}://${res.req.get('host')}${res.req.originalUrl}`,
 		details: errors
 	})
-
-	// Add a new line for better console readability
-	process.stdout.write(`\n`)
 
 	// Return a JSON response with the validation error details
 	return res.status(400).json({

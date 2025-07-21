@@ -118,7 +118,9 @@ import { LucideAngularModule,
   Camera,
   Navigation,
   Edit2,
-  SearchX
+  SearchX,
+  CreditCard,
+  Key
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -256,7 +258,9 @@ import { InfiniteScrollListComponent } from './components/infinite-scroll-list/i
       Camera,
       Navigation,
       Edit2,
-      SearchX
+      SearchX,
+      CreditCard,
+      Key
     })
   ],
   exports: [

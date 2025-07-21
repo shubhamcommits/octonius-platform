@@ -396,6 +396,12 @@ export class UserService {
         roleId: string
     ): Promise<UsersResponse<WorkplaceMembership>> {
         try {
+            // Get the role information
+            const role = await Role.findByPk(roleId)
+            if (!role) {
+                throw new Error('Role not found')
+            }
+
             // Creates a new workplace membership record
             const membership = await WorkplaceMembership.create({
                 user_id: userId,
@@ -404,6 +410,12 @@ export class UserService {
                 status: 'active',
                 joined_at: new Date()
             })
+
+            // Update user's role
+            await User.update(
+                { role: roleId },
+                { where: { uuid: userId } }
+            )
 
             // Logs success
             logger.info('User workplace membership creation successful', { userId, workplaceId, roleId })
@@ -584,6 +596,40 @@ export class UserService {
             logger.info('Ensured private group exists for user', { userId, workplaceId });
         } catch (error) {
             logger.error('Failed to ensure private group for user', { error, userId, workplaceId });
+            throw error;
+        }
+    }
+
+    /**
+     * Updates user's role based on their current workplace membership
+     * This should be called whenever a user's workplace membership changes
+     */
+    async updateUserRoleFromMembership(userId: string, workplaceId: string): Promise<void> {
+        try {
+            const membership = await WorkplaceMembership.findOne({
+                where: {
+                    user_id: userId,
+                    workplace_id: workplaceId,
+                    status: 'active'
+                },
+                include: [{
+                    model: Role,
+                    as: 'role'
+                }]
+            });
+
+            if (membership) {
+                const role = (membership as any).role;
+                if (role && role.uuid) {
+                    await User.update(
+                        { role: role.uuid },
+                        { where: { uuid: userId } }
+                    );
+                    logger.info('Updated user role from membership', { userId, role: role.name });
+                }
+            }
+        } catch (error) {
+            logger.error('Failed to update user role from membership', { error, userId, workplaceId });
             throw error;
         }
     }

@@ -4,9 +4,17 @@
 }
 
 .settings-container {
-  animation: fadeIn 0.3s ease-in-out;
+  max-width: 80rem; // max-w-7xl
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem; // p-4
+  
+  @media (min-width: 768px) {
+    padding: 1.5rem; // md:p-6
+  }
 }
 
+// Tab animations
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -15,6 +23,42 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 300ms ease-out;
+}
+
+// Tab navigation styles
+.tab-nav {
+  margin-bottom: -1px; // -mb-px
+  display: flex;
+  gap: 1rem; // gap-4
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  
+  @media (min-width: 768px) {
+    gap: 1.5rem; // md:gap-6
+  }
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 640px) {
+  .tab-nav button {
+    font-size: 0.75rem; // text-xs
+    padding-left: 0.75rem; // px-3
+    padding-right: 0.75rem;
+    
+    lucide-icon {
+      width: 0.75rem; // w-3
+      height: 0.75rem; // h-3
+    }
   }
 }
 

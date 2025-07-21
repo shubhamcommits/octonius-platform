@@ -45,6 +45,49 @@ export class RoleController {
   }
 
   /**
+   * Get current user's role in a workplace
+   */
+  async getUserRole(req: Request, res: Response): Promise<Response> {
+    try {
+      const { workplace_id } = req.params
+      const user_id = req.user?.uuid
+
+      // Validate parameters
+      const errors = validateParameters({ workplace_id })
+      if (errors.length > 0) {
+        return sendValidationError(res, errors)
+      }
+
+      if (!user_id) {
+        return sendError(res, '', 'User not authenticated', 401)
+      }
+
+      // Get user's role
+      const role = await RoleService.getUserRole(user_id, workplace_id)
+
+      if (role) {
+        // Get role permissions
+        const { getRolePermissions } = await import('./initialize-permissions')
+        const permissions = await getRolePermissions(role.uuid)
+
+        return sendResponse(req as any, res, 200, {
+          success: true,
+          message: 'User role retrieved successfully',
+          role: {
+            ...role.toJSON(),
+            permissions
+          }
+        })
+      } else {
+        return sendError(res, '', 'User not found in workplace', 404)
+      }
+    } catch (error: any) {
+      logger.error('Failed to get user role', { error })
+      return sendError(res, error, 'Failed to get user role', 500)
+    }
+  }
+
+  /**
    * Create a new role
    */
   async createRole(req: Request, res: Response): Promise<Response> {

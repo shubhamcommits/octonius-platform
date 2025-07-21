@@ -9,7 +9,6 @@ interface RoleAttributes {
     uuid: string
     name: string
     description: string | null
-    permissions: string[]
     is_system: boolean
     parent_id: string | null
     workplace_id: string | null
@@ -26,7 +25,6 @@ export class Role extends Model<RoleAttributes, RoleCreationAttributes> implemen
     public uuid!: string
     public name!: string
     public description!: string | null
-    public permissions!: string[]
     public is_system!: boolean
     public parent_id!: string | null
     public workplace_id!: string | null
@@ -100,18 +98,6 @@ Role.init({
     description: {
         type: DataTypes.TEXT,
         allowNull: true
-    },
-    permissions: {
-        type: DataTypes.JSON,
-        allowNull: false,
-        defaultValue: [],
-        validate: {
-            isValidPermissions(value: any) {
-                if (!Array.isArray(value)) {
-                    throw new Error('Permissions must be an array')
-                }
-            }
-        }
     },
     is_system: {
         type: DataTypes.BOOLEAN,

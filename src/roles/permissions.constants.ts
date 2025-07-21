@@ -258,42 +258,19 @@ export const DEFAULT_ROLES = {
   OWNER: {
     name: 'owner',
     description: 'Owner of the workplace with full access',
-    permissions: ['*'], // All permissions
+    permissions: getOwnerPermissions(),
     is_system: true
   },
   ADMIN: {
     name: 'admin',
     description: 'Administrator with management access',
-    permissions: [
-      SYSTEM_PERMISSIONS.WORKPLACE_VIEW.name,
-      SYSTEM_PERMISSIONS.WORKPLACE_UPDATE.name,
-      SYSTEM_PERMISSIONS.USER_VIEW.name,
-      SYSTEM_PERMISSIONS.USER_INVITE.name,
-      SYSTEM_PERMISSIONS.USER_UPDATE.name,
-      SYSTEM_PERMISSIONS.USER_DELETE.name,
-      SYSTEM_PERMISSIONS.ROLE_VIEW.name,
-      SYSTEM_PERMISSIONS.ROLE_ASSIGN.name,
-      SYSTEM_PERMISSIONS.GROUP_MANAGE.name,
-      SYSTEM_PERMISSIONS.TASK_MANAGE.name,
-      SYSTEM_PERMISSIONS.FILE_MANAGE.name
-    ],
+    permissions: getAdminPermissions(),
     is_system: true
   },
   MEMBER: {
     name: 'member',
     description: 'Regular member with basic access',
-    permissions: [
-      SYSTEM_PERMISSIONS.WORKPLACE_VIEW.name,
-      SYSTEM_PERMISSIONS.USER_VIEW.name,
-      SYSTEM_PERMISSIONS.GROUP_VIEW.name,
-      SYSTEM_PERMISSIONS.GROUP_CREATE.name,
-      SYSTEM_PERMISSIONS.TASK_VIEW.name,
-      SYSTEM_PERMISSIONS.TASK_CREATE.name,
-      SYSTEM_PERMISSIONS.TASK_UPDATE.name,
-      SYSTEM_PERMISSIONS.FILE_VIEW.name,
-      SYSTEM_PERMISSIONS.FILE_CREATE.name,
-      SYSTEM_PERMISSIONS.FILE_UPDATE.name
-    ],
+    permissions: getMemberPermissions(),
     is_system: true
   }
 };
@@ -323,3 +300,61 @@ export function getPermissionsByCategory(category: string) {
 export function isValidPermission(permissionName: string): boolean {
   return Object.values(SYSTEM_PERMISSIONS).some(p => p.name === permissionName);
 } 
+
+// Helper function to get admin permissions
+export function getAdminPermissions(): string[] {
+  return [
+    // Workplace permissions
+    SYSTEM_PERMISSIONS.WORKPLACE_VIEW.name,
+    SYSTEM_PERMISSIONS.WORKPLACE_UPDATE.name,
+    
+    // User permissions
+    SYSTEM_PERMISSIONS.USER_VIEW.name,
+    SYSTEM_PERMISSIONS.USER_INVITE.name,
+    SYSTEM_PERMISSIONS.USER_UPDATE.name,
+    SYSTEM_PERMISSIONS.USER_DELETE.name,
+    
+    // Role permissions
+    SYSTEM_PERMISSIONS.ROLE_VIEW.name,
+    SYSTEM_PERMISSIONS.ROLE_ASSIGN.name,
+    
+    // Group permissions
+    SYSTEM_PERMISSIONS.GROUP_MANAGE.name,
+    
+    // Task permissions
+    SYSTEM_PERMISSIONS.TASK_MANAGE.name,
+    
+    // File permissions
+    SYSTEM_PERMISSIONS.FILE_MANAGE.name
+  ];
+}
+
+// Helper function to get owner permissions (all permissions)
+export function getOwnerPermissions(): string[] {
+  return Object.values(SYSTEM_PERMISSIONS).map(p => p.name);
+}
+
+// Helper function to get member permissions
+export function getMemberPermissions(): string[] {
+  return [
+    // Basic workplace access
+    SYSTEM_PERMISSIONS.WORKPLACE_VIEW.name,
+    
+    // User permissions (view only)
+    SYSTEM_PERMISSIONS.USER_VIEW.name,
+    
+    // Group permissions (view and create)
+    SYSTEM_PERMISSIONS.GROUP_VIEW.name,
+    SYSTEM_PERMISSIONS.GROUP_CREATE.name,
+    
+    // Task permissions (view, create, update)
+    SYSTEM_PERMISSIONS.TASK_VIEW.name,
+    SYSTEM_PERMISSIONS.TASK_CREATE.name,
+    SYSTEM_PERMISSIONS.TASK_UPDATE.name,
+    
+    // File permissions (view, create, update)
+    SYSTEM_PERMISSIONS.FILE_VIEW.name,
+    SYSTEM_PERMISSIONS.FILE_CREATE.name,
+    SYSTEM_PERMISSIONS.FILE_UPDATE.name
+  ];
+}

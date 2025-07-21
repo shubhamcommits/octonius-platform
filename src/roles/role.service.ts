@@ -1,15 +1,12 @@
 // Import Models
 import { Role } from './role.model'
 import { Permission } from './permission.model'
-import { RolePermission } from './role-permission.model'
 import { WorkplaceMembership } from '../workplaces/workplace-membership.model'
 import { DEFAULT_ROLES, SYSTEM_PERMISSIONS, roleHasPermission } from './permissions.constants'
+import { getRolePermissions, updateRolePermissions } from './initialize-permissions'
 
 // Import Logger
 import logger from '../logger'
-
-// Import types
-import { Op } from 'sequelize'
 
 // Define types
 interface RoleResponse<T> {
@@ -18,6 +15,19 @@ interface RoleResponse<T> {
   code: number
   data?: T
   error?: any
+}
+
+interface RoleWithPermissions {
+  uuid: string
+  name: string
+  description: string | null
+  permissions: string[]
+  is_system: boolean
+  parent_id: string | null
+  workplace_id: string | null
+  active: boolean
+  created_at: Date
+  updated_at: Date
 }
 
 export class RoleService {
@@ -32,7 +42,6 @@ export class RoleService {
       const ownerRole = await Role.create({
         name: DEFAULT_ROLES.OWNER.name,
         description: DEFAULT_ROLES.OWNER.description,
-        permissions: DEFAULT_ROLES.OWNER.permissions,
         is_system: true,
         workplace_id,
         active: true
@@ -43,7 +52,6 @@ export class RoleService {
       const adminRole = await Role.create({
         name: DEFAULT_ROLES.ADMIN.name,
         description: DEFAULT_ROLES.ADMIN.description,
-        permissions: DEFAULT_ROLES.ADMIN.permissions,
         is_system: true,
         workplace_id,
         active: true
@@ -54,14 +62,22 @@ export class RoleService {
       const memberRole = await Role.create({
         name: DEFAULT_ROLES.MEMBER.name,
         description: DEFAULT_ROLES.MEMBER.description,
-        permissions: DEFAULT_ROLES.MEMBER.permissions,
         is_system: true,
         workplace_id,
         active: true
       })
       roles.push(memberRole)
 
-      logger.info('Default roles created for workplace', { workplace_id, roles: roles.map(r => r.name) })
+      // Create role-permission mappings for each role
+      await this.createRolePermissions(ownerRole.uuid, DEFAULT_ROLES.OWNER.permissions, created_by)
+      await this.createRolePermissions(adminRole.uuid, DEFAULT_ROLES.ADMIN.permissions, created_by)
+      await this.createRolePermissions(memberRole.uuid, DEFAULT_ROLES.MEMBER.permissions, created_by)
+
+      logger.info('Default roles and permissions created for workplace', { 
+        workplace_id, 
+        roles: roles.map(r => r.name),
+        permissions_created: true
+      })
 
       return {
         success: true,
@@ -81,26 +97,52 @@ export class RoleService {
   }
 
   /**
+   * Create role-permission mappings for a role
+   */
+  static async createRolePermissions(role_id: string, permission_names: string[], granted_by: string): Promise<void> {
+    try {
+      // Import the updateRolePermissions function
+      const { updateRolePermissions } = await import('./initialize-permissions')
+      
+      // Use the existing updateRolePermissions function to create the mappings
+      await updateRolePermissions(role_id, permission_names, granted_by)
+      
+      logger.info('Role permissions created', { role_id, permission_count: permission_names.length })
+    } catch (error) {
+      logger.error('Failed to create role permissions', { error, role_id })
+      throw error
+    }
+  }
+
+  /**
    * Get all roles for a workplace
    */
-  static async getWorkplaceRoles(workplace_id: string): Promise<RoleResponse<Role[]>> {
+  static async getWorkplaceRoles(workplace_id: string): Promise<RoleResponse<RoleWithPermissions[]>> {
     try {
       const roles = await Role.findAll({
         where: {
           workplace_id,
           active: true
         },
-        order: [
-          ['is_system', 'DESC'],
-          ['name', 'ASC']
-        ]
+        order: [['created_at', 'ASC']]
       })
+
+      // Get permissions for each role
+      const rolesWithPermissions = await Promise.all(
+        roles.map(async (role) => {
+          const permissions = await getRolePermissions(role.uuid)
+          return {
+            ...role.toJSON(),
+            permissions
+          }
+        })
+      )
 
       return {
         success: true,
         message: 'Roles retrieved successfully',
         code: 200,
-        data: roles
+        data: rolesWithPermissions
       }
     } catch (error) {
       logger.error('Failed to get workplace roles', { error, workplace_id })
@@ -114,7 +156,7 @@ export class RoleService {
   }
 
   /**
-   * Create a new custom role
+   * Create a new role
    */
   static async createRole(
     workplace_id: string,
@@ -138,14 +180,15 @@ export class RoleService {
       const existingRole = await Role.findOne({
         where: {
           name: name.toLowerCase(),
-          workplace_id
+          workplace_id,
+          active: true
         }
       })
 
       if (existingRole) {
         return {
           success: false,
-          message: 'A role with this name already exists',
+          message: 'Role with this name already exists',
           code: 409
         }
       }
@@ -154,13 +197,15 @@ export class RoleService {
       const role = await Role.create({
         name: name.toLowerCase(),
         description,
-        permissions,
         is_system: false,
         workplace_id,
         active: true
       })
 
-      logger.info('Custom role created', { workplace_id, role_name: name, created_by })
+      // Create role permissions
+      await updateRolePermissions(role.uuid, permissions, created_by)
+
+      logger.info('Role created', { role_id: role.uuid, name, workplace_id, created_by })
 
       return {
         success: true,
@@ -169,7 +214,7 @@ export class RoleService {
         data: role
       }
     } catch (error) {
-      logger.error('Failed to create role', { error, workplace_id, name })
+      logger.error('Failed to create role', { error, name, workplace_id })
       return {
         success: false,
         message: 'Failed to create role',
@@ -180,7 +225,7 @@ export class RoleService {
   }
 
   /**
-   * Update an existing role
+   * Update a role
    */
   static async updateRole(
     role_id: string,
@@ -223,9 +268,14 @@ export class RoleService {
       // Update the role
       await role.update({
         name: updates.name?.toLowerCase() || role.name,
-        description: updates.description || role.description,
-        permissions: updates.permissions || role.permissions
+        description: updates.description || role.description
+        // permissions will be handled by role_permissions table
       })
+
+      // Update role permissions if provided
+      if (updates.permissions) {
+        await updateRolePermissions(role_id, updates.permissions, updated_by)
+      }
 
       logger.info('Role updated', { role_id, updates, updated_by })
 
@@ -430,7 +480,11 @@ export class RoleService {
       }
 
       const role = membership.get('role') as Role
-      return roleHasPermission(role.permissions, permission)
+      
+      // Get permissions from role_permissions table
+      const rolePermissions = await getRolePermissions(role.uuid)
+      
+      return roleHasPermission(rolePermissions, permission)
     } catch (error) {
       logger.error('Failed to check user permission', { error, user_id, permission })
       return false

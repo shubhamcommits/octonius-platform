@@ -805,7 +805,7 @@ export class WorkplaceService {
                 : inviter?.email || 'A colleague'
 
             // Construct invitation link
-            const appUrl = `https://${getEnv().DOMAIN}` || 'https://app.octonius.com'
+            const appUrl = `https://${getEnv().WEB_APP_BASE_URL}` || 'https://app.octonius.com'
             const invitationLink = `${appUrl}/auths/accept-invitation?token=${token}`
 
             // Send invitation email
@@ -1039,6 +1039,12 @@ export class WorkplaceService {
                 })
             }
 
+            // Get the role information
+            const role = await Role.findByPk(invitation.role_id)
+            if (!role) {
+                throw new Error('Role not found')
+            }
+
             // Create workplace membership
             await WorkplaceMembership.create({
                 user_id: user.uuid,
@@ -1048,10 +1054,11 @@ export class WorkplaceService {
                 joined_at: new Date()
             })
 
-            // Update user's current workplace if they don't have one
-            if (!user.current_workplace_id) {
-                await user.update({ current_workplace_id: invitation.workplace_id })
-            }
+            // Update user's current workplace and role
+            await user.update({ 
+                current_workplace_id: invitation.workplace_id,
+                role: invitation.role_id // Set the role UUID on the user
+            })
 
             // Update invitation status
             await invitation.update({
