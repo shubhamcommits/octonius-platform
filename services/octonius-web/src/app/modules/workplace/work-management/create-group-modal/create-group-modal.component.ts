@@ -7,6 +7,7 @@ export interface CreateGroupData {
   name: string;
   description?: string;
   imageUrl?: string;
+  type?: 'private' | 'regular' | 'public';
   settings?: {
     allowMemberInvites: boolean;
     requireApproval: boolean;
@@ -44,6 +45,7 @@ export class CreateGroupModalComponent implements OnInit {
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       description: ['', [Validators.maxLength(500)]],
       imageUrl: [''],
+      type: ['regular', Validators.required],
       visibility: ['public', Validators.required],
       allowMemberInvites: [true],
       requireApproval: [false],
@@ -66,6 +68,7 @@ export class CreateGroupModalComponent implements OnInit {
         name: (formValue.name || '').trim(),
         description: formValue.description?.trim() || undefined,
         imageUrl: formValue.imageUrl?.trim() || undefined,
+        type: (formValue.type || 'regular') as 'private' | 'regular' | 'public',
         settings: {
           allowMemberInvites: Boolean(formValue.allowMemberInvites),
           requireApproval: Boolean(formValue.requireApproval),
@@ -121,8 +124,8 @@ export class CreateGroupModalComponent implements OnInit {
       this.imagePreviewUrl = this.sanitizer.bypassSecurityTrustUrl(e.target.result);
     };
     reader.readAsDataURL(file);
-    // Upload to S3 (no group_id yet, so just use uploadFileViaS3)
-    this.fileService.uploadFileViaS3(file).subscribe({
+    // Upload to S3 for group image (will be moved to group folder when group is created)
+    this.fileService.uploadFileViaS3(file, undefined, 'group').subscribe({
       next: (uploadedFile: any) => {
         const url = uploadedFile.cdn_url || uploadedFile.download_url || uploadedFile.url;
         this.form.get('imageUrl')?.setValue(url);
@@ -144,5 +147,31 @@ export class CreateGroupModalComponent implements OnInit {
     this.imageUrlLocked = false;
     this.form.get('imageUrl')?.setValue('');
     this.form.get('imageUrl')?.enable();
+  }
+
+  // Helper methods for dropdown labels
+  getGroupTypeLabel(type: string | null | undefined): string {
+    switch (type) {
+      case 'regular': return 'Regular - Standard work group';
+      case 'public': return 'Public - Visible to all workplace members';
+      case 'private': return 'Private - Only for invited members';
+      default: return 'Regular - Standard work group';
+    }
+  }
+
+  getVisibilityLabel(visibility: string | null | undefined): string {
+    switch (visibility) {
+      case 'public': return 'Public - Anyone in the workplace can see and join';
+      case 'private': return 'Private - Only invited members can see and join';
+      default: return 'Public - Anyone in the workplace can see and join';
+    }
+  }
+
+  getDefaultRoleLabel(role: string | null | undefined): string {
+    switch (role) {
+      case 'member': return 'Member - Can view and contribute';
+      case 'admin': return 'Admin - Can manage the group';
+      default: return 'Member - Can view and contribute';
+    }
   }
 } 

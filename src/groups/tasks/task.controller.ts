@@ -1257,7 +1257,7 @@ export class TaskController {
             const assignedBy = req.user!.uuid // Middleware ensures user exists
 
             // Validates required fields
-            if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+            if (!userIds || !Array.isArray(userIds)) {
                 const responseTime = Date.now() - startTime
                 logger.warn('Task assignment failed - user IDs required', {
                     responseTime: `${responseTime}ms`,

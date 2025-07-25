@@ -1,11 +1,17 @@
 import { Component, EventEmitter, Input, OnInit, OnDestroy, Output, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { GroupTaskService, Task, GroupMember } from '../../../../services/group-task.service';
 import { TaskCommentService, TaskComment } from '../../../../services/task-comment.service';
 import { WorkGroupService, WorkGroup } from '../../../../services/work-group.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
+import { ModalService } from '../../../../../../core/services/modal.service';
+import { AssigneeModalComponent, AssigneeData } from './assignee-modal/assignee-modal.component';
+import { TiptapEditorComponent } from '../../../../../../core/components/tiptap-editor/tiptap-editor.component';
+import { CustomFieldModalComponent, CustomFieldData } from './custom-field-modal/custom-field-modal.component';
+import { TimeEntryModalComponent, TimeEntryData } from './time-entry-modal/time-entry-modal.component';
+import { DatePickerModalComponent, DatePickerData } from './date-picker-modal/date-picker-modal.component';
 import { environment } from '../../../../../../../environments/environment';
 
 @Component({
@@ -28,45 +34,29 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   isLoading = false;
   isLoadingComments = false;
   isLoadingMembers = false;
-  isSaving = false;
   isUpdatingStatus = false;
   isAddingTimeEntry = false;
   isUpdatingCustomFields = false;
+  isSaving = false;
 
   // UI state
   activeTab: 'activity' | 'subtasks' | 'files' | 'time' = 'activity';
-  showEditModal = false;
   showDeleteModal = false;
   showAssigneeModal = false;
-  showTimeEntryModal = false;
-  showCustomFieldsModal = false;
 
-  // Form data
-  editForm = {
+  // Live editing data
+  liveEditData = {
     title: '',
-    description: '',
-    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
-    status: 'todo' as 'todo' | 'in_progress' | 'review' | 'done',
-    due_date: '',
-    estimated_hours: 0
+    description: ''
   };
+
+  // Debounced saving
+  private saveSubject = new Subject<{ title?: string; description?: string }>();
+  private saveSubscription: Subscription | null = null;
 
   // Assignee form
   assigneeForm = {
     selectedUserIds: [] as string[]
-  };
-
-  // Time entry form
-  timeEntryForm = {
-    hours: 0,
-    description: '',
-    date: new Date().toISOString().split('T')[0]
-  };
-
-  // Custom fields form
-  customFieldsForm = {
-    fieldName: '',
-    fieldValue: ''
   };
 
   // Comment form
@@ -85,11 +75,22 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     private workGroupService: WorkGroupService,
     private toastService: ToastService,
     private authService: AuthService,
+    private modalService: ModalService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
+    
+    // Setup debounced saving
+    this.saveSubscription = this.saveSubject
+      .pipe(
+        debounceTime(1000), // 1 second delay
+        distinctUntilChanged()
+      )
+      .subscribe(changes => {
+        this.saveChanges(changes);
+      });
     
     // Subscribe to group changes
     this.groupSub = this.workGroupService.getCurrentGroup().subscribe((group: WorkGroup | null) => {
@@ -106,6 +107,9 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     }
     if (this.groupSub) {
       this.groupSub.unsubscribe();
+    }
+    if (this.saveSubscription) {
+      this.saveSubscription.unsubscribe();
     }
   }
 
@@ -158,92 +162,46 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   private populateEditForm(): void {
     if (!this.task) return;
 
-    this.editForm = {
+    this.liveEditData = {
       title: this.task.title,
-      description: this.task.description || '',
-      priority: this.task.priority,
-      status: this.task.status,
-      due_date: this.task.due_date ? new Date(this.task.due_date).toISOString().split('T')[0] : '',
-      estimated_hours: this.task.metadata?.estimated_hours || 0
+      description: this.task.description || ''
     };
   }
 
-  // Tab management
-  switchTab(tab: 'activity' | 'subtasks' | 'files' | 'time'): void {
-    this.activeTab = tab;
-    if (tab === 'subtasks') {
-      this.toastService.info('Subtasks feature coming soon!');
-    } else if (tab === 'files') {
-      this.toastService.info('File attachments feature coming soon!');
-    } else if (tab === 'time') {
-      this.toastService.info('Time tracking feature coming soon!');
-    }
+  // Live editing methods
+  onTitleChange(title: string): void {
+    this.liveEditData.title = title;
+    this.saveSubject.next({ title });
   }
 
-  // Task status management
-  updateTaskStatus(newStatus: 'todo' | 'in_progress' | 'review' | 'done'): void {
-    if (!this.task || !this.group || this.task.status === newStatus) return;
-
-    this.isUpdatingStatus = true;
-    this.taskService.updateTask(this.group.uuid, this.task.uuid, { status: newStatus }).subscribe({
-      next: (updatedTask: Task) => {
-        this.task = updatedTask;
-        this.toastService.success(`Task status updated to ${this.getStatusLabel(newStatus)}`);
-        this.isUpdatingStatus = false;
-      },
-      error: (error: any) => {
-        console.error('Error updating task status:', error);
-        this.toastService.error('Failed to update task status');
-        this.isUpdatingStatus = false;
-      }
-    });
+  onDescriptionChange(newDescription: string): void {
+    this.liveEditData.description = newDescription;
+    this.saveSubject.next({ description: newDescription });
   }
 
-  // Task priority management
-  updateTaskPriority(newPriority: 'low' | 'medium' | 'high' | 'urgent'): void {
-    if (!this.task || !this.group || this.task.priority === newPriority) return;
-
-    this.taskService.updateTask(this.group.uuid, this.task.uuid, { priority: newPriority }).subscribe({
-      next: (updatedTask: Task) => {
-        this.task = updatedTask;
-        this.toastService.success(`Task priority updated to ${this.getPriorityLabel(newPriority)}`);
-      },
-      error: (error: any) => {
-        console.error('Error updating task priority:', error);
-        this.toastService.error('Failed to update task priority');
-      }
-    });
-  }
-
-  // Task editing
-  openEditModal(): void {
-    this.populateEditForm();
-    this.showEditModal = true;
-  }
-
-  closeEditModal(): void {
-    this.showEditModal = false;
-  }
-
-  saveTask(): void {
-    if (!this.task || !this.group || !this.editForm.title.trim()) return;
+  saveChanges(changes: { title?: string; description?: string }): void {
+    if (!this.task || !this.group) return;
 
     this.isSaving = true;
-    const updateData = {
-      title: this.editForm.title.trim(),
-      description: this.editForm.description.trim() || undefined,
-      priority: this.editForm.priority,
-      status: this.editForm.status,
-      due_date: this.editForm.due_date ? new Date(this.editForm.due_date) : null,
-      estimated_hours: this.editForm.estimated_hours
+    const updateData: any = {
+      title: changes.title || this.task.title,
+      priority: this.task.priority,
+      status: this.task.status,
+      estimated_hours: this.task.metadata?.estimated_hours || 0
     };
+
+    // Handle description properly
+    if (changes.description !== undefined) {
+      updateData.description = changes.description || undefined;
+    } else {
+      updateData.description = this.task.description || undefined;
+    }
 
     this.taskService.updateTask(this.group.uuid, this.task.uuid, updateData).subscribe({
       next: (updatedTask: Task) => {
         this.task = updatedTask;
-        this.closeEditModal();
-        this.toastService.success('Task updated successfully');
         this.isSaving = false;
+        this.toastService.success('Task updated successfully');
       },
       error: (error: any) => {
         console.error('Error updating task:', error);
@@ -252,6 +210,8 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+
 
   // Task deletion
   openDeleteModal(): void {
@@ -300,16 +260,12 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
 
   // Assignee management
   openAssigneeModal(): void {
-    this.loadGroupMembers();
     this.populateAssigneeForm();
-    this.showAssigneeModal = true;
+    this.loadGroupMembersAndOpenModal();
+    this.showAssigneeModal = true; // Show loading state
   }
 
-  closeAssigneeModal(): void {
-    this.showAssigneeModal = false;
-  }
-
-  private loadGroupMembers(): void {
+  private loadGroupMembersAndOpenModal(): void {
     if (!this.group) return;
 
     this.isLoadingMembers = true;
@@ -317,14 +273,37 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       next: (members: GroupMember[]) => {
         this.groupMembers = members;
         this.isLoadingMembers = false;
+        
+        // Open modal after members are loaded
+        this.modalService.openModal(AssigneeModalComponent, {
+          assigneeData: {
+            selectedUserIds: this.assigneeForm.selectedUserIds,
+            groupMembers: this.groupMembers
+          },
+          onSave: (selectedUserIds: string[]) => this.saveAssigneesWithData(selectedUserIds),
+          onCancel: () => this.closeAssigneeModal()
+        });
+        this.showAssigneeModal = false; // Hide loading state
       },
       error: (error: any) => {
         console.error('Error loading group members:', error);
         this.toastService.error('Failed to load group members');
         this.isLoadingMembers = false;
+        this.showAssigneeModal = false; // Hide loading state on error
       }
     });
   }
+
+  closeAssigneeModal(): void {
+    this.modalService.closeModal();
+  }
+
+  private saveAssigneesWithData(selectedUserIds: string[]): void {
+    this.assigneeForm.selectedUserIds = selectedUserIds;
+    this.saveAssignees();
+  }
+
+
 
   private populateAssigneeForm(): void {
     if (!this.task) return;
@@ -377,32 +356,26 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
 
   // Time tracking
   openTimeEntryModal(): void {
-    this.timeEntryForm = {
-      hours: 0,
-      description: '',
-      date: new Date().toISOString().split('T')[0]
-    };
-    this.showTimeEntryModal = true;
+    this.modalService.openModal(TimeEntryModalComponent, {
+      onSave: (data: TimeEntryData) => this.handleTimeEntrySave(data),
+      onCancel: () => this.modalService.closeModal()
+    });
   }
 
-  closeTimeEntryModal(): void {
-    this.showTimeEntryModal = false;
-  }
-
-  addTimeEntry(): void {
-    if (!this.task || !this.group || this.timeEntryForm.hours <= 0) return;
+  private handleTimeEntrySave(data: TimeEntryData): void {
+    if (!this.task || !this.group) return;
 
     this.isAddingTimeEntry = true;
     const timeData = {
-      hours: this.timeEntryForm.hours,
-      description: this.timeEntryForm.description,
-      date: new Date(this.timeEntryForm.date)
+      hours: data.hours,
+      description: data.description,
+      date: new Date(data.date)
     };
 
     this.taskService.addTimeEntry(this.group.uuid, this.task.uuid, timeData).subscribe({
       next: (updatedTask: Task) => {
         this.task = updatedTask;
-        this.closeTimeEntryModal();
+        this.modalService.closeModal();
         this.toastService.success('Time entry added successfully');
         this.isAddingTimeEntry = false;
       },
@@ -416,38 +389,25 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
 
   // Custom fields
   openCustomFieldsModal(): void {
-    this.populateCustomFieldsForm();
-    this.showCustomFieldsModal = true;
+    this.modalService.openModal(CustomFieldModalComponent, {
+      onSave: (data: CustomFieldData) => this.handleCustomFieldSave(data),
+      onCancel: () => this.modalService.closeModal()
+    });
   }
 
-  closeCustomFieldsModal(): void {
-    this.showCustomFieldsModal = false;
-  }
-
-  private populateCustomFieldsForm(): void {
-    // Reset form for adding new field
-    this.customFieldsForm = {
-      fieldName: '',
-      fieldValue: ''
-    };
-  }
-
-  saveCustomFields(): void {
-    if (!this.task || !this.group || !this.customFieldsForm.fieldName.trim() || !this.customFieldsForm.fieldValue.trim()) {
-      this.toastService.error('Please enter both field name and value');
-      return;
-    }
+  private handleCustomFieldSave(data: CustomFieldData): void {
+    if (!this.task || !this.group) return;
 
     this.isUpdatingCustomFields = true;
     const customFields: Record<string, string> = {
       ...(this.task.metadata?.custom_fields || {}),
-      [this.customFieldsForm.fieldName.trim()]: this.customFieldsForm.fieldValue.trim()
+      [data.fieldName]: data.fieldValue
     };
 
     this.taskService.updateCustomFields(this.group.uuid, this.task.uuid, customFields).subscribe({
       next: (updatedTask: Task) => {
         this.task = updatedTask;
-        this.closeCustomFieldsModal();
+        this.modalService.closeModal();
         this.toastService.success('Custom field added successfully');
         this.isUpdatingCustomFields = false;
       },
@@ -646,8 +606,25 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   }
 
   formatDate(date: Date | string | null): string {
-    if (!date) return 'No date set';
-    return new Date(date).toLocaleDateString();
+    console.log('=== FORMAT DATE CALL ===');
+    console.log('Input date:', date);
+    console.log('Input date type:', typeof date);
+    console.log('Input date stringified:', JSON.stringify(date));
+    
+    if (!date) {
+      console.log('No date provided, returning "No date set"');
+      return 'No date set';
+    }
+    
+    const dateObj = new Date(date);
+    console.log('Created Date object:', dateObj);
+    console.log('Date object toDateString:', dateObj.toDateString());
+    console.log('Date object toISOString:', dateObj.toISOString());
+    
+    const formattedDate = dateObj.toLocaleDateString();
+    console.log('Final formatted date:', formattedDate);
+    console.log('=== FORMAT DATE END ===');
+    return formattedDate;
   }
 
   isOverdue(dueDate: Date | string | null): boolean {
@@ -661,5 +638,171 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   onClose(): void {
     this.close.emit();
     this.router.navigate(['../'], { relativeTo: this.route });
+  }
+
+  // Tab management
+  switchTab(tab: 'activity' | 'subtasks' | 'files' | 'time'): void {
+    this.activeTab = tab;
+    if (tab === 'subtasks') {
+      this.toastService.info('Subtasks feature coming soon!');
+    } else if (tab === 'files') {
+      this.toastService.info('File attachments feature coming soon!');
+    } else if (tab === 'time') {
+      this.toastService.info('Time tracking feature coming soon!');
+    }
+  }
+
+  // Task status management
+  updateTaskStatus(newStatus: 'todo' | 'in_progress' | 'review' | 'done'): void {
+    if (!this.task || !this.group || this.task.status === newStatus) return;
+
+    this.isUpdatingStatus = true;
+    this.taskService.updateTask(this.group.uuid, this.task.uuid, { status: newStatus }).subscribe({
+      next: (updatedTask: Task) => {
+        this.task = updatedTask;
+        this.toastService.success(`Task status updated to ${this.getStatusLabel(newStatus)}`);
+        this.isUpdatingStatus = false;
+      },
+      error: (error: any) => {
+        console.error('Error updating task status:', error);
+        this.toastService.error('Failed to update task status');
+        this.isUpdatingStatus = false;
+      }
+    });
+  }
+
+  // Task priority management
+  updateTaskPriority(newPriority: 'low' | 'medium' | 'high' | 'urgent'): void {
+    if (!this.task || !this.group || this.task.priority === newPriority) return;
+
+    this.taskService.updateTask(this.group.uuid, this.task.uuid, { priority: newPriority }).subscribe({
+      next: (updatedTask: Task) => {
+        this.task = updatedTask;
+        this.toastService.success(`Task priority updated to ${this.getPriorityLabel(newPriority)}`);
+      },
+      error: (error: any) => {
+        console.error('Error updating task priority:', error);
+        this.toastService.error('Failed to update task priority');
+      }
+    });
+  }
+
+  // Task due date management
+  openDatePicker(): void {
+    console.log('=== OPEN DATE PICKER START ===');
+    console.log('Current task:', this.task);
+    console.log('Current task due_date:', this.task?.due_date);
+    console.log('Current task due_date type:', typeof this.task?.due_date);
+    
+    // Ensure the current date is properly formatted
+    let currentDate = null;
+    if (this.task?.due_date) {
+      const dueDate = new Date(this.task.due_date);
+      console.log('Parsed dueDate:', dueDate);
+      console.log('dueDate toDateString:', dueDate.toDateString());
+      console.log('dueDate toISOString:', dueDate.toISOString());
+      
+      // Create a date string in YYYY-MM-DD format for the date picker
+      currentDate = dueDate.toISOString().split('T')[0];
+      console.log('Formatted currentDate for modal:', currentDate);
+    }
+    
+    console.log('Final currentDate being passed to modal:', currentDate);
+    
+    this.modalService.openModal(DatePickerModalComponent, {
+      currentDate: currentDate,
+      onSave: (date: Date | null) => {
+        this.updateTaskDueDate(date);
+        this.modalService.closeModal();
+      },
+      onCancel: () => {
+        this.modalService.closeModal();
+      }
+    });
+    
+    console.log('=== OPEN DATE PICKER END ===');
+  }
+
+  updateTaskDueDate(newDueDate: Date | null): void {
+    console.log('=== UPDATE TASK DUE DATE START ===');
+    console.log('Input newDueDate:', newDueDate);
+    console.log('Input newDueDate type:', typeof newDueDate);
+    console.log('Input newDueDate stringified:', JSON.stringify(newDueDate));
+    
+    if (!this.task || !this.group) {
+      console.log('No task or group, returning');
+      return;
+    }
+    
+    console.log('Current task due_date before update:', this.task.due_date);
+    console.log('Task ID:', this.task.uuid);
+    console.log('Group ID:', this.group.uuid);
+    
+    // Check if the date is actually different from the current date
+    const currentDueDate = this.task.due_date ? new Date(this.task.due_date) : null;
+    const isDateDifferent = !currentDueDate && !newDueDate ? false : 
+                           !currentDueDate || !newDueDate ? true :
+                           currentDueDate.getTime() !== newDueDate.getTime();
+    
+    console.log('Current due date:', currentDueDate);
+    console.log('New due date:', newDueDate);
+    console.log('Is date different:', isDateDifferent);
+    
+    if (!isDateDifferent) {
+      console.log('Date is the same, no update needed');
+      return;
+    }
+    
+    // Format the date properly for the backend
+    let formattedDate = null;
+    if (newDueDate) {
+      // Create a date string in YYYY-MM-DD format to avoid timezone issues
+      const year = newDueDate.getFullYear();
+      const month = String(newDueDate.getMonth() + 1).padStart(2, '0');
+      const day = String(newDueDate.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      // Create a new Date object from the string to ensure consistency
+      formattedDate = new Date(dateString + 'T00:00:00.000Z');
+      
+      console.log('Original date:', newDueDate);
+      console.log('Date string:', dateString);
+      console.log('Formatted date for API:', formattedDate);
+      console.log('Formatted date ISO string:', formattedDate.toISOString());
+      console.log('Formatted date toDateString:', formattedDate.toDateString());
+    }
+    
+    // Send the formatted Date object to the API
+    console.log('Date object being sent to API:', formattedDate);
+    console.log('Date object type:', typeof formattedDate);
+    console.log('Date object stringified:', JSON.stringify(formattedDate));
+    
+    this.taskService.updateTask(this.group.uuid, this.task.uuid, { due_date: formattedDate }).subscribe({
+      next: (updatedTask: Task) => {
+        console.log('=== TASK UPDATE RESPONSE ===');
+        console.log('Updated task:', updatedTask);
+        console.log('Updated task due_date:', updatedTask.due_date);
+        console.log('Updated task due_date type:', typeof updatedTask.due_date);
+        console.log('Updated task due_date stringified:', JSON.stringify(updatedTask.due_date));
+        
+        // Check if the date changed unexpectedly
+        if (formattedDate && updatedTask.due_date) {
+          const sentDate = new Date(formattedDate);
+          const receivedDate = new Date(updatedTask.due_date);
+          console.log('Sent date:', sentDate.toDateString());
+          console.log('Received date:', receivedDate.toDateString());
+          console.log('Dates match:', sentDate.toDateString() === receivedDate.toDateString());
+        }
+        
+        this.task = updatedTask;
+        console.log('Task object updated, new due_date:', this.task.due_date);
+        this.toastService.success(formattedDate ? 'Due date updated successfully' : 'Due date removed successfully');
+        console.log('=== UPDATE TASK DUE DATE END ===');
+      },
+      error: (error: any) => {
+        console.error('Error updating task due date:', error);
+        this.toastService.error('Failed to update due date');
+      }
+    });
   }
 }

@@ -26,6 +26,7 @@ export class GroupService {
         image_url?: string
         workplace_id: string
         created_by: string
+        type?: 'private' | 'regular' | 'public'
         settings?: any
         metadata?: any
     }): Promise<GroupResponse<Group> | GroupError> {
@@ -55,6 +56,7 @@ export class GroupService {
                 image_url: groupData.image_url || null,
                 workplace_id: groupData.workplace_id,
                 created_by: groupData.created_by,
+                type: groupData.type || 'regular',
                 settings: groupData.settings || {
                     allow_member_invites: true,
                     require_approval: false,
@@ -148,21 +150,34 @@ export class GroupService {
                 }
             ]
 
-            // Only return groups where the user is an active member
+            // Get user's group memberships
+            const userMemberships = await GroupMembership.findAll({
+                where: {
+                    user_id: user_id,
+                    status: 'active'
+                },
+                attributes: ['group_id']
+            })
+            const userGroupIds = userMemberships.map(m => m.group_id)
+
+            // Return groups where user is a member OR groups that are public, but exclude private groups
             const groups = await Group.findAll({
                 where: {
                     workplace_id,
                     is_active: true,
-                    type: 'regular',
-                    uuid: {
-                        [Op.in]: await GroupMembership.findAll({
-                            where: {
-                                user_id: user_id,
-                                status: 'active'
-                            },
-                            attributes: ['group_id']
-                        }).then(memberships => memberships.map(m => m.group_id))
-                    }
+                    type: {
+                        [Op.ne]: 'private' // Exclude private groups
+                    },
+                    [Op.or]: [
+                        {
+                            uuid: {
+                                [Op.in]: userGroupIds
+                            }
+                        },
+                        {
+                            type: 'public'
+                        }
+                    ]
                 },
                 include: includeOptions,
                 order: [['created_at', 'DESC']]
@@ -204,15 +219,6 @@ export class GroupService {
                     status: 'active'
                 }
             })
-
-            if (!membership) {
-                return {
-                    success: false,
-                    message: GroupCode.INSUFFICIENT_PERMISSIONS,
-                    code: 403,
-                    stack: new Error(GroupCode.INSUFFICIENT_PERMISSIONS)
-                }
-            }
 
             // Check cache for group data
             const cachedGroup = await CacheService.getGroup(group_id)
@@ -260,6 +266,16 @@ export class GroupService {
                 }
             }
 
+            // Check if user is a member OR if the group is public
+            if (!membership && group.type !== 'public') {
+                return {
+                    success: false,
+                    message: GroupCode.INSUFFICIENT_PERMISSIONS,
+                    code: 403,
+                    stack: new Error(GroupCode.INSUFFICIENT_PERMISSIONS)
+                }
+            }
+
             // Cache the group data
             await CacheService.setGroup(group_id, group)
             logger.info(`Group cached: ${group_id}`)
@@ -290,6 +306,7 @@ export class GroupService {
         name?: string
         description?: string
         image_url?: string
+        type?: 'private' | 'regular' | 'public'
         settings?: any
         metadata?: any
     }, user_id: string): Promise<GroupResponse<Group> | GroupError> {
@@ -473,14 +490,23 @@ export class GroupService {
             const whereCondition: WhereOptions = {
                 workplace_id,
                 is_active: true,
-                type: 'regular',
+                type: {
+                    [Op.ne]: 'private' // Exclude private groups
+                },
                 name: {
                     [Op.iLike]: `%${searchTerm}%`
                 },
-                // Only search in groups where user is a member
-                uuid: {
-                    [Op.in]: userGroupIds
-                }
+                // Search in groups where user is a member OR groups that are public
+                [Op.or]: [
+                    {
+                        uuid: {
+                            [Op.in]: userGroupIds
+                        }
+                    },
+                    {
+                        type: 'public'
+                    }
+                ]
             }
 
             const groups = await Group.findAll({
@@ -728,7 +754,7 @@ export class GroupService {
                 throw new Error('Group not found')
             }
 
-            // Check if user has access to view members
+            // Check if user has access to view members (member OR public group)
             const userMembership = await GroupMembership.findOne({
                 where: {
                     group_id: group_id,
@@ -737,7 +763,7 @@ export class GroupService {
                 }
             })
 
-            if (!userMembership) {
+            if (!userMembership && group.type !== 'public') {
                 logger.warn(`User ${user_id} does not have access to group ${group_id}`)
                 throw new Error('Unauthorized access to group')
             }

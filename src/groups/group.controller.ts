@@ -17,7 +17,7 @@ export class GroupController {
      */
     static async createGroup(req: Request, res: Response) {
         try {
-            const { name, description, image_url, workplace_id, settings, metadata } = req.body
+            const { name, description, image_url, workplace_id, type, settings, metadata } = req.body
             const user_id = req.user?.uuid
 
             if (!user_id) {
@@ -37,6 +37,7 @@ export class GroupController {
                 image_url,
                 workplace_id,
                 created_by: user_id,
+                type,
                 settings,
                 metadata
             })
@@ -123,7 +124,7 @@ export class GroupController {
     static async updateGroup(req: Request, res: Response) {
         try {
             const { group_id } = req.params
-            const { name, description, image_url, settings, metadata } = req.body
+            const { name, description, image_url, type, settings, metadata } = req.body
             const user_id = req.user?.uuid
 
             if (!user_id) {
@@ -140,6 +141,7 @@ export class GroupController {
             if (name !== undefined) updateData.name = name
             if (description !== undefined) updateData.description = description
             if (image_url !== undefined) updateData.image_url = image_url
+            if (type !== undefined) updateData.type = type
             if (settings !== undefined) updateData.settings = settings
             if (metadata !== undefined) updateData.metadata = metadata
 

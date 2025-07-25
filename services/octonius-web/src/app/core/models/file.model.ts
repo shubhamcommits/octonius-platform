@@ -19,6 +19,7 @@ export interface UploadIntentRequest {
   file_type: string;
   file_size: number;
   group_id?: string;
+  source_context?: string;
 }
 
 export interface UploadIntentResponse {
@@ -47,6 +48,7 @@ export interface CompleteUploadRequest {
   file_type: string;
   file_size: number;
   group_id: string;
+  source_context?: string;
 }
 
 export interface FileDownloadUrlResponse {

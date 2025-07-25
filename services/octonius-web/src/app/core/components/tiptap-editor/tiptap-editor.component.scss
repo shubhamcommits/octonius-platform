@@ -36,6 +36,30 @@
   }
 }
 
+// Image upload loading overlay
+.tiptap-content-area {
+  .absolute {
+    transition: opacity 0.2s ease-in-out;
+  }
+  
+  .bg-base-100\/80 {
+    backdrop-filter: blur(4px);
+  }
+  
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
 // Bubble menu positioning
 .bubble-menu {
   position: absolute;

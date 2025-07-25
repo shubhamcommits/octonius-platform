@@ -120,7 +120,12 @@ import { LucideAngularModule,
   Edit2,
   SearchX,
   CreditCard,
-  Key
+  Key,
+  Send,
+  Flag,
+  Sun,
+  Sunrise,
+  XCircle
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -260,7 +265,12 @@ import { InfiniteScrollListComponent } from './components/infinite-scroll-list/i
       Edit2,
       SearchX,
       CreditCard,
-      Key
+      Key,
+      Send,
+      Flag,
+      Sun,
+      Sunrise,
+      XCircle,
     })
   ],
   exports: [

@@ -11,6 +11,7 @@ interface BackendGroup {
   image_url: string | null;
   workplace_id: string;
   created_by: string;
+  type: 'private' | 'regular' | 'public';
   is_active: boolean;
   settings: {
     allow_member_invites: boolean;
@@ -74,6 +75,7 @@ export interface WorkGroup {
   name: string;
   description: string | null;
   imageUrl: string | null;
+  type: 'private' | 'regular' | 'public';
   memberCount: number;
   creator: {
     uuid: string;
@@ -116,6 +118,7 @@ export class WorkGroupService {
       name: backendGroup.name,
       description: backendGroup.description,
       imageUrl: backendGroup.image_url || 'https://media.octonius.com/assets/icon_projects.svg',
+      type: backendGroup.type,
       memberCount: activeMembers.length,
       creator: {
         uuid: backendGroup.creator?.uuid || 'unknown',
@@ -185,6 +188,7 @@ export class WorkGroupService {
     description?: string;
     imageUrl?: string;
     workplaceId: string;
+    type?: 'private' | 'regular' | 'public';
     settings?: any;
     metadata?: any;
   }): Observable<WorkGroup> {
@@ -193,6 +197,7 @@ export class WorkGroupService {
       description: groupData.description,
       image_url: groupData.imageUrl,
       workplace_id: groupData.workplaceId,
+      type: groupData.type,
       settings: groupData.settings,
       metadata: groupData.metadata
     };
@@ -219,6 +224,7 @@ export class WorkGroupService {
     name: string;
     description: string;
     imageUrl: string;
+    type: 'private' | 'regular' | 'public';
     settings: any;
     metadata: any;
   }>): Observable<WorkGroup> {

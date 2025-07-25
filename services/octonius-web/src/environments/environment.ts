@@ -5,5 +5,6 @@ export const environment = {
   production: false,
   apiUrl: 'http://localhost:3000/v1',
   version: package_json.version,
-  defaultAvatarUrl: 'https://media.octonius.com/assets/icon_avatar.svg'
+  defaultAvatarUrl: 'https://media.octonius.com/assets/icon_avatar.svg',
+  giphyApiKey: '7d9RMussyoT6hxJGUUFtdvvfNgTSbEBX'
 }

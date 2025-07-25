@@ -1,11 +1,13 @@
-import { Component, OnInit } from '@angular/core'
+import { Component, OnInit, OnDestroy } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { RouterModule, Router, ActivatedRoute, NavigationEnd } from '@angular/router'
 import { SharedModule } from '../../shared/shared.module'
 import { AuthService } from '../../../core/services/auth.service'
 import { ThemeService } from '../../../core/services/theme.service'
 import { DialogService } from '../../../core/services/dialog.service'
-import { filter, map } from 'rxjs/operators'
+import { OnboardingService } from '../../../core/services/onboarding.service'
+import { filter, map, takeUntil } from 'rxjs/operators'
+import { Subject } from 'rxjs'
 
 @Component({
   selector: 'app-layout',
@@ -14,15 +16,17 @@ import { filter, map } from 'rxjs/operators'
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss']
 })
-export class LayoutComponent implements OnInit {
+export class LayoutComponent implements OnInit, OnDestroy {
   breadcrumb: string = 'inbox';
+  private destroy$ = new Subject<void>();
 
   constructor(
     private authService: AuthService,
     private router: Router,
     private activatedRoute: ActivatedRoute,
     private themeService: ThemeService,
-    private dialogService: DialogService
+    private dialogService: DialogService,
+    private onboardingService: OnboardingService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
@@ -65,6 +69,20 @@ export class LayoutComponent implements OnInit {
   ngOnInit(): void {
     // Check if we should show onboarding dialog
     this.checkOnboarding();
+    
+    // Subscribe to profile check service for real-time onboarding
+    this.onboardingService.profileCheck$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(profileStatus => {
+        if (profileStatus?.needsOnboarding) {
+          this.showOnboardingDialog();
+        }
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   /**

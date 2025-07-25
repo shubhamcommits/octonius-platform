@@ -5,7 +5,9 @@ import { GroupTaskService, Task, TaskColumn, Board } from '../../../services/gro
 import { WorkGroupService, WorkGroup } from '../../../services/work-group.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { ModalService } from '../../../../../core/services/modal.service';
 import { environment } from '../../../../../../environments/environment';
+import { CreateTaskModalComponent } from './create-task-modal/create-task-modal.component';
 
 @Component({
   selector: 'app-group-tasks',
@@ -30,21 +32,12 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
   filterPriority: string = 'all';
   
   // UI state
-  showAddTaskModal = false;
   showAddColumnModal = false;
   selectedColumn: any = null;
   selectedTask: Task | null = null;
   columnMenuOpen: { [key: string]: boolean } = {};
   
-  // Form state
-  newTaskTitle = '';
-  newTaskDescription = '';
-  newTaskPriority: 'low' | 'medium' | 'high' | 'urgent' = 'medium';
-  newTaskStatus: 'todo' | 'in_progress' | 'review' | 'done' = 'todo';
-  newTaskDueDate = '';
-  newTaskAssignee = '';
-  newTaskColor = '#3B82F6';
-  
+  // Column form state
   newColumnName = '';
   newColumnColor = '#757575';
 
@@ -54,7 +47,8 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
     private taskService: GroupTaskService,
     private workGroupService: WorkGroupService,
     private toastService: ToastService,
-    private authService: AuthService
+    private authService: AuthService,
+    private modalService: ModalService
   ) { }
 
   ngOnInit(): void {
@@ -236,50 +230,40 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
   // Task actions
   openAddTaskModal(column: any): void {
     this.selectedColumn = column;
-    this.resetTaskForm();
-    this.showAddTaskModal = true;
+    this.modalService.openModal(CreateTaskModalComponent, {
+      columnId: column.id,
+      onClose: () => this.closeAddTaskModal(),
+      onTaskCreated: (taskData: any) => this.onTaskCreated(taskData)
+    });
+  }
+
+  onTaskCreated(taskData: any): void {
+    this.createTask(taskData);
   }
 
   closeAddTaskModal(): void {
-    this.showAddTaskModal = false;
     this.selectedColumn = null;
   }
 
   resetTaskForm(): void {
-    // Clear all form fields explicitly
-    this.newTaskTitle = '';
-    this.newTaskDescription = '';
-    this.newTaskPriority = 'medium';
-    this.newTaskStatus = 'todo';
-    this.newTaskDueDate = '';
-    this.newTaskAssignee = '';
-    this.newTaskColor = '#3B82F6';
-    
-    // Force change detection to ensure form is properly reset
-    setTimeout(() => {
-      // Additional reset to clear any browser form persistence
-      const titleInput = document.querySelector('input[name="newTaskTitle"]') as HTMLInputElement;
-      const descInput = document.querySelector('textarea[name="newTaskDescription"]') as HTMLTextAreaElement;
-      if (titleInput) titleInput.value = '';
-      if (descInput) descInput.value = '';
-    }, 0);
+    this.selectedColumn = null;
   }
 
-  createTask(): void {
-    if (!this.group || !this.selectedColumn || !this.newTaskTitle.trim()) return;
+  createTask(taskData: any): void {
+    if (!this.group || !this.selectedColumn) return;
 
-    const taskData = {
-      title: this.newTaskTitle.trim(),
-      description: this.newTaskDescription.trim() || undefined,
+    const taskPayload = {
+      title: taskData.title.trim(),
+      description: taskData.description?.trim() || undefined,
       column_id: this.selectedColumn.id,
-      priority: this.newTaskPriority,
-      status: this.newTaskStatus,
-      color: this.newTaskColor,
-      due_date: this.newTaskDueDate ? new Date(this.newTaskDueDate) : undefined,
-      assigned_to: this.newTaskAssignee || undefined
+      priority: taskData.priority,
+      status: taskData.status,
+      color: taskData.color,
+      due_date: taskData.due_date ? new Date(taskData.due_date) : undefined,
+      assigned_to: taskData.assigned_to || undefined
     };
 
-    this.taskService.createTask(this.group.uuid, taskData).subscribe({
+    this.taskService.createTask(this.group.uuid, taskPayload).subscribe({
       next: (task) => {
         // Add task to the column
         this.selectedColumn.tasks.push(task);
