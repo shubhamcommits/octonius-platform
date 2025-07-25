@@ -9,6 +9,7 @@ export class File extends Model {
   declare user_id: string;
   declare workplace_id: string;
   declare group_id: string;
+  declare source_context?: 'note' | 'post' | 'workplace' | 'group' | 'user' | 'file' | 'task' | 'lounge' | 'document' | 'private';
   declare title?: string;
   declare content?: any;
   declare size?: number;
@@ -77,6 +78,10 @@ File.init(
         model: 'groups',
         key: 'uuid',
       },
+    },
+    source_context: {
+      type: DataTypes.ENUM('note', 'post', 'workplace', 'group', 'user', 'file', 'task', 'lounge', 'document', 'private'),
+      allowNull: true,
     },
     title: {
       type: DataTypes.STRING,

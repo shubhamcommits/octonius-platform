@@ -75,7 +75,7 @@ export class FileController {
         const startTime = Date.now()
         try {
             logger.info('Fetching files by user and workplace', { method: req.method, path: req.path, query: req.query, ip: req.ip })
-            const { user_id, workplace_id, group_id } = req.query
+            const { user_id, workplace_id, group_id, source_context } = req.query
             const requestUserId = (req as any).user?.uuid
             
             if (!requestUserId) {
@@ -106,7 +106,8 @@ export class FileController {
             const result = await this.fileService.getFilesByUserAndWorkplace(
                 requestUserId, 
                 workplace_id as string, 
-                group_id as string | undefined
+                group_id as string | undefined,
+                source_context as string | undefined
             )
             const responseTime = Date.now() - startTime
             logger.info('Files retrieved successfully', { responseTime: `${responseTime}ms`, statusCode: 200 })
@@ -365,7 +366,7 @@ export class FileController {
         try {
             logger.info('Creating S3 upload intent', { method: req.method, path: req.path, ip: req.ip });
             
-            const { file_name, file_type, file_size, group_id } = req.body;
+            const { file_name, file_type, file_size, group_id, source_context } = req.body;
             const userId = (req as any).user?.uuid;
             const workplaceId = (req as any).user?.current_workplace_id;
 
@@ -391,7 +392,8 @@ export class FileController {
                 file_size,
                 userId,
                 workplaceId,
-                group_id
+                group_id,
+                source_context
             );
 
             const responseTime = Date.now() - startTime;
@@ -430,7 +432,7 @@ export class FileController {
         try {
             logger.info('Completing file upload', { method: req.method, path: req.path, ip: req.ip });
             
-            const { file_key, file_name, file_type, file_size, group_id } = req.body;
+            const { file_key, file_name, file_type, file_size, group_id, source_context } = req.body;
             const userId = (req as any).user?.uuid;
             const workplaceId = (req as any).user?.current_workplace_id;
 
@@ -457,7 +459,8 @@ export class FileController {
                 file_size,
                 userId,
                 workplaceId,
-                group_id
+                group_id,
+                source_context
             );
 
             const responseTime = Date.now() - startTime;

@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core'
 import { CommonModule } from '@angular/common'
+import { Router } from '@angular/router'
 import { UserService } from '../../../core/services/user.service'
 import { WorkloadService } from '../../shared/services/workload.service'
 import { ToastService } from '../../../core/services/toast.service'
@@ -44,7 +45,8 @@ export class WorkloadComponent implements OnInit, OnDestroy {
     private userService: UserService,
     private workloadService: WorkloadService,
     private toastService: ToastService,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private router: Router
   ) {
     this.currentTheme = this.themeService.getCurrentTheme()
     this.themeSubscription = this.themeService.currentTheme$.subscribe(theme => {
@@ -73,7 +75,7 @@ export class WorkloadComponent implements OnInit, OnDestroy {
         if (user.uuid && user.current_workplace_id) {
           this.workloadService.getWorkload(user.uuid, user.current_workplace_id).subscribe({
             next: (response: any) => {
-              if(response.data.workload) {
+              if(response.data?.workload) {
                 this.workloadStats = response.data.workload.stats || {
                   total: 0,
                   overdue: 0,
@@ -105,7 +107,7 @@ export class WorkloadComponent implements OnInit, OnDestroy {
               this.tomorrowTasks = []
               this.nextWeekTasks = []
               this.isLoading = false
-              console.log('Error loading workload, arrays reset to empty for empty states')
+              console.error('Error loading workload:', err)
               this.toastService.error('Failed to load workload data. Please try again.')
             }
           })
@@ -125,6 +127,7 @@ export class WorkloadComponent implements OnInit, OnDestroy {
         this.tomorrowTasks = []
         this.nextWeekTasks = []
         this.isLoading = false
+        console.error('Error loading user data:', err)
         this.toastService.error('Failed to load user data. Please try again.')
       }
     })
@@ -134,9 +137,23 @@ export class WorkloadComponent implements OnInit, OnDestroy {
     switch (status) {
       case 'overdue': return 'bg-error text-error-content'
       case 'todo': return 'bg-warning text-warning-content'
-      case 'in-progress': return 'bg-success text-success-content'
-      case 'done': return 'bg-info text-info-content'
+      case 'in_progress': return 'bg-success text-success-content'
+      case 'review': return 'bg-info text-info-content'
+      case 'done': return 'bg-success text-success-content'
       default: return 'bg-base-300'
+    }
+  }
+
+  isOverdue(dueDate: string | Date | null): boolean {
+    if (!dueDate) return false;
+    const due = new Date(dueDate);
+    const now = new Date();
+    return due < now;
+  }
+
+  onTaskClick(task: any): void {
+    if (task.group_id && task.id) {
+      this.router.navigate(['/workplace/work-management', task.group_id, 'tasks', task.id]);
     }
   }
 

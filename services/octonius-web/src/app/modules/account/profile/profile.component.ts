@@ -4,6 +4,7 @@ import { AuthService, User } from '../../../core/services/auth.service';
 import { UserService } from '../../../core/services/user.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { FileService } from '../../../core/services/file.service';
+import { OnboardingService } from '../../../core/services/onboarding.service';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
@@ -41,6 +42,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private toastService: ToastService,
     private fileService: FileService,
+    private onboardingService: OnboardingService,
     private sanitizer: DomSanitizer
   ) {
     this.initializeForm();
@@ -216,6 +218,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.isSaving = false;
         // Show subtle feedback
         this.showSaveIndicator(field);
+        
+        // Check if we should reset onboarding flag (when name fields are saved)
+        if (field === 'first_name' || field === 'last_name') {
+          const hasFirstName = user.first_name && user.first_name.trim() !== '';
+          const hasLastName = user.last_name && user.last_name.trim() !== '';
+          if (hasFirstName && hasLastName) {
+            this.onboardingService.resetOnboardingFlag();
+          }
+        }
       },
       error: (err) => {
         this.toastService.error(`Failed to update ${field}`);
@@ -290,7 +301,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   private uploadAvatar(file: File): void {
     if (!this.user) return;
 
-    this.fileService.uploadFileViaS3(file).subscribe({
+    this.fileService.uploadFileViaS3(file, undefined, 'user').subscribe({
       next: (uploadedFile: any) => {
         const url = uploadedFile.cdn_url || uploadedFile.download_url || uploadedFile.url;
         this.avatarPreview = url;

@@ -1,0 +1,41 @@
+// Component is now rendered at app level, so no need for fixed positioning
+
+// Member list improvements
+.member-item {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Avatar improvements
+.avatar {
+  .w-10 {
+    transition: all 0.2s ease;
+  }
+}
+
+// Radio button improvements
+.radio {
+  transition: all 0.2s ease;
+  
+  &:checked {
+    transform: scale(1.1);
+  }
+}
+
+// Loading state
+.loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+} 

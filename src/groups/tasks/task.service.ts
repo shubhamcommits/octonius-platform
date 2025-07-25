@@ -1330,22 +1330,24 @@ export class TaskService {
                 }
             }
 
-            // Validates that all users are members of the group
-            const groupMembers = await GroupMembership.findAll({
-                where: {
-                    group_id: groupId,
-                    user_id: { [Op.in]: userIds },
-                    status: 'active'
-                },
-                transaction
-            })
+            // Validates that all users are members of the group (only if userIds is not empty)
+            if (userIds.length > 0) {
+                const groupMembers = await GroupMembership.findAll({
+                    where: {
+                        group_id: groupId,
+                        user_id: { [Op.in]: userIds },
+                        status: 'active'
+                    },
+                    transaction
+                })
 
-            if (groupMembers.length !== userIds.length) {
-                throw {
-                    success: false,
-                    message: TaskCode.INVALID_ASSIGNEE,
-                    code: 400,
-                    stack: new Error('One or more users are not members of this group')
+                if (groupMembers.length !== userIds.length) {
+                    throw {
+                        success: false,
+                        message: TaskCode.INVALID_ASSIGNEE,
+                        code: 400,
+                        stack: new Error('One or more users are not members of this group')
+                    }
                 }
             }
 
@@ -1355,14 +1357,16 @@ export class TaskService {
                 transaction
             })
 
-            // Create new assignments
-            const assignmentData = userIds.map(userId => ({
-                task_id: taskId,
-                user_id: userId,
-                assigned_by: assignedBy
-            }))
+            // Create new assignments (only if there are users to assign)
+            if (userIds.length > 0) {
+                const assignmentData = userIds.map(userId => ({
+                    task_id: taskId,
+                    user_id: userId,
+                    assigned_by: assignedBy
+                }))
 
-            await TaskAssignee.bulkCreate(assignmentData, { transaction })
+                await TaskAssignee.bulkCreate(assignmentData, { transaction })
+            }
 
             await transaction.commit()
 

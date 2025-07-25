@@ -20,24 +20,59 @@
       <!-- Task Title and Description -->
       <div>
         <div class="flex items-start justify-between mb-4">
-          <h1 class="text-2xl font-bold text-base-content">{{ task.title }}</h1>
-          <div class="flex gap-2">
-            <button class="btn btn-outline btn-sm" (click)="openEditModal()">
-              <lucide-icon name="Edit" class="w-4 h-4"></lucide-icon>
-              Edit
+          <!-- Live Editable Title -->
+          <div class="flex-1">
+            <div class="space-y-4">
+              <!-- Title Input -->
+              <div class="form-control">
+                <input 
+                  #titleInput
+                  type="text" 
+                  [value]="liveEditData.title" 
+                  (input)="onTitleChange(titleInput.value)"
+                  placeholder="Task title"
+                  class="input input-bordered text-2xl font-bold bg-transparent border-0 p-0 focus:outline-none focus:ring-0" 
+                  required />
+                <div *ngIf="isSaving" class="text-xs text-base-content/60 mt-1">
+                  <span class="loading loading-spinner loading-xs"></span>
+                  Saving...
+                </div>
+              </div>
+              
+              <!-- Description Editor -->
+              <div class="form-control">
+                <app-tiptap-editor
+                  [config]="{
+                    placeholder: 'Task description',
+                    showToolbar: true,
+                    showBubbleMenu: true,
+                    showCharacterCount: true,
+                    maxHeight: '300px',
+                    minHeight: '120px',
+                    toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
+                  }"
+                  [ngModel]="liveEditData.description"
+                  (ngModelChange)="onDescriptionChange($event)">
+                </app-tiptap-editor>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Actions Dropdown -->
+          <div class="dropdown dropdown-end">
+            <button tabindex="0" class="btn btn-ghost btn-sm btn-circle hover:bg-base-200 transition-colors" title="Task actions">
+              <lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon>
             </button>
-            <button class="btn btn-error btn-outline btn-sm" (click)="openDeleteModal()">
-              <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
-              Delete
-            </button>
+            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-lg w-44 border border-base-200">
+              <li>
+                <a (click)="openDeleteModal()" class="flex items-center gap-3 py-2 px-3 rounded-md text-error hover:bg-error/10 transition-colors">
+                  <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
+                  <span class="text-sm">Delete Task</span>
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
-        
-        <!-- Task description -->
-        <div *ngIf="task.description" class="text-base-content/80 leading-relaxed" [appRichHtml]="task.description"></div>
-        <p class="text-base-content/60 italic" *ngIf="!task.description">
-          No description provided
-        </p>
       </div>
 
       <!-- Interaction Bar -->
@@ -48,12 +83,6 @@
         </button>
         
         <span class="text-sm text-base-content/60">Add a comment</span>
-        
-        <div class="flex-grow"></div>
-        
-        <button class="btn btn-ghost btn-sm btn-circle">
-          <lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon>
-        </button>
       </div>
 
       <!-- Tab Navigation -->
@@ -196,37 +225,40 @@
           
           <!-- Add Assignee Button -->
           <button class="flex items-center gap-2 p-2 text-base-content/60 hover:text-base-content/80 hover:bg-base-100 rounded-lg border border-dashed border-base-300 hover:border-base-400 transition-all w-full"
-                  (click)="openAssigneeModal()">
+                  (click)="openAssigneeModal()"
+                  [disabled]="isLoadingMembers">
             <div class="w-6 h-6 rounded-full bg-base-200 flex items-center justify-center">
-              <lucide-icon name="Plus" class="w-3 h-3"></lucide-icon>
+              <span *ngIf="isLoadingMembers" class="loading loading-spinner loading-xs"></span>
+              <lucide-icon *ngIf="!isLoadingMembers" name="Plus" class="w-3 h-3"></lucide-icon>
             </div>
-            <span class="text-sm">Add Assignee</span>
+            <span class="text-sm">{{ isLoadingMembers ? 'Loading...' : 'Add Assignee' }}</span>
           </button>
         </div>
       </div>
 
-      <!-- Due Date Section -->
+      <!-- Priority Section -->
       <div>
-        <h3 class="text-sm font-medium text-base-content/70 mb-3">Due date</h3>
-        <div class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200" 
-             [ngClass]="{
-               'border-error bg-error/5': isOverdue(task.due_date)
-             }">
-          <div class="w-6 h-6 rounded flex items-center justify-center"
-               [ngClass]="{
-                 'bg-error': isOverdue(task.due_date),
-                 'bg-base-200': !isOverdue(task.due_date)
-               }">
-            <lucide-icon name="Calendar" class="w-3 h-3" 
-                        [ngClass]="{
-                          'text-white': isOverdue(task.due_date),
-                          'text-base-content/60': !isOverdue(task.due_date)
-                        }"></lucide-icon>
-          </div>
-          <span class="text-sm font-medium" 
-                [ngClass]="{'text-error': isOverdue(task.due_date)}">
-            {{ formatDate(task.due_date) }}
-          </span>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Priority</h3>
+        <div class="dropdown dropdown-end w-full">
+          <label tabindex="0" class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200 cursor-pointer hover:bg-base-50 transition-colors w-full">
+            <div class="w-6 h-6 rounded flex items-center justify-center"
+                 [ngClass]="{
+                   'bg-success': task.priority === 'low',
+                   'bg-warning': task.priority === 'medium',
+                   'bg-error': task.priority === 'high',
+                   'bg-secondary': task.priority === 'urgent'
+                 }">
+              <lucide-icon name="Flag" class="w-3 h-3 text-white"></lucide-icon>
+            </div>
+            <span class="text-sm font-medium flex-grow">{{ getPriorityLabel(task.priority) }}</span>
+            <lucide-icon name="ChevronDown" class="w-3 h-3 text-base-content/40"></lucide-icon>
+          </label>
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-200">
+            <li><a (click)="updateTaskPriority('low')" [class.active]="task.priority === 'low'">Low</a></li>
+            <li><a (click)="updateTaskPriority('medium')" [class.active]="task.priority === 'medium'">Medium</a></li>
+            <li><a (click)="updateTaskPriority('high')" [class.active]="task.priority === 'high'">High</a></li>
+            <li><a (click)="updateTaskPriority('urgent')" [class.active]="task.priority === 'urgent'">Urgent</a></li>
+          </ul>
         </div>
       </div>
 
@@ -251,6 +283,33 @@
             <li><a (click)="updateTaskStatus('review')" [class.active]="task.status === 'review'">Review</a></li>
             <li><a (click)="updateTaskStatus('done')" [class.active]="task.status === 'done'">Done</a></li>
           </ul>
+        </div>
+      </div>
+
+      <!-- Due Date Section -->
+      <div>
+        <h3 class="text-sm font-medium text-base-content/70 mb-3">Due date</h3>
+        <div class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200 cursor-pointer hover:bg-base-50 transition-colors" 
+             [ngClass]="{
+               'border-error bg-error/5': isOverdue(task.due_date)
+             }"
+             (click)="openDatePicker()">
+          <div class="w-6 h-6 rounded flex items-center justify-center"
+               [ngClass]="{
+                 'bg-error': isOverdue(task.due_date),
+                 'bg-base-200': !isOverdue(task.due_date)
+               }">
+            <lucide-icon name="Calendar" class="w-3 h-3" 
+                        [ngClass]="{
+                          'text-white': isOverdue(task.due_date),
+                          'text-base-content/60': !isOverdue(task.due_date)
+                        }"></lucide-icon>
+          </div>
+          <span class="text-sm font-medium flex-grow" 
+                [ngClass]="{'text-error': isOverdue(task.due_date)}">
+            {{ formatDate(task.due_date) }}
+          </span>
+          <lucide-icon name="ChevronDown" class="w-3 h-3 text-base-content/40"></lucide-icon>
         </div>
       </div>
 
@@ -316,79 +375,7 @@
   </div>
 </div>
 
-<!-- Edit Task Modal -->
-<div class="modal" [class.modal-open]="showEditModal">
-  <div class="modal-box w-11/12 max-w-2xl">
-    <h3 class="font-bold text-lg mb-4">Edit Task</h3>
-    
-    <div class="form-control mb-4">
-      <label class="label">
-        <span class="label-text">Title *</span>
-      </label>
-      <input type="text" class="input input-bordered" [(ngModel)]="editForm.title" placeholder="Task title">
-    </div>
 
-    <div class="form-control mb-4">
-      <label class="label">
-        <span class="label-text">Description</span>
-      </label>
-      <app-tiptap-editor
-        [config]="{
-          placeholder: 'Task description',
-          showToolbar: true,
-          showBubbleMenu: true,
-          showCharacterCount: true,
-          maxHeight: '200px',
-          minHeight: '120px',
-          toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
-        }"
-        [(ngModel)]="editForm.description"
-        name="editFormDescription">
-      </app-tiptap-editor>
-    </div>
-
-    <div class="grid grid-cols-2 gap-4 mb-4">
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">Priority</span>
-        </label>
-        <select class="select select-bordered" [(ngModel)]="editForm.priority">
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="urgent">Urgent</option>
-        </select>
-      </div>
-
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">Status</span>
-        </label>
-        <select class="select select-bordered" [(ngModel)]="editForm.status">
-          <option value="todo">To Do</option>
-          <option value="in_progress">In Progress</option>
-          <option value="review">Review</option>
-          <option value="done">Done</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-control mb-4">
-      <label class="label">
-        <span class="label-text">Due Date</span>
-      </label>
-      <input type="date" class="input input-bordered" [(ngModel)]="editForm.due_date">
-    </div>
-
-    <div class="modal-action">
-      <button class="btn btn-ghost" (click)="closeEditModal()">Cancel</button>
-      <button class="btn btn-primary" [disabled]="!editForm.title.trim() || isSaving" (click)="saveTask()">
-        <span *ngIf="isSaving" class="loading loading-spinner loading-xs"></span>
-        {{ isSaving ? 'Saving...' : 'Save Changes' }}
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- Delete Confirmation Modal -->
 <div class="modal" [class.modal-open]="showDeleteModal">
@@ -409,130 +396,4 @@
     <p class="text-base-content/70 mb-6">The task you're looking for doesn't exist or has been deleted.</p>
     <button class="btn btn-primary" routerLink="../">Back to Tasks</button>
   </div>
-</div>
-
-<!-- Assignee Modal -->
-<div class="modal" [class.modal-open]="showAssigneeModal">
-  <div class="modal-box w-11/12 max-w-md">
-    <h3 class="font-bold text-lg mb-4">Manage Assignees</h3>
-    
-    <div *ngIf="isLoadingMembers" class="flex justify-center py-4">
-      <div class="loading loading-spinner loading-md"></div>
-    </div>
-
-    <div *ngIf="!isLoadingMembers" class="space-y-2 max-h-60 overflow-y-auto">
-      <div *ngFor="let member of groupMembers" class="flex items-center gap-3 p-2 hover:bg-base-100 rounded">
-        <input type="checkbox" 
-               class="checkbox checkbox-sm" 
-               [checked]="assigneeForm.selectedUserIds.includes(member.uuid)"
-               (change)="toggleAssignee(member.uuid, $event)" />
-        <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
-                     <img [src]="getUserAvatarUrl(member)" 
-               [alt]="getUserDisplayName(member)"
-               class="w-full h-full object-cover" />
-        </div>
-        <span class="text-sm">{{ getUserDisplayName(member) }}</span>
-      </div>
-    </div>
-
-    <div class="modal-action">
-      <button class="btn btn-ghost" (click)="closeAssigneeModal()">Cancel</button>
-      <button class="btn btn-primary" (click)="saveAssignees()">Save Changes</button>
-    </div>
-  </div>
-</div>
-
-<!-- Time Entry Modal -->
-<div class="modal" [class.modal-open]="showTimeEntryModal">
-  <div class="modal-box w-11/12 max-w-md">
-    <h3 class="font-bold text-lg mb-4">Add Time Entry</h3>
-    
-    <div class="form-control mb-4">
-      <label class="label">
-        <span class="label-text">Hours *</span>
-      </label>
-      <input type="number" 
-             class="input input-bordered" 
-             [(ngModel)]="timeEntryForm.hours" 
-             placeholder="0.5" 
-             step="0.25" 
-             min="0.25" />
-    </div>
-
-    <div class="form-control mb-4">
-      <label class="label">
-        <span class="label-text">Description</span>
-      </label>
-      <app-tiptap-editor
-        [config]="{
-          placeholder: 'What did you work on?',
-          showToolbar: true,
-          showBubbleMenu: true,
-          showCharacterCount: true,
-          maxHeight: '150px',
-          minHeight: '100px',
-          toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList']
-        }"
-        [(ngModel)]="timeEntryForm.description"
-        name="timeEntryFormDescription">
-      </app-tiptap-editor>
-    </div>
-
-    <div class="form-control mb-4">
-      <label class="label">
-        <span class="label-text">Date</span>
-      </label>
-      <input type="date" 
-             class="input input-bordered" 
-             [(ngModel)]="timeEntryForm.date" />
-    </div>
-
-    <div class="modal-action">
-      <button class="btn btn-ghost" (click)="closeTimeEntryModal()">Cancel</button>
-      <button class="btn btn-primary" 
-              [disabled]="timeEntryForm.hours <= 0 || isAddingTimeEntry" 
-              (click)="addTimeEntry()">
-        <span *ngIf="isAddingTimeEntry" class="loading loading-spinner loading-xs"></span>
-        {{ isAddingTimeEntry ? 'Adding...' : 'Add Entry' }}
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Custom Fields Modal -->
-<div class="modal" [class.modal-open]="showCustomFieldsModal">
-  <div class="modal-box w-11/12 max-w-md">
-    <h3 class="font-bold text-lg mb-4">Add Custom Field</h3>
-    
-    <div class="form-control mb-4">
-      <label class="label">
-        <span class="label-text">Field Name *</span>
-      </label>
-      <input type="text" 
-             class="input input-bordered" 
-             [(ngModel)]="customFieldsForm.fieldName" 
-             name="customFieldName"
-             placeholder="e.g., Stage, Department, etc." />
-    </div>
-
-    <div class="form-control mb-4">
-      <label class="label">
-        <span class="label-text">Field Value *</span>
-      </label>
-      <input type="text" 
-             class="input input-bordered" 
-             [(ngModel)]="customFieldsForm.fieldValue" 
-             name="customFieldValue"
-             placeholder="Enter field value" />
-    </div>
-
-    <div class="modal-action">
-      <button class="btn btn-ghost" (click)="closeCustomFieldsModal()">Cancel</button>
-      <button class="btn btn-primary" 
-              [disabled]="!customFieldsForm.fieldName.trim() || !customFieldsForm.fieldValue.trim() || isUpdatingCustomFields" 
-              (click)="saveCustomFields()">
-        <span *ngIf="isUpdatingCustomFields" class="loading loading-spinner loading-xs"></span>
-        {{ isUpdatingCustomFields ? 'Adding...' : 'Add Field' }}
-      </button>
-    </div>
-  </div> 
+</div> 

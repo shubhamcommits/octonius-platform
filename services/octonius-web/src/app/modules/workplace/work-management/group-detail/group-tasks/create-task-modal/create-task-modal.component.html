@@ -1,0 +1,143 @@
+<div class="w-full">
+  <h3 class="font-bold text-lg mb-4">Create New Task</h3>
+  
+  <form (ngSubmit)="onSubmit()" class="space-y-4">
+    <!-- Task Title -->
+    <div class="form-control">
+      <label class="label">
+        <span class="label-text font-medium">Task Title *</span>
+      </label>
+      <input 
+        type="text" 
+        [(ngModel)]="taskData.title" 
+        name="title"
+        placeholder="What needs to be done?"
+        class="input input-bordered w-full" 
+        [class.input-error]="errors['title']"
+        required />
+      <label *ngIf="errors['title']" class="label">
+        <span class="label-text-alt text-error">{{ errors['title'] }}</span>
+      </label>
+    </div>
+
+    <!-- Description -->
+    <div class="form-control">
+      <label class="label">
+        <span class="label-text font-medium">Description (optional)</span>
+      </label>
+      <textarea 
+        [(ngModel)]="taskData.description" 
+        name="description"
+        placeholder="Provide additional details about this task..."
+        class="textarea textarea-bordered w-full min-h-[120px] resize-none"
+        rows="4"></textarea>
+    </div>
+
+    <!-- Priority and Status -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-medium">Priority</span>
+        </label>
+        <div class="dropdown dropdown-end w-full">
+          <label tabindex="0" class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200 cursor-pointer hover:bg-base-50 transition-colors w-full">
+            <div class="w-6 h-6 rounded flex items-center justify-center"
+                 [ngClass]="{
+                   'bg-success': taskData.priority === 'low',
+                   'bg-warning': taskData.priority === 'medium',
+                   'bg-error': taskData.priority === 'high',
+                   'bg-secondary': taskData.priority === 'urgent'
+                 }">
+              <lucide-icon name="Flag" class="w-3 h-3 text-white"></lucide-icon>
+            </div>
+            <span class="text-sm font-medium flex-grow">{{ getPriorityLabel(taskData.priority) }}</span>
+            <lucide-icon name="ChevronDown" class="w-3 h-3 text-base-content/40"></lucide-icon>
+          </label>
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-200">
+            <li><a (click)="taskData.priority = 'low'" [class.active]="taskData.priority === 'low'">Low</a></li>
+            <li><a (click)="taskData.priority = 'medium'" [class.active]="taskData.priority === 'medium'">Medium</a></li>
+            <li><a (click)="taskData.priority = 'high'" [class.active]="taskData.priority === 'high'">High</a></li>
+            <li><a (click)="taskData.priority = 'urgent'" [class.active]="taskData.priority === 'urgent'">Urgent</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-medium">Status</span>
+        </label>
+        <div class="dropdown dropdown-end w-full">
+          <label tabindex="0" class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200 cursor-pointer hover:bg-base-50 transition-colors w-full">
+            <div class="w-6 h-6 rounded flex items-center justify-center"
+                 [ngClass]="{
+                   'bg-warning': taskData.status === 'in_progress',
+                   'bg-info': taskData.status === 'todo',
+                   'bg-success': taskData.status === 'done',
+                   'bg-secondary': taskData.status === 'review'
+                 }">
+              <lucide-icon name="Circle" class="w-3 h-3 text-white"></lucide-icon>
+            </div>
+            <span class="text-sm font-medium flex-grow">{{ getStatusLabel(taskData.status) }}</span>
+            <lucide-icon name="ChevronDown" class="w-3 h-3 text-base-content/40"></lucide-icon>
+          </label>
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-200">
+            <li><a (click)="taskData.status = 'todo'" [class.active]="taskData.status === 'todo'">To Do</a></li>
+            <li><a (click)="taskData.status = 'in_progress'" [class.active]="taskData.status === 'in_progress'">In Progress</a></li>
+            <li><a (click)="taskData.status = 'review'" [class.active]="taskData.status === 'review'">Review</a></li>
+            <li><a (click)="taskData.status = 'done'" [class.active]="taskData.status === 'done'">Done</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Due Date and Color -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-medium">Due Date (optional)</span>
+        </label>
+        <input 
+          type="date" 
+          [(ngModel)]="taskData.due_date" 
+          name="due_date"
+          class="input input-bordered w-full"
+          [class.input-error]="errors['due_date']" />
+        <label *ngIf="errors['due_date']" class="label">
+          <span class="label-text-alt text-error">{{ errors['due_date'] }}</span>
+        </label>
+      </div>
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-medium">Task Color</span>
+        </label>
+        <div class="flex items-center gap-3">
+          <input 
+            type="color" 
+            [(ngModel)]="taskData.color" 
+            name="color"
+            class="input input-bordered w-16 h-12 p-1 cursor-pointer" />
+          <span class="text-sm text-base-content/70">{{ taskData.color }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="modal-action">
+      <button 
+        type="button" 
+        class="btn btn-ghost"
+        (click)="onCancel()"
+        [disabled]="isSubmitting">
+        Cancel
+      </button>
+      <button 
+        type="submit" 
+        class="btn btn-primary"
+        [disabled]="!taskData.title.trim() || isSubmitting">
+        <span *ngIf="isSubmitting" class="loading loading-spinner loading-sm"></span>
+        {{ isSubmitting ? 'Creating...' : 'Create Task' }}
+      </button>
+    </div>
+  </form>
+</div> 

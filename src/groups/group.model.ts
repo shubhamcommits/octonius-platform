@@ -12,7 +12,7 @@ interface GroupAttributes {
     image_url: string | null
     workplace_id: string
     created_by: string
-    type: 'private' | 'regular'
+    type: 'private' | 'regular' | 'public'
     is_active: boolean
     settings: {
         allow_member_invites: boolean
@@ -40,7 +40,7 @@ export class Group extends Model<GroupAttributes, GroupCreationAttributes> imple
     public image_url!: string | null
     public workplace_id!: string
     public created_by!: string
-    public type!: 'private' | 'regular'
+    public type!: 'private' | 'regular' | 'public'
     public is_active!: boolean
     public settings!: {
         allow_member_invites: boolean
@@ -141,7 +141,7 @@ Group.init({
         }
     },
     type: {
-        type: DataTypes.ENUM('private', 'regular'),
+        type: DataTypes.ENUM('private', 'regular', 'public'),
         allowNull: false,
         defaultValue: 'regular'
     },
