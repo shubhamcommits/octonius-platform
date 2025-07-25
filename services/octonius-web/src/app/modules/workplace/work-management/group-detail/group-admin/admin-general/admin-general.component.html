@@ -1,0 +1,234 @@
+<!-- General Settings Tab -->
+<div class="min-h-full bg-base-50/30">
+  <div class="max-w-7xl mx-auto p-8">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <!-- Left Column - Main Settings -->
+      <div class="xl:col-span-2 space-y-8">
+        <!-- Basic Information -->
+        <section class="card bg-base-200 border-2 border-primary/40">
+          <div class="card-body p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="p-2 bg-primary/10 rounded-lg">
+                <lucide-icon name="Info" class="w-5 h-5 text-primary"></lucide-icon>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-base-content">Basic Information</h3>
+                <p class="text-sm text-base-content/60">Essential details about your group</p>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Group Name -->
+              <div class="lg:col-span-2">
+                <label class="label">
+                  <span class="label-text font-semibold text-base-content/80">Group Name</span>
+                  <span class="label-text-alt text-error">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="groupForm.name"
+                  class="input input-bordered w-full focus:border-primary"
+                  placeholder="Enter a descriptive group name">
+              </div>
+
+              <!-- Description -->
+              <div class="lg:col-span-2 w-full">
+                <label class="label">
+                  <span class="label-text font-semibold text-base-content/80">Description</span>
+                </label>
+                <app-tiptap-editor
+                  [config]="{
+                    placeholder: 'Describe the purpose and goals of this group...',
+                    showToolbar: true,
+                    showBubbleMenu: true,
+                    showCharacterCount: true,
+                    maxHeight: '200px',
+                    minHeight: '120px',
+                    toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
+                  }"
+                  [(ngModel)]="groupForm.description"
+                  name="groupFormDescription">
+                </app-tiptap-editor>
+              </div>
+
+              <!-- Group Image URL -->
+              <div class="lg:col-span-2">
+                <label class="label">
+                  <span class="label-text font-semibold text-base-content/80">Group Image URL</span>
+                </label>
+                <input 
+                  type="url" 
+                  [(ngModel)]="groupForm.imageUrl"
+                  class="input input-bordered w-full focus:border-primary"
+                  placeholder="https://example.com/image.jpg"
+                  [readonly]="imageUrlLocked" [disabled]="imageUrlLocked" />
+                <div class="label">
+                  <span class="label-text-alt text-base-content/60">URL to an image that represents this group</span>
+                </div>
+                <div *ngIf="imageUrlLocked" class="mt-2">
+                  <button type="button" class="btn btn-xs btn-outline btn-error" (click)="clearImageUpload()">
+                    Clear uploaded image
+                  </button>
+              </div>
+                <!-- Image Upload UI -->
+                <div class="mt-3 flex flex-col gap-2">
+                  <label class="block font-medium mb-1">Or upload an image</label>
+                  <input type="file" accept="image/*" class="file-input file-input-bordered w-full max-w-xs" (change)="onImageFileSelected($event)" [disabled]="uploading" />
+                  <div *ngIf="imagePreviewUrl || groupForm.imageUrl" class="mt-2">
+                    <span class="block text-xs mb-1">Preview:</span>
+                    <img [src]="imagePreviewUrl || groupForm.imageUrl" alt="Image preview" class="rounded-lg border border-base-300 max-h-32" />
+                  </div>
+                  <div *ngIf="uploading" class="flex items-center gap-2 mt-2">
+                    <span class="loading loading-spinner loading-md text-primary"></span>
+                    <span class="text-xs">Uploading image...</span>
+                  </div>
+                  <div *ngIf="uploadError" class="text-error text-xs mt-1">{{ uploadError }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Additional Information -->
+        <section class="card bg-base-200 border-2 border-primary/40">
+          <div class="card-body p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="p-2 bg-secondary/10 rounded-lg">
+                <lucide-icon name="Users" class="w-5 h-5 text-secondary"></lucide-icon>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-base-content">Organization Details</h3>
+                <p class="text-sm text-base-content/60">Categorize and organize your group</p>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Category -->
+              <div>
+                <label class="label">
+                  <span class="label-text font-semibold text-base-content/80">Category</span>
+                </label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="groupForm.metadata.category"
+                  class="input input-bordered w-full focus:border-primary"
+                  placeholder="e.g., Development, Marketing, HR">
+                <div class="label">
+                  <span class="label-text-alt text-base-content/60">What type of work does this group do?</span>
+                </div>
+              </div>
+
+              <!-- Department -->
+              <div>
+                <label class="label">
+                  <span class="label-text font-semibold text-base-content/80">Department</span>
+                </label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="groupForm.metadata.department"
+                  class="input input-bordered w-full focus:border-primary"
+                  placeholder="e.g., Engineering, Sales">
+                <div class="label">
+                  <span class="label-text-alt text-base-content/60">Which department does this group belong to?</span>
+                </div>
+              </div>
+
+              <!-- Tags -->
+              <div class="lg:col-span-2">
+                <label class="label">
+                  <span class="label-text font-semibold text-base-content/80">Tags</span>
+                </label>
+                <div class="flex gap-3 mb-4">
+                  <input 
+                    type="text" 
+                    [(ngModel)]="newTag"
+                    class="input input-bordered flex-1 focus:border-primary"
+                    placeholder="Add tags to help categorize your group" 
+                    (keypress)="onTagInputKeyPress($event)">
+                  <button type="button" 
+                    class="btn btn-outline btn-primary" 
+                    (click)="addTag()"
+                    [disabled]="!newTag.trim() || groupForm.metadata.tags.length >= 10">
+                    <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon>
+                    Add Tag
+                  </button>
+                </div>
+                
+                <!-- Tags Display -->
+                <div *ngIf="groupForm.metadata.tags.length > 0" class="flex flex-wrap gap-2 mb-3">
+                  <span 
+                    *ngFor="let tag of groupForm.metadata.tags; let i = index" 
+                    class="badge badge-primary gap-2 px-3 py-2 text-sm font-medium transition-all duration-200 hover:scale-105">
+                    {{ tag }}
+                    <button type="button" 
+                      class="btn btn-ghost btn-xs hover:bg-error/20 hover:text-error rounded-full" 
+                      (click)="removeTag(i)">
+                      <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
+                    </button>
+                  </span>
+                </div>
+                
+                <div class="label">
+                  <span class="label-text-alt text-base-content/60">
+                    Add up to 10 tags to help categorize your group ({{ groupForm.metadata.tags.length }}/10)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column - Preview & Actions -->
+      <div class="space-y-6">
+        <!-- Group Preview -->
+        <div class="card bg-gradient-to-br from-primary/10 to-secondary/10 border-2 border-primary/40">
+          <div class="card-body p-6">
+            <h4 class="font-semibold text-base-content mb-4 flex items-center gap-2">
+              <lucide-icon name="Eye" class="w-4 h-4"></lucide-icon>
+              Preview
+            </h4>
+            <div class="bg-base-100 rounded-lg p-4 border border-base-200">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <lucide-icon name="Users" class="w-6 h-6 text-primary"></lucide-icon>
+                </div>
+                <div>
+                  <p class="font-medium text-base-content">{{ groupForm.name || 'Group Name' }}</p>
+                  <p class="text-sm text-base-content/60">{{ groupForm.metadata.category || 'Category' }}</p>
+                </div>
+              </div>
+              <p class="text-sm text-base-content/70 mb-3">{{ groupForm.description || 'Group description will appear here...' }}</p>
+              <div class="flex flex-wrap gap-1">
+                <span *ngFor="let tag of groupForm.metadata.tags" class="badge badge-outline badge-xs">{{ tag }}</span>
+                <span *ngIf="groupForm.metadata.tags.length === 0" class="badge badge-outline badge-xs opacity-50">No tags yet</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card bg-base-200 border-2 border-primary/40">
+          <div class="card-body p-6">
+            <h4 class="font-semibold text-base-content mb-4">Actions</h4>
+            <div class="space-y-3">
+              <button type="button" 
+                      (click)="saveGeneralSettings()" 
+                      [disabled]="isSaving || !groupForm.name.trim() || !isFormDirty" 
+                      class="btn btn-primary w-full">
+                <lucide-icon name="Save" class="w-4 h-4"></lucide-icon>
+                <span *ngIf="!isSaving">Save Changes</span>
+                <span *ngIf="isSaving">Saving...</span>
+                <span *ngIf="isSaving" class="loading loading-spinner loading-sm"></span>
+              </button>
+              <button type="button" class="btn btn-ghost w-full" (click)="loadGroupDetails()">
+                <lucide-icon name="RotateCcw" class="w-4 h-4"></lucide-icon>
+                Reset to Defaults
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

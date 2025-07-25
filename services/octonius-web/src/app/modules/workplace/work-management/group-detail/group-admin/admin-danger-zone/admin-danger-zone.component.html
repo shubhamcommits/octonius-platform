@@ -1,0 +1,194 @@
+<ng-container>
+  <!-- Delete Confirmation Modal -->
+  <div *ngIf="showDeleteModal" class="modal modal-open" (click)="closeDeleteModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <h3 class="font-bold text-lg text-error mb-4">Delete Group</h3>
+      
+      <div class="space-y-4">
+        <p class="text-base-content/80">
+          This action cannot be undone. This will permanently delete the 
+          <strong>{{ group?.name }}</strong> group and all of its content.
+        </p>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Please type <strong>{{ group?.name }}</strong> to confirm:</span>
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="deleteConfirmText"
+            class="input input-bordered w-full"
+            placeholder="Type group name here">
+        </div>
+      </div>
+
+      <div class="modal-action">
+        <button type="button" class="btn" (click)="closeDeleteModal()">Cancel</button>
+        <button type="button" 
+                class="btn btn-error" 
+                (click)="deleteGroup()" 
+                [disabled]="deleteConfirmText !== group?.name">
+          Delete Group
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Danger Zone Tab Content -->
+  <div class="min-h-full bg-base-50/30">
+    <div class="max-w-7xl mx-auto p-8">
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <!-- Left: Danger actions -->
+        <div class="xl:col-span-2 space-y-8">
+          <!-- Delete Group Section -->
+          <section class="card bg-gradient-to-br from-error/5 to-error/10 border border-error/30">
+            <div class="card-body p-8">
+              <div class="flex items-start gap-6">
+                <div class="p-4 bg-error/20 rounded-xl flex-shrink-0">
+                  <lucide-icon name="Trash2" class="w-8 h-8 text-error"></lucide-icon>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-2xl font-bold text-error mb-3">Delete this group</h3>
+                  <div class="prose prose-sm max-w-none text-base-content/80 mb-6">
+                    <p class="mb-3">
+                      <strong>This action cannot be undone.</strong> Deleting this group will permanently:
+                    </p>
+                    <ul class="list-disc pl-6 space-y-1">
+                      <li>Remove the group and all its settings</li>
+                      <li>Delete all group content, tasks, and activities</li>
+                      <li>Remove all members from the group</li>
+                      <li>Clear all group-related notifications and history</li>
+                      <li>Revoke all group-specific permissions</li>
+                    </ul>
+                    <p class="mt-4 text-warning font-medium">
+                      ⚠️ This will affect {{ group?.memberCount || 0 }} group members.
+                    </p>
+                  </div>
+                  
+                  <div class="flex flex-col sm:flex-row gap-4">
+                    <button *ngIf="canDeleteGroup()" 
+                            type="button"
+                            (click)="openDeleteModal()" 
+                            class="btn btn-error gap-3 flex-shrink-0">
+                      <lucide-icon name="Trash2" class="w-5 h-5"></lucide-icon>
+                      Delete Group Permanently
+                    </button>
+                    
+                    <div *ngIf="!canDeleteGroup()" 
+                         class="alert alert-warning shadow-sm">
+                      <lucide-icon name="Lock" class="w-5 h-5"></lucide-icon>
+                      <div>
+                        <h4 class="font-semibold">Insufficient Permissions</h4>
+                        <p class="text-sm">Only group administrators can delete this group.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <!-- Archive Group Section (if present) -->
+          <section class="mt-8 card bg-base-200 border border-base-200 opacity-60">
+            <div class="card-body p-8">
+              <div class="flex items-start gap-6">
+                <div class="p-4 bg-base-200 rounded-xl flex-shrink-0">
+                  <lucide-icon name="Archive" class="w-8 h-8 text-base-content/40"></lucide-icon>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-xl font-semibold text-base-content/60 mb-2">Archive Group</h3>
+                  <p class="text-base-content/50 mb-4">
+                    Archive this group to make it read-only while preserving all data. 
+                    Members won't be able to add new content, but existing content remains accessible.
+                  </p>
+                  <button type="button" class="btn btn-disabled gap-2" disabled>
+                    <lucide-icon name="Archive" class="w-4 h-4"></lucide-icon>
+                    Coming Soon
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+        <!-- Right: Info cards -->
+        <div class="space-y-6">
+          <div class="card bg-base-200 border-2 border-primary/40">
+            <div class="card-body p-6">
+              <!-- Safety Checklist content -->
+              <h4 class="font-semibold text-base-content mb-4 flex items-center gap-2">
+                <lucide-icon name="Shield" class="w-4 h-4"></lucide-icon>
+                Safety Checklist
+              </h4>
+              <div class="space-y-3">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="checkbox checkbox-sm">
+                  <span class="text-sm">I have exported any important data</span>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="checkbox checkbox-sm">
+                  <span class="text-sm">I have notified all group members</span>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="checkbox checkbox-sm">
+                  <span class="text-sm">I understand this action is permanent</span>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="checkbox checkbox-sm">
+                  <span class="text-sm">I have admin authority to do this</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="card bg-base-200 border-2 border-primary/40">
+            <div class="card-body p-6">
+              <!-- Group Details content -->
+              <h4 class="font-semibold text-base-content mb-4 flex items-center gap-2">
+                <lucide-icon name="Info" class="w-4 h-4"></lucide-icon>
+                Group Details
+              </h4>
+              <div class="space-y-3 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-base-content/60">Group Name:</span>
+                  <span class="font-medium">{{ group?.name || 'N/A' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-base-content/60">Members:</span>
+                  <span class="font-medium">{{ group?.memberCount || 0 }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-base-content/60">Created:</span>
+                  <span class="font-medium">{{ group?.createdAt ? (group?.createdAt | date:'shortDate') : 'N/A' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-base-content/60">Your Role:</span>
+                  <span class="badge badge-sm badge-outline">{{ getCurrentUserRole() || 'Unknown' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card bg-base-200 border-2 border-primary/40">
+            <div class="card-body p-6">
+              <!-- Need Help content -->
+              <h4 class="font-semibold text-base-content mb-3 flex items-center gap-2">
+                <lucide-icon name="HelpCircle" class="w-4 h-4"></lucide-icon>
+                Need Help?
+              </h4>
+              <p class="text-sm text-base-content/70 mb-4">
+                If you're unsure about deleting this group, consider reaching out for assistance.
+              </p>
+              <div class="space-y-2">
+                <button type="button" class="btn btn-ghost btn-sm w-full justify-start gap-2">
+                  <lucide-icon name="MessageCircle" class="w-4 h-4"></lucide-icon>
+                  Contact Support
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm w-full justify-start gap-2">
+                  <lucide-icon name="FileText" class="w-4 h-4"></lucide-icon>
+                  View Documentation
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-container>

@@ -1,0 +1,320 @@
+<ng-container>
+  <!-- Modals at root level -->
+  <!-- Invite Member Modal -->
+  <div *ngIf="showInviteMemberModal" class="modal modal-open" (click)="closeInviteMemberModal()">
+    <div class="modal-box max-w-md" (click)="$event.stopPropagation()">
+      <h3 class="font-bold text-lg mb-4">Invite Member</h3>
+      
+      <div class="space-y-4">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Email Address</span>
+          </label>
+          <input 
+            type="email" 
+            [(ngModel)]="inviteForm.email"
+            class="input input-bordered w-full"
+            placeholder="colleague@company.com"
+            [class.input-error]="inviteForm.email && !isValidEmail(inviteForm.email)">
+          <div *ngIf="inviteForm.email && !isValidEmail(inviteForm.email)" class="label">
+            <span class="label-text-alt text-error">Please enter a valid email address</span>
+          </div>
+        </div>
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Role</span>
+          </label>
+          <select [(ngModel)]="inviteForm.role" class="select select-bordered w-full">
+            <option value="viewer">Viewer - Can view content only</option>
+            <option value="member">Member - Can participate and contribute</option>
+            <option value="admin">Admin - Can manage group settings</option>
+          </select>
+        </div>
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Personal Message (Optional)</span>
+          </label>
+          <textarea 
+            [(ngModel)]="inviteForm.message"
+            placeholder="Add a personal message to your invitation..."
+            class="textarea textarea-bordered w-full"
+            rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-action">
+        <button type="button" class="btn btn-ghost" (click)="closeInviteMemberModal()">Cancel</button>
+        <button type="button" 
+                class="btn btn-primary" 
+                (click)="sendInvitation()" 
+                [disabled]="!inviteForm.email.trim() || !isValidEmail(inviteForm.email) || isSendingInvite">
+          <span *ngIf="!isSendingInvite">Send Invitation</span>
+          <span *ngIf="isSendingInvite" class="loading loading-spinner loading-sm"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Member Modal -->
+  <div *ngIf="showAddMemberModal" class="modal modal-open" (click)="closeAddMemberModal()">
+    <div class="modal-box max-w-md" (click)="$event.stopPropagation()">
+      <h3 class="font-bold text-lg mb-4">Add Existing User</h3>
+      
+      <div class="space-y-4">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Search Users</span>
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="userSearchQuery"
+            class="input input-bordered w-full"
+            placeholder="Search by name or email..."
+            (input)="searchUsers()">
+        </div>
+
+        <!-- Search Results -->
+        <div *ngIf="searchResults.length > 0" class="max-h-60 overflow-y-auto border border-base-200 rounded-lg">
+          <div *ngFor="let user of searchResults" 
+               class="flex items-center justify-between p-3 hover:bg-base-200 cursor-pointer"
+               (click)="selectUser(user)">
+            <div class="flex items-center gap-3">
+              <div class="avatar placeholder">
+                <div class="bg-neutral text-neutral-content rounded-full w-8">
+                  <span class="text-xs">{{ user.initials }}</span>
+                </div>
+              </div>
+              <div>
+                <p class="font-medium text-sm">{{ user.displayName }}</p>
+                <p class="text-xs text-base-content/60">{{ user.email }}</p>
+              </div>
+            </div>
+            <lucide-icon *ngIf="selectedUser?.uuid === user.uuid" name="Check" class="w-4 h-4 text-success"></lucide-icon>
+          </div>
+        </div>
+
+        <!-- No Results -->
+        <div *ngIf="userSearchQuery.length >= 2 && searchResults.length === 0" class="text-center py-4 text-base-content/60">
+          <p class="text-sm">No users found matching "{{ userSearchQuery }}"</p>
+        </div>
+
+        <!-- Selected User -->
+        <div *ngIf="selectedUser" class="alert alert-info">
+          <div class="flex items-center gap-3">
+            <div class="avatar placeholder">
+              <div class="bg-neutral text-neutral-content rounded-full w-10">
+                <span class="text-sm">{{ selectedUser.initials }}</span>
+              </div>
+            </div>
+            <div>
+              <p class="font-medium">{{ selectedUser.displayName }}</p>
+              <p class="text-sm opacity-70">{{ selectedUser.email }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div *ngIf="selectedUser" class="form-control">
+          <label class="label">
+            <span class="label-text">Role</span>
+          </label>
+          <select [(ngModel)]="newMemberRole" class="select select-bordered w-full">
+            <option value="viewer">Viewer</option>
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-action">
+        <button type="button" class="btn btn-ghost" (click)="closeAddMemberModal()">Cancel</button>
+        <button type="button" 
+                class="btn btn-primary" 
+                (click)="addMember()" 
+                [disabled]="!selectedUser">
+          Add to Group
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Members Tab Content -->
+  <div class="min-h-full bg-base-50/30">
+    <div class="max-w-7xl mx-auto p-8">
+      <!-- Header Section -->
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4">
+          <div class="p-3 bg-primary/10 rounded-xl">
+            <lucide-icon name="Users" class="w-6 h-6 text-primary"></lucide-icon>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-base-content">Group Members</h2>
+            <p class="text-base-content/60">Manage who has access to this group and their permissions</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button *ngIf="canManageMembers()" 
+                  (click)="openInviteMemberModal()" 
+                  type="button"
+                  class="btn btn-primary gap-2">
+            <lucide-icon name="Mail" class="w-5 h-5"></lucide-icon>
+            Invite Member
+          </button>
+          <button *ngIf="canManageMembers()" 
+                  (click)="openAddMemberModal()" 
+                  type="button"
+                  class="btn btn-outline btn-primary gap-2">
+            <lucide-icon name="UserPlus" class="w-5 h-5"></lucide-icon>
+            Add Existing User
+          </button>
+        </div>
+      </div>
+
+      <!-- Members List -->
+      <div class="card bg-base-200 border-2 border-primary/40">
+        <div class="card-body p-0">
+          <!-- Loading State -->
+          <div *ngIf="isLoadingMembers" class="p-12 text-center">
+            <div class="flex flex-col items-center gap-4">
+              <span class="loading loading-spinner loading-lg text-primary"></span>
+              <div>
+                <p class="font-medium text-base-content">Loading members...</p>
+                <p class="text-sm text-base-content/60">Please wait while we fetch the group members</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Members List -->
+          <div *ngIf="!isLoadingMembers" class="divide-y divide-base-200">
+            <!-- Table Header -->
+            <div class="bg-base-50 px-6 py-4">
+              <div class="grid grid-cols-12 gap-4 text-sm font-semibold text-base-content/70 uppercase tracking-wider">
+                <div class="col-span-5">Member</div>
+                <div class="col-span-2">Role</div>
+                <div class="col-span-2">Status</div>
+                <div class="col-span-2">Joined</div>
+                <div class="col-span-1">Actions</div>
+              </div>
+            </div>
+
+            <!-- Member Rows -->
+            <div *ngFor="let member of members; let i = index" 
+                 class="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-base-50 transition-colors duration-200">
+              <!-- Member Info -->
+              <div class="col-span-5 flex items-center gap-4">
+                <div class="avatar">
+                  <div class="w-12 h-12 rounded-full ring-2 ring-base-200">
+                    <div *ngIf="getUserAvatarUrl(member.user); else memberInitials" 
+                         class="w-full h-full rounded-full overflow-hidden">
+                      <img [src]="getUserAvatarUrl(member.user)" [alt]="member.user.displayName" class="object-cover">
+                    </div>
+                    <ng-template #memberInitials>
+                      <div class="w-full h-full rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center text-sm font-bold">
+                        {{ member.user.initials }}
+                      </div>
+                    </ng-template>
+                  </div>
+                </div>
+                
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <p class="font-semibold text-base-content truncate">{{ member.user.displayName }}</p>
+                    <span *ngIf="member.user.uuid === currentUser?.uuid" 
+                          class="badge badge-info badge-sm">You</span>
+                  </div>
+                  <p class="text-sm text-base-content/60 truncate">{{ member.user.email }}</p>
+                </div>
+              </div>
+
+              <!-- Role -->
+              <div class="col-span-2 flex items-center">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium"
+                      [ngClass]="{
+                        'bg-error/20 text-error border border-error/30': member.role === 'admin',
+                        'bg-info/20 text-info border border-info/30': member.role === 'member',
+                        'bg-warning/20 text-warning border border-warning/30': member.role === 'viewer'
+                      }">
+                  {{ member.role | titlecase }}
+                </span>
+              </div>
+
+              <!-- Status -->
+              <div class="col-span-2 flex items-center">
+                <span *ngIf="member.status === 'pending'" class="badge badge-warning gap-2">
+                  <div class="w-2 h-2 rounded-full bg-warning animate-pulse"></div>
+                  Pending
+                </span>
+                <span *ngIf="member.status === 'active'" class="badge badge-success gap-2">
+                  <div class="w-2 h-2 rounded-full bg-success"></div>
+                  Active
+                </span>
+              </div>
+
+              <!-- Joined Date -->
+              <div class="col-span-2 flex items-center">
+                <span class="text-sm text-base-content/60">{{ member.joinedAt ? (member.joinedAt | date:'shortDate') : 'N/A' }}</span>
+              </div>
+
+              <!-- Actions -->
+              <div class="col-span-1 flex items-center justify-end">
+                <div *ngIf="canManageMembers() && member.user.uuid !== currentUser?.uuid" class="dropdown dropdown-end">
+                  <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
+                    <lucide-icon name="MoreVertical" class="w-4 h-4"></lucide-icon>
+                  </div>
+                  <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200">
+                    <li>
+                      <a (click)="updateMemberRole(member, 'viewer')" [class.active]="member.role === 'viewer'">
+                        <lucide-icon name="Eye" class="w-4 h-4"></lucide-icon>
+                        Make Viewer
+                      </a>
+                    </li>
+                    <li>
+                      <a (click)="updateMemberRole(member, 'member')" [class.active]="member.role === 'member'">
+                        <lucide-icon name="User" class="w-4 h-4"></lucide-icon>
+                        Make Member
+                      </a>
+                    </li>
+                    <li>
+                      <a (click)="updateMemberRole(member, 'admin')" [class.active]="member.role === 'admin'">
+                        <lucide-icon name="Shield" class="w-4 h-4"></lucide-icon>
+                        Make Admin
+                      </a>
+                    </li>
+                    <li><hr class="my-1"></li>
+                    <li>
+                      <a (click)="removeMember(member)" class="text-error">
+                        <lucide-icon name="UserMinus" class="w-4 h-4"></lucide-icon>
+                        Remove Member
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="members.length === 0" class="p-12 text-center">
+              <div class="flex flex-col items-center gap-4">
+                <div class="p-4 bg-base-200 rounded-full">
+                  <lucide-icon name="Users" class="w-12 h-12 text-base-content/40"></lucide-icon>
+                </div>
+                <div>
+                  <p class="font-medium text-base-content">No members yet</p>
+                  <p class="text-sm text-base-content/60">Start by inviting people to join your group</p>
+                </div>
+                <button *ngIf="canManageMembers()" 
+                        (click)="openInviteMemberModal()" 
+                        type="button"
+                        class="btn btn-primary btn-sm gap-2">
+                  <lucide-icon name="Mail" class="w-4 h-4"></lucide-icon>
+                  Invite First Member
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-container>

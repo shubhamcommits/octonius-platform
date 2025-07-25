@@ -457,88 +457,6 @@
     <p class="text-base-content/60">No tasks found. Create your first task to get started!</p>
 </div>
 
-<!-- Add Task Modal -->
-<div *ngIf="showAddTaskModal" class="modal modal-open">
-    <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">Create New Task</h3>
-        <form (submit)="createTask(); $event.preventDefault()">
-            <div class="form-control w-full mb-4">
-                <label class="label">
-                    <span class="label-text">Task Title</span>
-                </label>
-                <input type="text" [(ngModel)]="newTaskTitle" name="newTaskTitle" placeholder="What needs to be done?"
-                    class="input input-bordered w-full" required />
-            </div>
-
-            <div class="form-control w-full mb-4">
-                <label class="label">
-                    <span class="label-text">Description (optional)</span>
-                </label>
-                <app-tiptap-editor [config]="{
-                    placeholder: 'Provide additional details about this task...',
-                    showToolbar: true,
-                    showBubbleMenu: true,
-                    showCharacterCount: true,
-                    maxHeight: '200px',
-                    minHeight: '120px',
-                    toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
-                  }" [(ngModel)]="newTaskDescription" name="newTaskDescription">
-                </app-tiptap-editor>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Priority</span>
-                    </label>
-                    <select [(ngModel)]="newTaskPriority" name="newTaskPriority" class="select select-bordered">
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                    </select>
-                </div>
-
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Status</span>
-                    </label>
-                    <select [(ngModel)]="newTaskStatus" name="newTaskStatus" class="select select-bordered">
-                        <option value="todo">To Do</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="review">Review</option>
-                        <option value="done">Done</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Due Date (optional)</span>
-                    </label>
-                    <input type="date" [(ngModel)]="newTaskDueDate" name="newTaskDueDate"
-                        class="input input-bordered" />
-                </div>
-
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Task Color</span>
-                    </label>
-                    <input type="color" [(ngModel)]="newTaskColor" name="newTaskColor"
-                        class="input input-bordered h-11" />
-                </div>
-            </div>
-
-            <div class="modal-action">
-                <button type="button" class="btn" (click)="closeAddTaskModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary" [disabled]="!newTaskTitle.trim()">Create Task</button>
-            </div>
-        </form>
-    </div>
-    <div class="modal-backdrop" (click)="closeAddTaskModal()"></div>
-</div>
-
 <!-- Add Column Modal -->
 <div *ngIf="showAddColumnModal" class="modal modal-open">
     <div class="modal-box">
@@ -568,3 +486,4 @@
     </div>
     <div class="modal-backdrop" (click)="closeAddSectionModal()"></div>
 </div>
+

@@ -1,0 +1,55 @@
+// Component is now rendered at app level, so no need for fixed positioning
+
+// Form improvements
+.form-control {
+  .label {
+    margin-bottom: 0.5rem;
+  }
+  
+  .input, .textarea, .select {
+    transition: all 0.2s ease;
+    
+    &:focus {
+      box-shadow: 0 0 0 2px hsl(var(--p) / 0.2);
+    }
+    
+    &.input-error {
+      border-color: hsl(var(--er));
+      box-shadow: 0 0 0 2px hsl(var(--er) / 0.2);
+    }
+  }
+}
+
+// Color picker improvements
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  
+  &::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  
+  &::-webkit-color-swatch {
+    border: none;
+    border-radius: 0.5rem;
+  }
+}
+
+// DaisyUI handles responsive behavior automatically
+
+// Loading state
+.loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+} 

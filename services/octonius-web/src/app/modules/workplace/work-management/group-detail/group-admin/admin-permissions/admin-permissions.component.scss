@@ -1,0 +1,51 @@
+// Admin Permissions Component Styles
+
+// Form enhancements
+.form-control {
+  .input, .textarea, .select, .radio, .checkbox {
+    transition: all 0.2s ease;
+    
+    &:focus {
+      box-shadow: 0 0 0 3px theme('colors.primary/20%');
+    }
+  }
+}
+
+// Card hover effects
+.card {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+}
+
+// Button loading states
+.btn {
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// Focus improvements for accessibility
+.btn:focus-visible,
+.input:focus-visible,
+.textarea:focus-visible,
+.select:focus-visible,
+.radio:focus-visible,
+.checkbox:focus-visible {
+  outline: 2px solid theme('colors.primary');
+  outline-offset: 2px;
+}
+
+// Label cursor improvements
+.label {
+  &.cursor-pointer {
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: theme('colors.base-100');
+    }
+  }
+}

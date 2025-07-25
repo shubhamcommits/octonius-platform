@@ -293,17 +293,17 @@ export class CacheService {
 
     // === FILE CACHING ===
 
-    static async getFileList(userId: string, workplaceId: string, groupId?: string): Promise<any | null> {
+    static async getFileList(userId: string, workplaceId: string, groupId?: string, sourceContext?: string): Promise<any | null> {
         const key = groupId 
-            ? `${CACHE_KEYS.FILE_LIST}:${userId}:${workplaceId}:${groupId}`
-            : `${CACHE_KEYS.FILE_LIST}:${userId}:${workplaceId}`
+            ? `${CACHE_KEYS.FILE_LIST}:${userId}:${workplaceId}:${groupId}${sourceContext ? `:${sourceContext}` : ''}`
+            : `${CACHE_KEYS.FILE_LIST}:${userId}:${workplaceId}${sourceContext ? `:${sourceContext}` : ''}`
         return this.get(key)
     }
 
-    static async setFileList(userId: string, workplaceId: string, files: any, groupId?: string): Promise<boolean> {
+    static async setFileList(userId: string, workplaceId: string, files: any, groupId?: string, sourceContext?: string): Promise<boolean> {
         const key = groupId 
-            ? `${CACHE_KEYS.FILE_LIST}:${userId}:${workplaceId}:${groupId}`
-            : `${CACHE_KEYS.FILE_LIST}:${userId}:${workplaceId}`
+            ? `${CACHE_KEYS.FILE_LIST}:${userId}:${workplaceId}:${groupId}${sourceContext ? `:${sourceContext}` : ''}`
+            : `${CACHE_KEYS.FILE_LIST}:${userId}:${workplaceId}${sourceContext ? `:${sourceContext}` : ''}`
         return this.set(key, files, CACHE_TTL.FILE_LIST)
     }
 

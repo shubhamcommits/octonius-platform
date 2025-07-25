@@ -23,6 +23,7 @@ interface FileCreationData {
     user_id: string
     workplace_id: string
     group_id?: string // Optional - will be resolved if not provided
+    source_context?: 'note' | 'post' | 'workplace' | 'group' | 'user' | 'file' | 'task' | 'lounge' | 'document' | 'private'
     size?: number
     mime_type?: string
     title?: string
@@ -183,14 +184,14 @@ export class FileService {
     }
 
     /**
-     * Gets files for a user - can be filtered by group or get all accessible files
+     * Gets files for a user - can be filtered by group and source_context or get all accessible files
      */
-    async getFilesByUserAndWorkplace(user_id: string, workplace_id: string, group_id?: string): Promise<FilesResponse<File[]>> {
+    async getFilesByUserAndWorkplace(user_id: string, workplace_id: string, group_id?: string, source_context?: string): Promise<FilesResponse<File[]>> {
         try {
             // Check cache first
-            const cachedFiles = await CacheService.getFileList(user_id, workplace_id, group_id)
+            const cachedFiles = await CacheService.getFileList(user_id, workplace_id, group_id, source_context)
             if (cachedFiles) {
-                logger.info('Files retrieved from cache', { user_id, workplace_id, group_id })
+                logger.info('Files retrieved from cache', { user_id, workplace_id, group_id, source_context })
                 return {
                     success: true,
                     message: cachedFiles.length ? FileCode.FILES_FOUND : FileCode.FILES_NOT_FOUND,
@@ -202,6 +203,11 @@ export class FileService {
             let whereClause: any = {
                 workplace_id
             };
+
+            // Add source_context filter if provided
+            if (source_context) {
+                whereClause.source_context = source_context;
+            }
 
             if (group_id) {
                 // Validate user has access to the specific group
@@ -269,8 +275,8 @@ export class FileService {
             });
 
             // Cache the results
-            await CacheService.setFileList(user_id, workplace_id, transformedFiles, group_id)
-            logger.info('Files cached successfully', { user_id, workplace_id, group_id, count: transformedFiles.length })
+            await CacheService.setFileList(user_id, workplace_id, transformedFiles, group_id, source_context)
+            logger.info('Files cached successfully', { user_id, workplace_id, group_id, source_context, count: transformedFiles.length })
 
             return {
                 success: true,
@@ -320,7 +326,7 @@ export class FileService {
                 };
             }
 
-            const result = await this.getFilesByUserAndWorkplace(user_id, workplace_id, privateGroup.uuid);
+            const result = await this.getFilesByUserAndWorkplace(user_id, workplace_id, privateGroup.uuid, 'file')
             
             // Cache MySpace files separately for quick access
             await CacheService.setMySpaceFiles(user_id, workplace_id, result.files)
@@ -345,17 +351,39 @@ export class FileService {
     /**
      * Infer file category based on filename, type, and context
      */
-    private inferFileCategory(fileName: string, fileType: string, groupId?: string): 'avatar' | 'logo' | 'private' | 'document' | null {
+    private inferFileSourceContext(fileName: string, fileType: string, groupId?: string, context?: string): 'note' | 'post' | 'workplace' | 'group' | 'user' | 'file' | 'task' | 'lounge' | 'document' | 'private' {
         const lowerFileName = fileName.toLowerCase();
+        
+        // If context is explicitly provided, use it
+        if (context) {
+            switch (context) {
+                case 'note':
+                case 'post':
+                case 'workplace':
+                case 'group':
+                case 'user':
+                case 'file':
+                case 'task':
+                case 'lounge':
+                case 'document':
+                case 'private':
+                    return context;
+            }
+        }
         
         // Check for avatar files
         if (lowerFileName.includes('avatar') || lowerFileName.includes('profile')) {
-            return 'avatar';
+            // Determine if it's user avatar or group avatar based on group type
+            if (!groupId) {
+                return 'user';
+            }
+            // For now, assume group avatar if in a group
+            return 'group';
         }
         
         // Check for logo files
         if (lowerFileName.includes('logo') || lowerFileName.includes('brand')) {
-            return 'logo';
+            return 'workplace';
         }
         
         // Check for documents
@@ -373,8 +401,8 @@ export class FileService {
             return 'private';
         }
         
-        // Default to null for regular group files
-        return null;
+        // Default to file for regular group files
+        return 'file';
     }
 
     async createNote(data: FileCreationData): Promise<FileResponse<File>> {
@@ -725,21 +753,22 @@ export class FileService {
         fileSize: number,
         userId: string,
         workplaceId: string,
-        groupId?: string
+        groupId?: string,
+        sourceContext?: string
     ): Promise<{ success: boolean; data: any; message: string }> {
         try {
             // Resolve the group for this file
             const resolvedGroupId = await this.resolveGroupForFile(userId, workplaceId, groupId);
 
             // Create S3 upload intent with smart organization
-            const fileCategory = this.inferFileCategory(fileName, fileType, groupId)
+            const inferredSourceContext = this.inferFileSourceContext(fileName, fileType, groupId)
             const uploadIntent = await this.s3Service.createUploadIntent(
                 fileName,
                 fileType,
                 userId,
                 workplaceId,
                 resolvedGroupId,
-                fileCategory
+                inferredSourceContext
             );
 
             // Get file type and icon
@@ -807,7 +836,8 @@ export class FileService {
         fileSize: number,
         userId: string,
         workplaceId: string,
-        groupId: string
+        groupId: string,
+        sourceContext?: string
     ): Promise<{ success: boolean; file: any; message: string }> {
         try {
             // Get file type and icon
@@ -815,6 +845,9 @@ export class FileService {
             const fileTypeCategory = this.getFileTypeFromExtension(fileExtension);
             const icon = this.getFileIcon(fileTypeCategory);
 
+            // Infer source context if not provided
+            const inferredSourceContext = sourceContext || this.inferFileSourceContext(fileName, fileType, groupId);
+            
             // Create file record in database with S3 info
             const fileRecord = await File.create({
                 name: fileName,
@@ -823,6 +856,7 @@ export class FileService {
                 user_id: userId,
                 workplace_id: workplaceId,
                 group_id: groupId,
+                source_context: inferredSourceContext,
                 size: fileSize,
                 mime_type: fileType,
                 content: { 
@@ -975,74 +1009,80 @@ export class FileService {
      */
     async deleteFile(fileId: string, userId: string): Promise<{ success: boolean; data: any; message: string }> {
         try {
-            const file = await File.findByPk(fileId);
+            // Validate fileId format
+            if (!fileId || typeof fileId !== 'string') {
+                throw { message: 'Invalid file ID provided', code: 400 }
+            }
+            
+            // Check if fileId is a valid UUID
+            const uuidRegex = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
+            if (!uuidRegex.test(fileId)) {
+                throw { message: 'Invalid file ID format', code: 400 }
+            }
+            
+            const file = await File.findByPk(fileId)
             if (!file) {
-                throw { message: 'File not found', code: 404 };
+                throw { message: 'File not found', code: 404 }
             }
 
             // Validate user has access to the file's group
-            const hasAccess = await this.validateGroupAccess(userId, file.group_id);
+            const hasAccess = await this.validateGroupAccess(userId, file.group_id)
             if (!hasAccess) {
-                throw { message: 'Access denied to file', code: 403 };
+                throw { message: 'Access denied to file', code: 403 }
             }
 
             // For S3 files, delete from S3
             if (file.content?.s3Key) {
                 try {
-                    await this.s3Service.deleteFile(file.content.s3Key);
-                    logger.info('File deleted from S3', { fileId, s3Key: file.content.s3Key });
+                    await this.s3Service.deleteFile(file.content.s3Key)
                 } catch (s3Error) {
                     logger.warn('Failed to delete file from S3, but continuing with database deletion', { 
                         fileId, 
-                        s3Key: file.content.s3Key,
                         error: s3Error
-                    });
+                    })
                 }
             }
 
             // For legacy local files, delete from disk
             if (file.content?.filePath) {
                 try {
-                    const filePath = path.join(this.uploadDir, file.content.filePath);
+                    const filePath = path.join(this.uploadDir, file.content.filePath)
                     if (fs.existsSync(filePath)) {
-                        fs.unlinkSync(filePath);
-                        logger.info('File deleted from disk', { fileId, filePath: file.content.filePath });
+                        fs.unlinkSync(filePath)
                     }
                 } catch (diskError) {
                     logger.warn('Failed to delete file from disk, but continuing with database deletion', { 
                         fileId, 
-                        filePath: file.content.filePath,
                         error: diskError
-                    });
+                    })
                 }
             }
 
             // Delete file record from database
-            await file.destroy();
+            await file.destroy()
 
             // Invalidate file-related caches
             await CacheService.invalidateFileList(userId, file.workplace_id)
             await CacheService.invalidateMySpaceFiles(userId, file.workplace_id)
-            logger.info('File caches invalidated after deletion', { fileId, fileName: file.name })
 
             logger.info('File deleted successfully', { 
                 fileId,
                 fileName: file.name,
                 userId
-            });
+            })
 
             return {
                 success: true,
                 data: { fileId, fileName: file.name },
                 message: 'File deleted successfully'
-            };
+            }
         } catch (error: any) {
             logger.error('Failed to delete file', { 
                 error: error.message,
                 fileId,
                 userId
-            });
-            throw { message: error.message, code: error.code || 500 };
+            })
+            throw { message: error.message, code: error.code || 500 }
         }
     }
 } 

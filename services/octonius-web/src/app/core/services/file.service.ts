@@ -31,13 +31,17 @@ export class FileService {
   }
 
   // File Operations for Groups
-  getFiles(user_id: string, workplace_id: string, group_id?: string): Observable<File[]> {
+  getFiles(user_id: string, workplace_id: string, group_id?: string, source_context?: string): Observable<File[]> {
     let params = new HttpParams()
       .set('user_id', user_id)
       .set('workplace_id', workplace_id);
     
     if (group_id) {
       params = params.set('group_id', group_id);
+    }
+    
+    if (source_context) {
+      params = params.set('source_context', source_context);
     }
     
     return this.http.get<any>(`${this.apiUrl}`, { params }).pipe(
@@ -208,12 +212,13 @@ export class FileService {
   /**
    * Complete S3 upload process - combines all steps
    */
-  uploadFileViaS3(file: globalThis.File, group_id?: string): Observable<File> {
+  uploadFileViaS3(file: globalThis.File, group_id?: string, source_context?: string): Observable<File> {
     const uploadIntent: UploadIntentRequest = {
       file_name: file.name,
       file_type: file.type,
       file_size: file.size,
-      group_id
+      group_id,
+      source_context
     };
 
     return this.createUploadIntent(uploadIntent).pipe(
@@ -227,7 +232,8 @@ export class FileService {
               file_name: intentResponse.data.metadata.file_name,
               file_type: intentResponse.data.metadata.file_type,
               file_size: intentResponse.data.metadata.file_size,
-              group_id: intentResponse.data.metadata.resolved_group_id
+              group_id: intentResponse.data.metadata.resolved_group_id,
+              source_context
             };
             return this.completeFileUpload(completeRequest);
           })
@@ -375,14 +381,14 @@ export class FileService {
    * Upload to MySpace using S3 (recommended)
    */
   uploadMySpaceFileS3(file: globalThis.File): Observable<File> {
-    return this.uploadFileViaS3(file);
+    return this.uploadFileViaS3(file, undefined, 'private');
   }
 
   /**
    * Upload to group using S3 (recommended)
    */
   uploadGroupFileS3(file: globalThis.File, group_id: string): Observable<File> {
-    return this.uploadFileViaS3(file, group_id);
+    return this.uploadFileViaS3(file, group_id, 'file');
   }
 
   /**
@@ -397,6 +403,82 @@ export class FileService {
    */
   uploadGroupFile(file: globalThis.File, group_id: string): Observable<File> {
     return this.uploadFile(file, group_id);
+  }
+
+  // Context-based file retrieval methods
+
+  /**
+   * Get note files for a user/group
+   */
+  getNoteFiles(user_id: string, workplace_id: string, group_id?: string): Observable<File[]> {
+    return this.getFiles(user_id, workplace_id, group_id, 'note');
+  }
+
+  /**
+   * Get post files for a user/group
+   */
+  getPostFiles(user_id: string, workplace_id: string, group_id?: string): Observable<File[]> {
+    return this.getFiles(user_id, workplace_id, group_id, 'post');
+  }
+
+  /**
+   * Get workplace files (logos, branding, etc.)
+   */
+  getWorkplaceFiles(user_id: string, workplace_id: string): Observable<File[]> {
+    return this.getFiles(user_id, workplace_id, undefined, 'workplace');
+  }
+
+  /**
+   * Get group context files (avatars, documents, etc.)
+   */
+  getGroupContextFiles(user_id: string, workplace_id: string, group_id: string): Observable<File[]> {
+    return this.getFiles(user_id, workplace_id, group_id, 'group');
+  }
+
+  /**
+   * Get user files (avatars, personal documents)
+   */
+  getUserFiles(user_id: string, workplace_id: string): Observable<File[]> {
+    return this.getFiles(user_id, workplace_id, undefined, 'user');
+  }
+
+  /**
+   * Get task files for a group
+   */
+  getTaskFiles(user_id: string, workplace_id: string, group_id: string): Observable<File[]> {
+    return this.getFiles(user_id, workplace_id, group_id, 'task');
+  }
+
+  /**
+   * Get lounge files
+   */
+  getLoungeFiles(user_id: string, workplace_id: string): Observable<File[]> {
+    return this.getFiles(user_id, workplace_id, undefined, 'lounge');
+  }
+
+  /**
+   * Get document files
+   */
+  getDocumentFiles(user_id: string, workplace_id: string, group_id?: string): Observable<File[]> {
+    return this.getFiles(user_id, workplace_id, group_id, 'document');
+  }
+
+  /**
+   * Get a file by ID
+   */
+  getFileById(fileId: string): Observable<File> {
+    return this.http.get<any>(`${this.apiUrl}/${fileId}`).pipe(
+      map(response => {
+        if (response.success && response.data) {
+          return response.data;
+        }
+        throw new Error(response.message || 'File not found');
+      }),
+      catchError(error => {
+        console.error('Error fetching file by ID:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**

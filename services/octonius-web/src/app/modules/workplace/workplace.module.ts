@@ -23,6 +23,11 @@ import { TaskDetailComponent } from './work-management/group-detail/group-tasks/
 import { LoungeStoryDetailComponent } from './lounge/lounge-story-detail/lounge-story-detail.component';
 import { CreateStoryModalComponent } from './lounge/create-story-modal/create-story-modal.component';
 import { CreateGroupModalComponent } from './work-management/create-group-modal/create-group-modal.component';
+import { AdminGeneralComponent } from './work-management/group-detail/group-admin/admin-general/admin-general.component';
+import { AdminMembersComponent } from './work-management/group-detail/group-admin/admin-members/admin-members.component';
+import { AdminPermissionsComponent } from './work-management/group-detail/group-admin/admin-permissions/admin-permissions.component';
+import { AdminDangerZoneComponent } from './work-management/group-detail/group-admin/admin-danger-zone/admin-danger-zone.component';
+import { CreateTaskModalComponent } from './work-management/group-detail/group-tasks/create-task-modal/create-task-modal.component';
 
 @NgModule({
   declarations: [
@@ -43,7 +48,11 @@ import { CreateGroupModalComponent } from './work-management/create-group-modal/
     TaskDetailComponent,
     LoungeStoryDetailComponent,
     CreateStoryModalComponent,
-    CreateGroupModalComponent
+    CreateGroupModalComponent,
+    AdminGeneralComponent,
+    AdminMembersComponent,
+    AdminPermissionsComponent,
+    AdminDangerZoneComponent
   ],
   imports: [
     CommonModule,
@@ -51,7 +60,8 @@ import { CreateGroupModalComponent } from './work-management/create-group-modal/
     RouterModule,
     SharedModule,
     ReactiveFormsModule,
-    FormsModule
+    FormsModule,
+    CreateTaskModalComponent
   ]
 })
 export class WorkplaceModule { }

@@ -43,7 +43,7 @@ export class S3Service {
         userId: string, 
         workplaceId: string,
         groupId?: string,
-        fileCategory?: 'avatar' | 'logo' | 'private' | 'document' | null,
+        sourceContext?: 'note' | 'post' | 'workplace' | 'group' | 'user' | 'file' | 'task' | 'lounge' | 'document' | 'private',
         expiresIn: number = 900 // 15 minutes
     ): Promise<UploadIntent> {
         try {
@@ -53,14 +53,24 @@ export class S3Service {
             
             // Smart folder structure based on usage
             let folder: string
-            if (fileCategory === 'avatar' && !groupId) {
+            if (sourceContext === 'user') {
                 folder = `users/${userId}/avatar`
-            } else if (fileCategory === 'avatar' && groupId) {
+            } else if (sourceContext === 'group') {
                 folder = `workplaces/${workplaceId}/groups/${groupId}/avatar`
-            } else if (fileCategory === 'logo') {
+            } else if (sourceContext === 'workplace') {
                 folder = `workplaces/${workplaceId}/branding`
-            } else if (fileCategory === 'private' || (!groupId && !fileCategory)) {
+            } else if (sourceContext === 'private' || (!groupId && !sourceContext)) {
                 folder = `workplaces/${workplaceId}/users/${userId}/files`
+            } else if (sourceContext === 'note') {
+                folder = `workplaces/${workplaceId}/users/${userId}/notes`
+            } else if (sourceContext === 'post') {
+                folder = `workplaces/${workplaceId}/posts`
+            } else if (sourceContext === 'task') {
+                folder = `workplaces/${workplaceId}/tasks`
+            } else if (sourceContext === 'lounge') {
+                folder = `workplaces/${workplaceId}/lounge`
+            } else if (sourceContext === 'document') {
+                folder = `workplaces/${workplaceId}/documents`
             } else if (groupId) {
                 folder = `workplaces/${workplaceId}/groups/${groupId}/files`
             } else {
@@ -68,7 +78,7 @@ export class S3Service {
             }
 
             // Add subfolders based on file type for better organization
-            if (fileCategory !== 'avatar' && fileCategory !== 'logo') {
+            if (sourceContext !== 'user' && sourceContext !== 'group' && sourceContext !== 'workplace') {
                 if (fileType.startsWith('image/')) {
                     folder += '/images'
                 } else if (fileType.startsWith('video/')) {
@@ -92,7 +102,7 @@ export class S3Service {
                     'user-id': userId,
                     'workplace-id': workplaceId,
                     'group-id': groupId || '',
-                    'category': fileCategory || 'file',
+                    'source-context': sourceContext || 'other',
                     'uploaded-at': new Date().toISOString(),
                     'file-extension': fileExtension
                 }
@@ -111,7 +121,7 @@ export class S3Service {
                 userId, 
                 workplaceId,
                 groupId,
-                fileCategory,
+                sourceContext,
                 expiresIn 
             })
 
@@ -129,7 +139,7 @@ export class S3Service {
                 userId, 
                 workplaceId,
                 groupId,
-                fileCategory
+                sourceContext
             })
             throw new Error('Failed to create upload intent')
         }

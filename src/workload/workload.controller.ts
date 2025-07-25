@@ -1,7 +1,14 @@
 import { Request, Response } from 'express';
+import { WorkloadService } from './workload.service';
 import logger from '../logger';
 
 export class WorkloadController {
+    private workloadService: WorkloadService;
+
+    constructor() {
+        this.workloadService = new WorkloadService();
+    }
+
     async getWorkload(req: Request, res: Response): Promise<Response> {
         const startTime = Date.now();
         try {
@@ -14,21 +21,36 @@ export class WorkloadController {
                     meta: { responseTime: '0ms' }
                 });
             }
-            // Mock workload data for now
-            const workload = [
-                { id: '1', title: 'Task 1', status: 'pending' },
-                { id: '2', title: 'Task 2', status: 'completed' }
-            ];
+
+            // Get workload data using the service
+            const workloadData = await this.workloadService.getWorkload(
+                user_id as string, 
+                workplace_id as string
+            );
+
             const responseTime = Date.now() - startTime;
-            logger.info('Workload retrieved successfully', { responseTime: `${responseTime}ms`, statusCode: 200 });
+            logger.info('Workload retrieved successfully', { 
+                responseTime: `${responseTime}ms`, 
+                statusCode: 200,
+                taskCount: workloadData.stats.total
+            });
+
             return res.status(200).json({
                 success: true,
-                data: workload,
+                data: {
+                    workload: workloadData
+                },
                 meta: { responseTime: `${responseTime}ms` }
             });
         } catch (error: any) {
             const responseTime = Date.now() - startTime;
-            logger.error('Error in getWorkload controller', { error: error.message, stack: error.stack, responseTime: `${responseTime}ms`, statusCode: 500, query: req.query });
+            logger.error('Error in getWorkload controller', { 
+                error: error.message, 
+                stack: error.stack, 
+                responseTime: `${responseTime}ms`, 
+                statusCode: 500, 
+                query: req.query 
+            });
             return res.status(error.code || 500).json({
                 success: false,
                 message: error.message,

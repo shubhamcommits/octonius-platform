@@ -1,0 +1,201 @@
+<!-- Permissions Tab -->
+<div class="min-h-full bg-base-50/30">
+  <div class="max-w-7xl mx-auto p-8">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <!-- Left Column - Main Settings -->
+      <div class="xl:col-span-2 space-y-8">
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-2">
+          <div class="p-3 bg-info/10 rounded-xl">
+            <lucide-icon name="Shield" class="w-6 h-6 text-info"></lucide-icon>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-base-content">Group Permissions</h2>
+            <p class="text-base-content/60">Configure how members can interact with this group</p>
+          </div>
+        </div>
+
+        <!-- Visibility Settings -->
+        <section class="card bg-base-200 border-2 border-primary/40">
+          <div class="card-body p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="p-2 bg-primary/10 rounded-lg">
+                <lucide-icon name="Eye" class="w-5 h-5 text-primary"></lucide-icon>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-base-content">Group Visibility</h3>
+                <p class="text-sm text-base-content/60">Control who can discover and access this group</p>
+              </div>
+            </div>
+            
+            <div class="space-y-4">
+              <label class="label cursor-pointer justify-start gap-4 p-4 border border-base-200 rounded-lg hover:border-primary/50 transition-colors">
+                <input 
+                  type="radio" 
+                  [(ngModel)]="groupForm.settings.visibility"
+                  value="public"
+                  class="radio radio-primary">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3">
+                    <lucide-icon name="Globe" class="w-5 h-5 text-success"></lucide-icon>
+                    <div class="font-semibold text-base-content">Public Group</div>
+                  </div>
+                  <div class="text-sm text-base-content/60 mt-1">Anyone in the workplace can see and join this group</div>
+                </div>
+              </label>
+              
+              <label class="label cursor-pointer justify-start gap-4 p-4 border border-base-200 rounded-lg hover:border-primary/50 transition-colors">
+                <input 
+                  type="radio" 
+                  [(ngModel)]="groupForm.settings.visibility"
+                  value="private"
+                  class="radio radio-primary">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3">
+                    <lucide-icon name="Lock" class="w-5 h-5 text-warning"></lucide-icon>
+                    <div class="font-semibold text-base-content">Private Group</div>
+                  </div>
+                  <div class="text-sm text-base-content/60 mt-1">Only invited members can see and access this group</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- Member Permissions -->
+        <section class="card bg-base-200 border-2 border-primary/40">
+          <div class="card-body p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="p-2 bg-secondary/10 rounded-lg">
+                <lucide-icon name="Settings" class="w-5 h-5 text-secondary"></lucide-icon>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-base-content">Member Permissions</h3>
+                <p class="text-sm text-base-content/60">Define what members can do in this group</p>
+              </div>
+            </div>
+            
+            <div class="space-y-6">
+              <!-- Allow Member Invites -->
+              <div class="form-control">
+                <label class="label cursor-pointer justify-start gap-4 p-4 border border-base-200 rounded-lg hover:border-primary/50 transition-colors">
+                  <input 
+                    type="checkbox" 
+                    [(ngModel)]="groupForm.settings.allowMemberInvites"
+                    class="checkbox checkbox-primary">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3">
+                      <lucide-icon name="UserPlus" class="w-5 h-5 text-info"></lucide-icon>
+                      <div class="font-semibold text-base-content">Allow member invites</div>
+                    </div>
+                    <div class="text-sm text-base-content/60 mt-1">Members can invite others to join this group</div>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Require Approval -->
+              <div class="form-control">
+                <label class="label cursor-pointer justify-start gap-4 p-4 border border-base-200 rounded-lg hover:border-primary/50 transition-colors">
+                  <input 
+                    type="checkbox" 
+                    [(ngModel)]="groupForm.settings.requireApproval"
+                    class="checkbox checkbox-primary">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3">
+                      <lucide-icon name="CheckCircle" class="w-5 h-5 text-warning"></lucide-icon>
+                      <div class="font-semibold text-base-content">Require approval for new members</div>
+                    </div>
+                    <div class="text-sm text-base-content/60 mt-1">New members need admin approval before joining</div>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Default Role -->
+              <div>
+                <label class="label">
+                  <span class="label-text font-semibold text-base-content/80">Default role for new members</span>
+                </label>
+                <select [(ngModel)]="groupForm.settings.defaultRole" class="select select-bordered w-full focus:border-primary">
+                  <option value="viewer">👁️ Viewer - Can view content only</option>
+                  <option value="member">👤 Member - Can participate and contribute</option>
+                  <option value="admin">🛡️ Admin - Can manage group settings</option>
+                </select>
+                <div class="label">
+                  <span class="label-text-alt text-base-content/60">This role will be assigned to new members automatically</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column - Preview & Actions -->
+      <div class="space-y-6">
+        <!-- Permissions Summary -->
+        <div class="card bg-gradient-to-br from-info/5 to-warning/5 border border-info/20">
+          <div class="card-body p-6">
+            <h4 class="font-semibold text-base-content mb-4 flex items-center gap-2">
+              <lucide-icon name="FileText" class="w-4 h-4"></lucide-icon>
+              Summary
+            </h4>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3 p-3 bg-base-100 rounded-lg border border-base-200">
+                <lucide-icon name="Eye" class="w-4 h-4 text-primary"></lucide-icon>
+                <div class="flex-1">
+                  <p class="text-sm font-medium">Visibility</p>
+                  <p class="text-xs text-base-content/60">{{ groupForm.settings.visibility === 'public' ? 'Public Group' : 'Private Group' }}</p>
+                </div>
+              </div>
+              
+              <div class="flex items-center gap-3 p-3 bg-base-100 rounded-lg border border-base-200">
+                <lucide-icon name="UserPlus" class="w-4 h-4 text-secondary"></lucide-icon>
+                <div class="flex-1">
+                  <p class="text-sm font-medium">Member Invites</p>
+                  <p class="text-xs text-base-content/60">{{ groupForm.settings.allowMemberInvites ? 'Allowed' : 'Admin Only' }}</p>
+                </div>
+              </div>
+              
+              <div class="flex items-center gap-3 p-3 bg-base-100 rounded-lg border border-base-200">
+                <lucide-icon name="CheckCircle" class="w-4 h-4 text-warning"></lucide-icon>
+                <div class="flex-1">
+                  <p class="text-sm font-medium">Approval Required</p>
+                  <p class="text-xs text-base-content/60">{{ groupForm.settings.requireApproval ? 'Yes' : 'No' }}</p>
+                </div>
+              </div>
+              
+              <div class="flex items-center gap-3 p-3 bg-base-100 rounded-lg border border-base-200">
+                <lucide-icon name="Shield" class="w-4 h-4 text-info"></lucide-icon>
+                <div class="flex-1">
+                  <p class="text-sm font-medium">Default Role</p>
+                  <p class="text-xs text-base-content/60 capitalize">{{ groupForm.settings.defaultRole }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card bg-base-200 border-2 border-primary/40">
+          <div class="card-body p-6">
+            <h4 class="font-semibold text-base-content mb-4">Actions</h4>
+            <div class="space-y-3">
+              <button type="button" 
+                      (click)="savePermissionSettings()" 
+                      [disabled]="isSaving || !isFormDirty" 
+                      class="btn btn-primary w-full">
+                <lucide-icon name="Save" class="w-4 h-4"></lucide-icon>
+                <span *ngIf="!isSaving">Save Permissions</span>
+                <span *ngIf="isSaving">Saving...</span>
+                <span *ngIf="isSaving" class="loading loading-spinner loading-sm"></span>
+              </button>
+              <button type="button" class="btn btn-ghost w-full" (click)="resetToDefaults()">
+                <lucide-icon name="RotateCcw" class="w-4 h-4"></lucide-icon>
+                Reset to Defaults
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

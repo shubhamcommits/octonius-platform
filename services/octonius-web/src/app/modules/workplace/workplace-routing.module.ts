@@ -16,6 +16,10 @@ import { GroupDashboardComponent } from './work-management/group-detail/group-da
 import { GroupTasksComponent } from './work-management/group-detail/group-tasks/group-tasks.component';
 import { GroupAdminComponent } from './work-management/group-detail/group-admin/group-admin.component';
 import { TaskDetailComponent } from './work-management/group-detail/group-tasks/task-detail/task-detail.component';
+import { AdminGeneralComponent } from './work-management/group-detail/group-admin/admin-general/admin-general.component';
+import { AdminMembersComponent } from './work-management/group-detail/group-admin/admin-members/admin-members.component';
+import { AdminPermissionsComponent } from './work-management/group-detail/group-admin/admin-permissions/admin-permissions.component';
+import { AdminDangerZoneComponent } from './work-management/group-detail/group-admin/admin-danger-zone/admin-danger-zone.component';
 
 const routes: Routes = [
   {
@@ -34,7 +38,17 @@ const routes: Routes = [
           { path: 'dashboard', component: GroupDashboardComponent },
           { path: 'tasks', component: GroupTasksComponent },
           { path: 'tasks/:taskId', component: TaskDetailComponent },
-          { path: 'admin', component: GroupAdminComponent },
+          { 
+            path: 'admin', 
+            component: GroupAdminComponent,
+            children: [
+              { path: '', redirectTo: 'general', pathMatch: 'full' },
+              { path: 'general', component: AdminGeneralComponent },
+              { path: 'members', component: AdminMembersComponent },
+              { path: 'permissions', component: AdminPermissionsComponent },
+              { path: 'danger-zone', component: AdminDangerZoneComponent }
+            ]
+          },
         ]
       },
       { path: 'files', component: FilesComponent },

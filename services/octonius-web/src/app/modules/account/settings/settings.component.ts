@@ -451,8 +451,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   private uploadLogo(file: File): void {
-    // For workplace logo uploads, we don't pass group_id (it's null)
-    this.fileService.uploadFileViaS3(file).subscribe({
+    // For workplace logo uploads, we use 'workplace' context
+    this.fileService.uploadFileViaS3(file, undefined, 'workplace').subscribe({
       next: (uploadedFile: any) => {
         const url = uploadedFile.cdn_url || uploadedFile.download_url || uploadedFile.url;
         this.logoPreview = url;

@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, Hos
 import { CommonModule } from '@angular/common'
 import { RouterModule, Router, ActivatedRoute } from '@angular/router'
 import { FormsModule } from '@angular/forms'
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser'
 
 // Tiptap imports
 import { Editor } from '@tiptap/core'
@@ -88,6 +89,17 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   gifSearchResults: any[] = []
   isLoadingGifs = false
   
+  // Image upload state
+  imageUploadProgress: number | null = null
+  isUploadingImage = false
+  imageUploadError: string | null = null
+  showImageOptions = false
+  
+  // Track uploaded images for deletion
+  uploadedImages: Map<string, string> = new Map() // URL -> File ID mapping
+  private processedDeletions: Set<string> = new Set() // Track processed deletions to avoid duplicates
+  private deletionCheckTimer: any = null // Debounce timer for deletion checks
+  
   // Common emojis for quick access
   commonEmojis = [
     '😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂',
@@ -121,7 +133,8 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private userService: UserService,
     private fileService: FileService,
     private authService: AuthService,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private sanitizer: DomSanitizer
   ) {}
   
   ngOnInit(): void {
@@ -227,16 +240,31 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
   
   ngOnDestroy(): void {
-    this.stopAutoSave()
+    // Clean up orphaned images before destroying
+    this.cleanupOrphanedImages()
+    
+    // Clean up auto-save timer
+    if (this.autoSaveTimer) {
+      clearInterval(this.autoSaveTimer)
+    }
+    
+    // Clean up debounced save timer
     if (this.debouncedSaveTimer) {
       clearTimeout(this.debouncedSaveTimer)
     }
+    
+    // Clean up theme subscription
     if (this.themeSubscription) {
       this.themeSubscription.unsubscribe()
     }
+    
+    // Clean up editor
     if (this.editor) {
       this.editor.destroy()
     }
+    
+    // Clear image tracking
+    this.uploadedImages.clear()
   }
 
   // Debug method
@@ -407,15 +435,24 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
               if (file.type.indexOf('image/') === 0) {
                 event.preventDefault()
                 
-                const reader = new FileReader()
-                reader.onload = (e) => {
-                  const node = view.state.schema.nodes['image'].create({
-                    src: e.target?.result as string
-                  })
-                  const transaction = view.state.tr.replaceSelectionWith(node)
-                  view.dispatch(transaction)
-                }
-                reader.readAsDataURL(file)
+                // Upload to S3 instead of using data URL
+                this.fileService.uploadFileViaS3(file, undefined, 'note').subscribe({
+                  next: (uploadedFile: any) => {
+                    const url = uploadedFile.cdn_url || uploadedFile.download_url || uploadedFile.url
+                    const node = view.state.schema.nodes['image'].create({
+                      src: url
+                    })
+                    const transaction = view.state.tr.replaceSelectionWith(node)
+                    view.dispatch(transaction)
+                    
+                    // Track uploaded image for deletion
+                    this.trackUploadedImage(url, uploadedFile.id)
+                  },
+                  error: (err: any) => {
+                    console.error('Error uploading dropped image:', err)
+                    alert('Failed to upload image. Please try again.')
+                  }
+                })
                 return true
               }
             }
@@ -434,15 +471,24 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
               if (file.type.indexOf('image/') === 0) {
                 event.preventDefault()
                 
-                const reader = new FileReader()
-                reader.onload = (e) => {
-                  const node = view.state.schema.nodes['image'].create({
-                    src: e.target?.result as string
-                  })
-                  const transaction = view.state.tr.replaceSelectionWith(node)
-                  view.dispatch(transaction)
-                }
-                reader.readAsDataURL(file)
+                // Upload to S3 instead of using data URL
+                this.fileService.uploadFileViaS3(file, undefined, 'note').subscribe({
+                  next: (uploadedFile: any) => {
+                    const url = uploadedFile.cdn_url || uploadedFile.download_url || uploadedFile.url
+                    const node = view.state.schema.nodes['image'].create({
+                      src: url
+                    })
+                    const transaction = view.state.tr.replaceSelectionWith(node)
+                    view.dispatch(transaction)
+                    
+                    // Track uploaded image for deletion
+                    this.trackUploadedImage(url, uploadedFile.id)
+                  },
+                  error: (err: any) => {
+                    console.error('Error uploading pasted image:', err)
+                    alert('Failed to upload image. Please try again.')
+                  }
+                })
                 return true
               }
             }
@@ -473,6 +519,9 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
       // Set up keyboard shortcuts
       this.setupKeyboardShortcuts()
       
+      // Set up image deletion handler
+      this.handleImageDeletion()
+      
     } catch (error) {
       console.error('Error initializing editor:', error)
       if (retryCount < maxRetries) {
@@ -488,11 +537,31 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     // If we have loaded note content, use it
     if (this.note?.content) {
       console.log('Using loaded note content for editor initialization')
+      
+      // Track existing images in the content
+      this.trackExistingImages(this.note.content)
+      
       return this.note.content
     }
     
     // Otherwise, start with empty content
     return '<p></p>'
+  }
+
+  /**
+   * Track existing images from loaded note content
+   */
+  private trackExistingImages(content: string): void {
+    const imageUrls = this.extractImageUrls(content)
+    
+    // For existing images, we need to extract file IDs from URLs
+    // Since we don't have the file IDs stored, we'll try to extract them from URLs
+    imageUrls.forEach(url => {
+      const fileId = this.extractFileIdFromUrl(url)
+      if (fileId) {
+        this.uploadedImages.set(url, fileId)
+      }
+    })
   }
 
   /**
@@ -640,6 +709,24 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
+   * Clean up orphaned images that are no longer in the note content
+   */
+  private cleanupOrphanedImages(): void {
+    if (!this.editor) return
+    
+    const currentImages = this.extractImageUrls(this.editor.getHTML())
+    const trackedImages = Array.from(this.uploadedImages.keys())
+    
+    // Find orphaned images (tracked but not in current content)
+    const orphanedImages = trackedImages.filter(url => !currentImages.includes(url))
+    
+    // Delete orphaned images from storage
+    orphanedImages.forEach(url => {
+      this.deleteImageFromStorage(url)
+    })
+  }
+
+  /**
    * Save note functionality
    */
   async saveNote(showFeedback: boolean = false): Promise<void> {
@@ -746,6 +833,10 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
               this.lastSavedContent = htmlContent
               this.lastEdited = new Date().toISOString()
               this.isSaving = false
+              
+              // Clean up orphaned images after successful save
+              this.cleanupOrphanedImages()
+              
               if (showFeedback) {
                 console.log('Note saved successfully')
               }
@@ -782,6 +873,10 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
               this.lastSavedContent = htmlContent
               this.lastEdited = new Date().toISOString()
               this.isSaving = false
+              
+              // Clean up orphaned images after successful save
+              this.cleanupOrphanedImages()
+              
               if (showFeedback) {
                 console.log('Note created successfully')
               }
@@ -872,6 +967,9 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
    * Navigate back to files
    */
   goBackToFiles(): void {
+    // Clean up orphaned images before navigating away
+    this.cleanupOrphanedImages()
+    
     this.router.navigate(['/myspace/files'])
   }
 
@@ -913,47 +1011,28 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   toggleBulletList(): void {
-    console.log('toggleBulletList called')
     if (this.editor) {
-      console.log('Editor exists, toggling bullet list')
-      console.log('Can toggle bullet list:', this.editor.can().toggleBulletList())
-      console.log('Is active bullet list:', this.editor.isActive('bulletList'))
-      console.log('Is active paragraph:', this.editor.isActive('paragraph'))
-      console.log('Current content:', this.editor.getHTML())
-      
       // Ensure we have a valid selection
       const { from, to, $from } = this.editor.state.selection
-      console.log('Selection from:', from, 'to:', to)
-      console.log('Parent node:', $from.parent.type.name)
       
       // Try alternative approach if regular toggle doesn't work
       if (this.editor.isActive('bulletList')) {
         // If already in a bullet list, lift it
         const result = this.editor.chain().focus().liftListItem('listItem').run()
-        console.log('Lift list item result:', result)
       } else {
         // First try regular toggle
         const result = this.editor.chain().focus().toggleBulletList().run()
-        console.log('Toggle command result:', result)
         
         // If toggle didn't work, try wrapInList
         if (!result) {
-          console.log('Toggle failed, trying wrapInList')
-          const wrapResult = this.editor.chain().focus().wrapInList('bulletList').run()
-          console.log('WrapInList result:', wrapResult)
+          this.editor.chain().focus().wrapInList('bulletList').run()
         }
       }
-      
-      console.log('After toggle:', this.editor.getHTML())
-      console.log('Is now active bullet list:', this.editor.isActive('bulletList'))
-    } else {
-      console.log('Editor not available')
     }
   }
 
   toggleOrderedList(): void {
     if (this.editor) {
-      console.log('toggleOrderedList called')
       
       if (this.editor.isActive('orderedList')) {
         // If already in an ordered list, lift it
@@ -1125,13 +1204,191 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   insertImage(): void {
+    // Toggle image options dropdown
+    this.showImageOptions = !this.showImageOptions
+    this.showEmojiPicker = false
+    this.showGifPicker = false
+  }
+
+  insertImageFromUrl(): void {
     const url = window.prompt('Enter image URL:')
     if (url) {
       this.editor?.chain().focus().setImage({ src: url }).run()
+      
+      // Only track internal URLs for deletion (not external URLs)
+      const fileId = this.extractFileIdFromUrl(url)
+      if (fileId) {
+        this.trackUploadedImage(url, fileId)
+      }
     }
   }
 
-  // Enhanced image insert with file upload support
+  clearImageUploadError(): void {
+    this.imageUploadError = null
+  }
+
+  /**
+   * Extract file ID from image URL
+   * URLs can be in formats:
+   * - CDN URL: https://cdn.example.com/files/{fileId}/image.jpg
+   * - Download URL: https://api.example.com/files/{fileId}/download
+   * - Direct URL: https://api.example.com/files/{fileId}
+   * - S3 URL: https://bucket.s3.region.amazonaws.com/path/to/{fileId}
+   */
+  private extractFileIdFromUrl(url: string): string | null {
+    try {
+      console.log('Extracting file ID from URL:', url)
+      
+      // Try to extract file ID from various URL patterns
+      // The URLs follow this pattern: /workplaces/{workplaceId}/users/{userId}/files/{fileId}.{extension}
+      const patterns = [
+        // CDN URL pattern: https://media.octonius.com/workplaces/{workplaceId}/users/{userId}/files/{fileId}.{extension}
+        /\/workplaces\/[a-f0-9-]+\/users\/[a-f0-9-]+\/files\/([a-f0-9-]+)\./,
+        // S3 URL pattern: https://bucket.s3.amazonaws.com/workplaces/{workplaceId}/users/{userId}/files/{fileId}.{extension}
+        /\/workplaces\/[a-f0-9-]+\/users\/[a-f0-9-]+\/files\/([a-f0-9-]+)\./,
+        // Legacy patterns for backward compatibility
+        /\/files\/([a-f0-9-]+)\//, // CDN URL pattern
+        /\/files\/([a-f0-9-]+)\/download/, // Download URL pattern
+        /\/files\/([a-f0-9-]+)$/, // Direct file URL pattern
+        /\/files\/([a-f0-9-]+)\?/, // URL with query params
+      ]
+      
+      for (let i = 0; i < patterns.length; i++) {
+        const pattern = patterns[i]
+        const match = url.match(pattern)
+        if (match && match[1]) {
+          // Validate that this looks like a file ID (not a workplace ID)
+          const fileId = match[1]
+          console.log(`Pattern ${i} matched file ID:`, fileId)
+          
+          // File IDs should be UUIDs, but let's be more specific about the pattern
+          const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
+          if (uuidPattern.test(fileId)) {
+            console.log('Valid file ID extracted:', fileId)
+            return fileId
+          } else {
+            console.log('Invalid file ID format:', fileId)
+          }
+        }
+      }
+      
+      console.log('No valid file ID found in URL')
+      return null
+    } catch (error) {
+      console.error('Error extracting file ID from URL:', error)
+      return null
+    }
+  }
+
+  /**
+   * Track uploaded image for potential deletion
+   */
+  private trackUploadedImage(url: string, fileId: string): void {
+    this.uploadedImages.set(url, fileId)
+  }
+
+  /**
+   * Delete image from storage when removed from editor
+   */
+  private async deleteImageFromStorage(url: string): Promise<void> {
+    const fileId = this.uploadedImages.get(url)
+    if (!fileId) {
+      // Try to extract file ID from URL if not tracked
+      const extractedFileId = this.extractFileIdFromUrl(url)
+      if (extractedFileId) {
+        await this.deleteFileById(extractedFileId)
+      }
+      return
+    }
+
+    await this.deleteFileById(fileId)
+    this.uploadedImages.delete(url)
+    // Clean up processed deletions tracking after successful deletion
+    this.processedDeletions.delete(url)
+  }
+
+  /**
+   * Delete file by ID
+   */
+  private async deleteFileById(fileId: string): Promise<void> {
+    try {
+      console.log('Attempting to delete file with ID:', fileId)
+      return new Promise((resolve) => {
+        this.fileService.deleteFile(fileId).subscribe({
+          next: () => {
+            console.log('File deleted successfully:', fileId)
+            resolve()
+          },
+          error: (error) => {
+            console.error('Error deleting file:', fileId, error)
+            // Don't reject to avoid breaking the editor functionality
+            resolve()
+          }
+        })
+      })
+    } catch (error) {
+      console.error('Exception in deleteFileById:', error)
+      // Don't throw error to avoid breaking the editor functionality
+    }
+  }
+
+  /**
+   * Handle image deletion from editor
+   */
+  private handleImageDeletion(): void {
+    if (!this.editor) return
+
+    // Use a single event listener with debouncing to avoid multiple calls
+    this.editor.on('update', ({ editor }) => {
+      // Clear existing timer
+      if (this.deletionCheckTimer) {
+        clearTimeout(this.deletionCheckTimer)
+      }
+      
+      // Debounce the deletion check to avoid multiple rapid calls
+      this.deletionCheckTimer = setTimeout(() => {
+        this.checkForDeletedImages()
+      }, 100) // 100ms debounce
+    })
+  }
+
+  /**
+   * Check for deleted images by comparing current content with tracked images
+   */
+  private checkForDeletedImages(): void {
+    if (!this.editor) return
+
+    const currentImages = this.extractImageUrls(this.editor.getHTML())
+    const trackedImages = Array.from(this.uploadedImages.keys())
+    
+    // Find deleted images by comparing tracked images with current images
+    const deletedImages = trackedImages.filter(url => !currentImages.includes(url))
+    
+    // Delete removed images from storage (avoid duplicates)
+    deletedImages.forEach(url => {
+      if (!this.processedDeletions.has(url)) {
+        this.processedDeletions.add(url)
+        this.deleteImageFromStorage(url)
+      }
+    })
+  }
+
+  /**
+   * Extract image URLs from HTML content
+   */
+  private extractImageUrls(html: string): string[] {
+    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
+    const urls: string[] = []
+    let match
+    
+    while ((match = imgRegex.exec(html)) !== null) {
+      urls.push(match[1])
+    }
+    
+    return urls
+  }
+
+  // Enhanced image insert with S3 file upload support
   async insertImageFromFile(): Promise<void> {
     const input = document.createElement('input')
     input.type = 'file'
@@ -1140,13 +1397,29 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     input.onchange = async (event: Event) => {
       const file = (event.target as HTMLInputElement).files?.[0]
       if (file) {
-        // For now, we'll use a data URL. In production, you'd upload to a server
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          const url = e.target?.result as string
-          this.editor?.chain().focus().setImage({ src: url }).run()
-        }
-        reader.readAsDataURL(file)
+        // Reset upload state
+        this.imageUploadError = null
+        this.isUploadingImage = true
+        this.imageUploadProgress = 0
+        
+        // Upload to S3 with note source context
+        this.fileService.uploadFileViaS3(file, undefined, 'note').subscribe({
+          next: (uploadedFile: any) => {
+            const url = uploadedFile.cdn_url || uploadedFile.download_url || uploadedFile.url
+            this.editor?.chain().focus().setImage({ src: url }).run()
+            this.isUploadingImage = false
+            this.imageUploadProgress = null
+            
+            // Track uploaded image for deletion
+            this.trackUploadedImage(url, uploadedFile.id)
+          },
+          error: (err: any) => {
+            console.error('Error uploading image:', err)
+            this.imageUploadError = 'Failed to upload image. Please try again.'
+            this.isUploadingImage = false
+            this.imageUploadProgress = null
+          }
+        })
       }
     }
     
@@ -1174,7 +1447,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  // Search and load GIFs (using Giphy API - you'll need to add your API key)
+  // Search and load GIFs (using Giphy API)
   async searchGifs(): Promise<void> {
     if (!this.gifSearchTerm.trim()) {
       this.gifSearchResults = []
@@ -1184,14 +1457,10 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isLoadingGifs = true
     
     try {
-      // TODO: Replace 'YOUR_GIPHY_API_KEY' with your actual Giphy API key
-      // Get one at https://developers.giphy.com/
-      const GIPHY_API_KEY = 'YOUR_GIPHY_API_KEY'
+      const GIPHY_API_KEY = environment.giphyApiKey
       const limit = 12
       const rating = 'g' // General audience
       
-      // If you have a real API key, uncomment this code:
-      /*
       const response = await fetch(
         `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(this.gifSearchTerm)}&limit=${limit}&rating=${rating}`
       )
@@ -1205,18 +1474,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
       } else {
         throw new Error('Failed to fetch GIFs')
       }
-      */
       
-      // Demo data (remove when using real API)
-      await new Promise(resolve => setTimeout(resolve, 500))
-      this.gifSearchResults = [
-        { url: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif', title: 'Happy' },
-        { url: 'https://media.giphy.com/media/26BRBupa6nRXMGBP2/giphy.gif', title: 'Celebrate' },
-        { url: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif', title: 'Thumbs up' },
-        { url: 'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif', title: 'Laughing' },
-        { url: 'https://media.giphy.com/media/l2Sqir5ZxfoS27EvS/giphy.gif', title: 'Thank you' },
-        { url: 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif', title: 'Applause' }
-      ]
     } catch (error) {
       console.error('Error searching GIFs:', error)
       this.gifSearchResults = []
@@ -1227,10 +1485,12 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // Insert GIF as an image
   insertGif(gifUrl: string): void {
+    // Insert GIF as an image
     this.editor?.chain().focus().setImage({ src: gifUrl }).run()
     this.showGifPicker = false
-    this.gifSearchTerm = ''
-    this.gifSearchResults = []
+    
+    // Don't track external GIF URLs for deletion
+    // GIFs from external services like Giphy should not be deleted
   }
 
   // Filter emojis based on search
@@ -1249,8 +1509,10 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   onDocumentClick(event: MouseEvent): void {
     const emojiPicker = document.querySelector('.emoji-picker-container')
     const gifPicker = document.querySelector('.gif-picker-container')
+    const imageOptions = document.querySelector('.image-options-container')
     const emojiBtn = document.querySelector('.emoji-picker-btn')
     const gifBtn = document.querySelector('.gif-picker-btn')
+    const imageBtn = document.querySelector('.image-btn')
     
     if (emojiPicker && !emojiPicker.contains(event.target as Node) && 
         emojiBtn && !emojiBtn.contains(event.target as Node)) {
@@ -1260,6 +1522,11 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     if (gifPicker && !gifPicker.contains(event.target as Node) && 
         gifBtn && !gifBtn.contains(event.target as Node)) {
       this.showGifPicker = false
+    }
+    
+    if (imageOptions && !imageOptions.contains(event.target as Node) && 
+        imageBtn && !imageBtn.contains(event.target as Node)) {
+      this.showImageOptions = false
     }
   }
 
