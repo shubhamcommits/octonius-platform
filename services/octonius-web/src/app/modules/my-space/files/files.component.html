@@ -73,7 +73,7 @@
            (click)="onFileClick(file)">
         <div class="flex items-center gap-4">
           <lucide-icon [name]="getDisplayIcon(file)" class="w-6 h-6 text-base-content/70"></lucide-icon>
-          <span class="font-medium">{{file.name}}</span>
+          <span class="font-medium">{{file.type === 'note' ? (file.title || file.name) : file.name}}</span>
         </div>
         <div class="flex items-center gap-6">
           <span class="text-sm text-base-content/70">{{file.last_modified | date:'MMM d, yyyy h:mm a'}}</span>
