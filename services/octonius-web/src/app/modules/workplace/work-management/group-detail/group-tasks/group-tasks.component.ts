@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GroupTaskService, Task, TaskColumn, Board } from '../../../services/group-task.service';
@@ -48,7 +48,8 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
     private workGroupService: WorkGroupService,
     private toastService: ToastService,
     private authService: AuthService,
-    private modalService: ModalService
+    private modalService: ModalService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
@@ -265,12 +266,35 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
 
     this.taskService.createTask(this.group.uuid, taskPayload).subscribe({
       next: (task) => {
-        // Add task to the column
-        this.selectedColumn.tasks.push(task);
+        // Find the column in the board and add the task
+        if (this.board && this.board.columns) {
+          const columnId = String(this.selectedColumn.id);
+          const column = this.board.columns.find(col => String(col.id) === columnId);
+          
+          if (column) {
+            // Ensure task has required arrays initialized
+            if (!task.assignees) {
+              task.assignees = [];
+            }
+            if (!task.labels) {
+              task.labels = [];
+            }
+            if (!task.attachments) {
+              task.attachments = [];
+            }
+            
+            // Add task and create new array reference to trigger change detection
+            column.tasks = [...column.tasks, task];
+            
+            // Force change detection
+            this.cdr.detectChanges();
+          }
+        }
         this.closeAddTaskModal();
         this.toastService.success('Task created successfully');
       },
-      error: () => {
+      error: (error) => {
+        console.error('Error creating task:', error);
         this.toastService.error('Failed to create task');
       }
     });

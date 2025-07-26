@@ -100,9 +100,17 @@ export class FileService {
                 data.group_id
             );
 
+            // Infer source context if not provided
+            const sourceContext = data.source_context || this.inferFileSourceContext(
+                data.name, 
+                data.mime_type || '', 
+                resolvedGroupId
+            );
+
             const file = await File.create({
                 ...data,
                 group_id: resolvedGroupId,
+                source_context: sourceContext, // Set source_context
                 last_modified: data.last_modified || new Date(),
             })
 
@@ -326,13 +334,51 @@ export class FileService {
                 };
             }
 
-            const result = await this.getFilesByUserAndWorkplace(user_id, workplace_id, privateGroup.uuid, 'file')
+            // Fetch files with source_context as 'note' or 'user' from the private group
+            const files = await File.findAll({
+                where: {
+                    workplace_id,
+                    group_id: privateGroup.uuid,
+                    source_context: ['note', 'user', 'private']
+                },
+                include: [
+                    {
+                        model: User,
+                        as: 'owner',
+                        attributes: ['uuid', 'first_name', 'last_name', 'email', 'avatar_url']
+                    },
+                    {
+                        model: Group,
+                        as: 'group',
+                        attributes: ['uuid', 'name', 'type']
+                    }
+                ],
+                order: [['last_modified', 'DESC']]
+            });
+
+            // Transform files to match frontend expectations
+            const transformedFiles = files.map(file => {
+                const fileData = file.toJSON() as any;
+                const owner = fileData.owner || {};
+                return {
+                    ...fileData,
+                    owner: `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || owner.email || 'Unknown User',
+                    owner_avatar: owner.avatar_url || this.getInitials(`${owner.first_name || ''} ${owner.last_name || ''}`.trim() || owner.email || 'U'),
+                    last_modified: fileData.last_modified || fileData.updated_at,
+                    mime_type: fileData.mime_type
+                };
+            });
             
             // Cache MySpace files separately for quick access
-            await CacheService.setMySpaceFiles(user_id, workplace_id, result.files)
-            logger.info('MySpace files cached successfully', { user_id, workplace_id, count: result.files.length })
+            await CacheService.setMySpaceFiles(user_id, workplace_id, transformedFiles)
+            logger.info('MySpace files cached successfully', { user_id, workplace_id, count: transformedFiles.length })
 
-            return result;
+            return {
+                success: true,
+                message: transformedFiles.length ? FileCode.FILES_FOUND : FileCode.FILES_NOT_FOUND,
+                code: 200,
+                files: transformedFiles
+            };
         } catch (error) {
             logger.error('MySpace files retrieval failed', { error, user_id, workplace_id })
             throw {
@@ -417,6 +463,7 @@ export class FileService {
             const note = await File.create({
                 ...data,
                 group_id: resolvedGroupId,
+                source_context: 'note', // Set source_context explicitly for notes
                 last_modified: data.last_modified || new Date(),
             })
 
@@ -526,10 +573,15 @@ export class FileService {
                 last_modified: new Date()
             });
 
-            // Invalidate file-related caches
-            await CacheService.invalidateFileList(userId, note.workplace_id)
-            await CacheService.invalidateMySpaceFiles(userId, note.workplace_id)
-            logger.info('File caches invalidated after note update', { noteId: id })
+            // Invalidate file-related caches for the note owner (not the updating user)
+            await CacheService.invalidateFileList(note.user_id, note.workplace_id)
+            await CacheService.invalidateMySpaceFiles(note.user_id, note.workplace_id)
+            logger.info('File caches invalidated after note update', { 
+                noteId: id, 
+                ownerId: note.user_id, 
+                workplaceId: note.workplace_id,
+                updatedBy: userId 
+            })
 
             // Fetch updated note with user info
             const updatedNote = await File.findByPk(id, {
@@ -582,6 +634,9 @@ export class FileService {
             // Get file type from extension
             const fileType = this.getFileTypeFromExtension(fileExtension);
 
+            // Infer source context
+            const inferredSourceContext = this.inferFileSourceContext(file.originalname, file.mimetype, resolvedGroupId);
+
             // Create file record in database
             const fileRecord = await File.create({
                 name: file.originalname,
@@ -590,6 +645,7 @@ export class FileService {
                 user_id: userId,
                 workplace_id: workplaceId,
                 group_id: resolvedGroupId,
+                source_context: inferredSourceContext, // Set source_context
                 size: file.size,
                 mime_type: file.mimetype,
                 content: { filePath: fileName }, // Store the filename for retrieval
