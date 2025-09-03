@@ -1,4 +1,6 @@
-<div class="tiptap-editor-wrapper" [style.max-height]="config.maxHeight" [style.min-height]="config.minHeight">
+<div class="tiptap-editor-wrapper" 
+     [style.max-height]="config.autoExpand ? null : config.maxHeight" 
+     [style.min-height]="config.minHeight">
   <!-- Toolbar (optional) -->
   <div *ngIf="config.showToolbar" class="tiptap-toolbar bg-base-200 border-b border-base-300 px-3 py-2">
     <div class="flex flex-wrap items-center gap-1">
@@ -428,7 +430,9 @@
 
   <!-- Editor Content Area -->
   <div class="tiptap-content-area bg-base-100 border border-base-300 rounded-b-lg relative">
-    <div class="tiptap-editor bg-base-100 border border-base-300 text-base-content rounded-lg w-full" #editorElement></div>
+    <div class="tiptap-editor bg-base-100 border border-base-300 text-base-content rounded-lg w-full" 
+         [class.auto-expand]="config.autoExpand"
+         #editorElement></div>
     
     <!-- Image Upload Loading Overlay -->
     <div *ngIf="isUploadingImage" class="absolute inset-0 bg-base-100/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">

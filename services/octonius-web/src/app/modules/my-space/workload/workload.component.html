@@ -19,7 +19,7 @@
   <ng-container *ngIf="!isLoading">
     <!-- Header -->
     <div class="text-center mb-8">
-      <div class="w-20 h-20 bg-gradient-to-br from-white to-white rounded-2xl flex items-center justify-center mx-auto mb-4">
+      <div class="w-20 h-20 bg-gradient-to-br from-white to-white rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden">
         <img src="https://media.octonius.com/assets/icon_projects.svg" alt="Workload" class="w-16 h-16">
       </div>
       <div class="flex items-center justify-center gap-4">
@@ -40,8 +40,12 @@
     <div class="card bg-base-100 shadow-sm mb-6">
       <div class="card-body">
         <div class="flex items-center gap-4">
-          <div class="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-white to-white rounded-2xl">
-            <img src="https://media.octonius.com/assets/icon_projects.svg" alt="Workload" class="w-16 h-16">
+          <div class="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-white to-white rounded-2xl overflow-hidden">
+            <img *ngIf="userAvatar" 
+                 [src]="userAvatar" 
+                 [alt]="userName"
+                 class="w-full h-full object-cover">
+            <span *ngIf="!userAvatar" class="text-lg font-medium text-base-content/70">{{ userInitials }}</span>
           </div>
           <div class="flex-1">
             <p class="text-base-content leading-normal">The Workload shows your Tasks from everywhere: your private space and Groups from your organization.</p>
@@ -55,7 +59,7 @@
       <div class="card-body">
         <div class="flex justify-between items-center">
           <div class="flex-1">
-            <span class="badge badge-ghost text-base">{{workloadStats.total}} Tasks for today</span>
+            <span class="badge badge-ghost text-base">{{workloadStats.total}} Tasks due today or overdue</span>
           </div>
           <div class="flex gap-4">
             <span class="badge badge-error">{{workloadStats.overdue}} overdue</span>
@@ -68,13 +72,13 @@
     </div>
 
     <!-- Today Section -->
-    <div class="card bg-base-100 shadow-sm">
+    <div class="card bg-base-100 shadow-sm task-section">
       <div class="card-body">
-        <h2 class="card-title text-lg mb-4">Today</h2>
-        <div class="space-y-3" *ngIf="todayTasks.length > 0">
-          <div *ngFor="let task of todayTasks" class="flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors cursor-pointer" (click)="onTaskClick(task)">
+        <h2 class="card-title text-lg mb-4">Today & Overdue</h2>
+        <div class="task-list-container" *ngIf="todayTasks.length > 0">
+          <div *ngFor="let task of todayTasks" class="task-item flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors cursor-pointer" (click)="onTaskClick(task)">
             <div class="flex items-center space-x-3">
-              <div [ngClass]="getStatusColor(task.status)" class="w-1 h-8 rounded-full"></div>
+              <div [ngClass]="getTaskSidebarColor(task)" class="w-1 h-8 rounded-full"></div>
               <span class="text-sm">{{task.title}}</span>
             </div>
             <div class="text-right">
@@ -86,22 +90,42 @@
           </div>
         </div>
         <!-- Empty State for Today -->
-        <div *ngIf="todayTasks.length === 0" class="flex flex-col items-center justify-center py-12">
-          <img [src]="getRecentActivityEmptyStateImage()" alt="No tasks today" class="w-64 h-64 mb-4">
-          <h3 class="text-lg font-medium text-base-content/70 mb-2">No tasks for today</h3>
-          <p class="text-sm text-base-content/50 text-center">You're all caught up! Enjoy your productive day.</p>
+        <div *ngIf="todayTasks.length === 0" class="empty-state-container">
+          <div class="flex flex-col items-center justify-center">
+            <img [src]="getRecentActivityEmptyStateImage()" alt="No tasks today" class="w-64 h-64 mb-4">
+            <h3 class="text-lg font-medium text-base-content/70 mb-2">No tasks for today or overdue</h3>
+            <p class="text-sm text-base-content/50 text-center">You're all caught up! Enjoy your productive day.</p>
+          </div>
+        </div>
+        <!-- Pagination for Today -->
+        <div *ngIf="todayTasks.length > 0" class="pagination-container flex justify-between items-center">
+          <button 
+            [disabled]="!getPaginationInfo('today').hasPrev"
+            (click)="prevPage('today')"
+            class="btn btn-sm btn-outline">
+            ← Previous
+          </button>
+          <span class="text-sm text-base-content/70">
+            Page {{getPaginationInfo('today').page}} of {{getPaginationInfo('today').totalPages || 1}}
+          </span>
+          <button 
+            [disabled]="!getPaginationInfo('today').hasNext"
+            (click)="nextPage('today')"
+            class="btn btn-sm btn-outline">
+            Next →
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Tomorrow Section -->
-    <div class="card bg-base-100 shadow-sm">
+    <div class="card bg-base-100 shadow-sm task-section">
       <div class="card-body">
         <h2 class="card-title text-lg mb-4">Tomorrow</h2>
-        <div class="space-y-3" *ngIf="tomorrowTasks.length > 0">
-          <div *ngFor="let task of tomorrowTasks" class="flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors cursor-pointer" (click)="onTaskClick(task)">
+        <div class="task-list-container" *ngIf="tomorrowTasks.length > 0">
+          <div *ngFor="let task of tomorrowTasks" class="task-item flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors cursor-pointer" (click)="onTaskClick(task)">
             <div class="flex items-center space-x-3">
-              <div [ngClass]="getStatusColor(task.status)" class="w-1 h-8 rounded-full"></div>
+              <div [ngClass]="getTaskSidebarColor(task)" class="w-1 h-8 rounded-full"></div>
               <span class="text-sm">{{task.title}}</span>
             </div>
             <div class="text-right">
@@ -113,22 +137,89 @@
           </div>
         </div>
         <!-- Empty State for Tomorrow -->
-        <div *ngIf="tomorrowTasks.length === 0" class="flex flex-col items-center justify-center py-12">
-          <img [src]="getRecentActivityEmptyStateImage()" alt="No tasks tomorrow" class="w-64 h-64 mb-4">
-          <h3 class="text-lg font-medium text-base-content/70 mb-2">No tasks for tomorrow</h3>
-          <p class="text-sm text-base-content/50 text-center">Tomorrow is looking light! Perfect time to plan ahead.</p>
+        <div *ngIf="tomorrowTasks.length === 0" class="empty-state-container">
+          <div class="flex flex-col items-center justify-center">
+            <img [src]="getRecentActivityEmptyStateImage()" alt="No tasks tomorrow" class="w-64 h-64 mb-4">
+            <h3 class="text-lg font-medium text-base-content/70 mb-2">No tasks for tomorrow</h3>
+            <p class="text-sm text-base-content/50 text-center">Tomorrow is looking light! Perfect time to plan ahead.</p>
+          </div>
+        </div>
+        <!-- Pagination for Tomorrow -->
+        <div *ngIf="tomorrowTasks.length > 0" class="pagination-container flex justify-between items-center">
+          <button 
+            [disabled]="!getPaginationInfo('tomorrow').hasPrev"
+            (click)="prevPage('tomorrow')"
+            class="btn btn-sm btn-outline">
+            ← Previous
+          </button>
+          <span class="text-sm text-base-content/70">
+            Page {{getPaginationInfo('tomorrow').page}} of {{getPaginationInfo('tomorrow').totalPages || 1}}
+          </span>
+          <button 
+            [disabled]="!getPaginationInfo('tomorrow').hasNext"
+            (click)="nextPage('tomorrow')"
+            class="btn btn-sm btn-outline">
+            Next →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- This Week Section -->
+    <div class="card bg-base-100 shadow-sm task-section">
+      <div class="card-body">
+        <h2 class="card-title text-lg mb-4">This Week</h2>
+        <div class="task-list-container" *ngIf="thisWeekTasks.length > 0">
+          <div *ngFor="let task of thisWeekTasks" class="task-item flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors cursor-pointer" (click)="onTaskClick(task)">
+            <div class="flex items-center space-x-3">
+              <div [ngClass]="getTaskSidebarColor(task)" class="w-1 h-8 rounded-full"></div>
+              <span class="text-sm">{{task.title}}</span>
+            </div>
+            <div class="text-right">
+              <p class="text-xs" [ngClass]="{'text-error font-medium': isOverdue(task.dueDate), 'text-base-content opacity-50': !isOverdue(task.dueDate)}">
+                Due: {{task.dueDate | date:'MMM d'}}
+              </p>
+              <p class="text-xs text-base-content opacity-70">{{task.team}}</p>
+            </div>
+          </div>
+        </div>
+        <!-- Empty State for This Week -->
+        <div *ngIf="thisWeekTasks.length === 0" class="empty-state-container">
+          <div class="flex flex-col items-center justify-center">
+            <img [src]="getRecentActivityEmptyStateImage()" alt="No tasks this week" class="w-64 h-64 mb-4">
+            <h3 class="text-lg font-medium text-base-content/70 mb-2">No tasks for this week</h3>
+            <p class="text-sm text-base-content/50 text-center">This week is looking good! Keep up the momentum.</p>
+          </div>
+        </div>
+        <!-- Pagination for This Week -->
+        <div *ngIf="thisWeekTasks.length > 0" class="pagination-container flex justify-between items-center">
+          <button 
+            [disabled]="!getPaginationInfo('thisWeek').hasPrev"
+            (click)="prevPage('thisWeek')"
+            class="btn btn-sm btn-outline">
+            ← Previous
+          </button>
+          <span class="text-sm text-base-content/70">
+            Page {{getPaginationInfo('thisWeek').page}} of {{getPaginationInfo('thisWeek').totalPages || 1}}
+          </span>
+          <button 
+            [disabled]="!getPaginationInfo('thisWeek').hasNext"
+            (click)="nextPage('thisWeek')"
+            class="btn btn-sm btn-outline">
+            Next →
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Next Week Section -->
-    <div class="card bg-base-100 shadow-sm">
+    <div class="card bg-base-100 shadow-sm task-section">
       <div class="card-body">
-        <h2 class="card-title text-lg mb-4">Next week</h2>
-        <div class="space-y-3" *ngIf="nextWeekTasks.length > 0">
-          <div *ngFor="let task of nextWeekTasks" class="flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors cursor-pointer" (click)="onTaskClick(task)">
+        <h2 class="card-title text-lg mb-4">Next Week</h2>
+        <div class="task-list-container" *ngIf="nextWeekTasks.length > 0">
+          <div *ngFor="let task of nextWeekTasks" class="task-item flex items-center justify-between p-3 hover:bg-base-200 rounded-lg transition-colors cursor-pointer" (click)="onTaskClick(task)">
             <div class="flex items-center space-x-3">
-              <div [ngClass]="getStatusColor(task.status)" class="w-1 h-8 rounded-full"></div>
+              <div [ngClass]="getTaskSidebarColor(task)" class="w-1 h-8 rounded-full"></div>
               <span class="text-sm">{{task.title}}</span>
             </div>
             <div class="text-right">
@@ -140,10 +231,30 @@
           </div>
         </div>
         <!-- Empty State for Next Week -->
-        <div *ngIf="nextWeekTasks.length === 0" class="flex flex-col items-center justify-center py-12">
-          <img [src]="getRecentActivityEmptyStateImage()" alt="No tasks next week" class="w-64 h-64 mb-4">
-          <h3 class="text-lg font-medium text-base-content/70 mb-2">No tasks for next week</h3>
-          <p class="text-sm text-base-content/50 text-center">Next week is clear! Great opportunity to focus on long-term goals.</p>
+        <div *ngIf="nextWeekTasks.length === 0" class="empty-state-container">
+          <div class="flex flex-col items-center justify-center">
+            <img [src]="getRecentActivityEmptyStateImage()" alt="No tasks next week" class="w-64 h-64 mb-4">
+            <h3 class="text-lg font-medium text-base-content/70 mb-2">No tasks for next week</h3>
+            <p class="text-sm text-base-content/50 text-center">Next week is clear! Great opportunity to focus on long-term goals.</p>
+          </div>
+        </div>
+        <!-- Pagination for Next Week -->
+        <div *ngIf="nextWeekTasks.length > 0" class="pagination-container flex justify-between items-center">
+          <button 
+            [disabled]="!getPaginationInfo('nextWeek').hasPrev"
+            (click)="prevPage('nextWeek')"
+            class="btn btn-sm btn-outline">
+            ← Previous
+          </button>
+          <span class="text-sm text-base-content/70">
+            Page {{getPaginationInfo('nextWeek').page}} of {{getPaginationInfo('nextWeek').totalPages || 1}}
+          </span>
+          <button 
+            [disabled]="!getPaginationInfo('nextWeek').hasNext"
+            (click)="nextPage('nextWeek')"
+            class="btn btn-sm btn-outline">
+            Next →
+          </button>
         </div>
       </div>
     </div>

@@ -121,3 +121,93 @@
     }
   }
 }
+
+// Side panel animations
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out;
+}
+
+// Side panel specific styles
+.side-panel {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+// Enhanced hover effects for user selection
+.user-item {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  &.selected {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// Dropdown visibility fixes - let DaisyUI handle the dropdown behavior
+.dropdown {
+  .dropdown-content {
+    z-index: 9999 !important;
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    margin-top: 4px !important;
+  }
+}
+
+// Ensure dropdowns can overflow grid containers
+.grid {
+  overflow: visible;
+}
+
+// Fix for grid items that might clip dropdowns
+.grid > div {
+  overflow: visible;
+}
+
+// Ensure card body doesn't clip dropdowns
+.card-body {
+  overflow: visible;
+}
+
+// Ensure the members list container allows overflow
+.divide-y {
+  overflow: visible;
+}
+
+// Specific fixes for the actions column
+.col-span-1 {
+  overflow: visible !important;
+  position: relative;
+}
+
+// Ensure the actions column container doesn't clip dropdowns
+.flex.items-center.justify-end {
+  overflow: visible !important;
+  position: relative;
+}
+
+// Ensure the entire card structure allows overflow
+.card {
+  overflow: visible !important;
+}
+
+// Ensure the members list row allows overflow
+.grid.grid-cols-12 {
+  overflow: visible !important;
+}

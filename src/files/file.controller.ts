@@ -135,6 +135,7 @@ export class FileController {
             logger.info('Fetching MySpace files', { method: req.method, path: req.path, ip: req.ip })
             const userId = (req as any).user?.uuid
             const workplaceId = (req as any).user?.current_workplace_id
+            const searchQuery = req.query.search as string | undefined
             
             if (!userId || !workplaceId) {
                 return res.status(401).json({
@@ -144,22 +145,46 @@ export class FileController {
                 })
             }
 
-            const result = await this.fileService.getMySpaceFiles(userId, workplaceId)
+            const result = await this.fileService.getMySpaceFiles(userId, workplaceId, searchQuery)
             const responseTime = Date.now() - startTime
-            logger.info('MySpace files retrieved successfully', { responseTime: `${responseTime}ms`, statusCode: 200 })
+            logger.info('MySpace files retrieved successfully', { 
+                responseTime: `${responseTime}ms`, 
+                statusCode: 200,
+                searchQuery: searchQuery || 'none',
+                resultCount: result.files.length
+            })
             return res.status(200).json({
                 success: true,
                 data: result.files,
                 message: result.message,
-                meta: { responseTime: `${responseTime}ms` }
+                meta: { 
+                    responseTime: `${responseTime}ms`,
+                    searchQuery: searchQuery || null,
+                    resultCount: result.files.length
+                }
             })
         } catch (error: any) {
             const responseTime = Date.now() - startTime
-            logger.error('Error in getMySpaceFiles controller', { error: error.message, stack: error.stack, responseTime: `${responseTime}ms`, statusCode: error.code || 500 })
+            logger.error('Error in getMySpaceFiles controller', { 
+                error: error.message, 
+                stack: error.stack, 
+                responseTime: `${responseTime}ms`, 
+                statusCode: error.code || 500,
+                searchQuery: req.query.search || 'none'
+            })
+            
+            // Provide more specific error messages
+            let errorMessage = 'An error occurred while fetching files';
+            if (error.message && error.message.includes('SequelizeDatabaseError')) {
+                errorMessage = 'Database search error. Please try a different search term.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
             return res.status(error.code || 500).json({
                 success: false,
-                message: error.message,
-                error: error.stack,
+                message: errorMessage,
+                error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
                 meta: { responseTime: `${responseTime}ms` }
             })
         }

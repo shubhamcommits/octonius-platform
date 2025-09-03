@@ -11,6 +11,7 @@ import { AssigneeModalComponent, AssigneeData } from './assignee-modal/assignee-
 import { TiptapEditorComponent } from '../../../../../../core/components/tiptap-editor/tiptap-editor.component';
 import { CustomFieldModalComponent, CustomFieldData } from './custom-field-modal/custom-field-modal.component';
 import { TimeEntryModalComponent, TimeEntryData } from './time-entry-modal/time-entry-modal.component';
+import { DatePickerModalComponent, DatePickerData } from './date-picker-modal/date-picker-modal.component';
 import { environment } from '../../../../../../../environments/environment';
 
 @Component({
@@ -186,7 +187,6 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       title: changes.title || this.task.title,
       priority: this.task.priority,
       status: this.task.status,
-      due_date: this.task.due_date ? new Date(this.task.due_date) : null,
       estimated_hours: this.task.metadata?.estimated_hours || 0
     };
 
@@ -606,8 +606,25 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   }
 
   formatDate(date: Date | string | null): string {
-    if (!date) return 'No date set';
-    return new Date(date).toLocaleDateString();
+    console.log('=== FORMAT DATE CALL ===');
+    console.log('Input date:', date);
+    console.log('Input date type:', typeof date);
+    console.log('Input date stringified:', JSON.stringify(date));
+    
+    if (!date) {
+      console.log('No date provided, returning "No date set"');
+      return 'No date set';
+    }
+    
+    const dateObj = new Date(date);
+    console.log('Created Date object:', dateObj);
+    console.log('Date object toDateString:', dateObj.toDateString());
+    console.log('Date object toISOString:', dateObj.toISOString());
+    
+    const formattedDate = dateObj.toLocaleDateString();
+    console.log('Final formatted date:', formattedDate);
+    console.log('=== FORMAT DATE END ===');
+    return formattedDate;
   }
 
   isOverdue(dueDate: Date | string | null): boolean {
@@ -672,45 +689,115 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
 
   // Task due date management
   openDatePicker(): void {
-    // Create a temporary input element to trigger the native date picker
-    const input = document.createElement('input');
-    input.type = 'date';
-    input.style.position = 'absolute';
-    input.style.left = '-9999px';
-    input.style.top = '-9999px';
+    console.log('=== OPEN DATE PICKER START ===');
+    console.log('Current task:', this.task);
+    console.log('Current task due_date:', this.task?.due_date);
+    console.log('Current task due_date type:', typeof this.task?.due_date);
     
-    // Set current due date if it exists
+    // Ensure the current date is properly formatted
+    let currentDate = null;
     if (this.task?.due_date) {
-      const date = new Date(this.task.due_date);
-      input.value = date.toISOString().split('T')[0];
+      const dueDate = new Date(this.task.due_date);
+      console.log('Parsed dueDate:', dueDate);
+      console.log('dueDate toDateString:', dueDate.toDateString());
+      console.log('dueDate toISOString:', dueDate.toISOString());
+      
+      // Create a date string in YYYY-MM-DD format for the date picker
+      currentDate = dueDate.toISOString().split('T')[0];
+      console.log('Formatted currentDate for modal:', currentDate);
     }
     
-    document.body.appendChild(input);
+    console.log('Final currentDate being passed to modal:', currentDate);
     
-    input.addEventListener('change', (event) => {
-      const target = event.target as HTMLInputElement;
-      if (target.value) {
-        this.updateTaskDueDate(new Date(target.value));
-      }
-      document.body.removeChild(input);
-    });
-    
-    input.addEventListener('blur', () => {
-      if (document.body.contains(input)) {
-        document.body.removeChild(input);
+    this.modalService.openModal(DatePickerModalComponent, {
+      currentDate: currentDate,
+      onSave: (date: Date | null) => {
+        this.updateTaskDueDate(date);
+        this.modalService.closeModal();
+      },
+      onCancel: () => {
+        this.modalService.closeModal();
       }
     });
     
-    input.click();
+    console.log('=== OPEN DATE PICKER END ===');
   }
 
-  updateTaskDueDate(newDueDate: Date): void {
-    if (!this.task || !this.group) return;
+  updateTaskDueDate(newDueDate: Date | null): void {
+    console.log('=== UPDATE TASK DUE DATE START ===');
+    console.log('Input newDueDate:', newDueDate);
+    console.log('Input newDueDate type:', typeof newDueDate);
+    console.log('Input newDueDate stringified:', JSON.stringify(newDueDate));
     
-    this.taskService.updateTask(this.group.uuid, this.task.uuid, { due_date: newDueDate }).subscribe({
+    if (!this.task || !this.group) {
+      console.log('No task or group, returning');
+      return;
+    }
+    
+    console.log('Current task due_date before update:', this.task.due_date);
+    console.log('Task ID:', this.task.uuid);
+    console.log('Group ID:', this.group.uuid);
+    
+    // Check if the date is actually different from the current date
+    const currentDueDate = this.task.due_date ? new Date(this.task.due_date) : null;
+    const isDateDifferent = !currentDueDate && !newDueDate ? false : 
+                           !currentDueDate || !newDueDate ? true :
+                           currentDueDate.getTime() !== newDueDate.getTime();
+    
+    console.log('Current due date:', currentDueDate);
+    console.log('New due date:', newDueDate);
+    console.log('Is date different:', isDateDifferent);
+    
+    if (!isDateDifferent) {
+      console.log('Date is the same, no update needed');
+      return;
+    }
+    
+    // Format the date properly for the backend
+    let formattedDate = null;
+    if (newDueDate) {
+      // Create a date string in YYYY-MM-DD format to avoid timezone issues
+      const year = newDueDate.getFullYear();
+      const month = String(newDueDate.getMonth() + 1).padStart(2, '0');
+      const day = String(newDueDate.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      // Create a new Date object from the string to ensure consistency
+      formattedDate = new Date(dateString + 'T00:00:00.000Z');
+      
+      console.log('Original date:', newDueDate);
+      console.log('Date string:', dateString);
+      console.log('Formatted date for API:', formattedDate);
+      console.log('Formatted date ISO string:', formattedDate.toISOString());
+      console.log('Formatted date toDateString:', formattedDate.toDateString());
+    }
+    
+    // Send the formatted Date object to the API
+    console.log('Date object being sent to API:', formattedDate);
+    console.log('Date object type:', typeof formattedDate);
+    console.log('Date object stringified:', JSON.stringify(formattedDate));
+    
+    this.taskService.updateTask(this.group.uuid, this.task.uuid, { due_date: formattedDate }).subscribe({
       next: (updatedTask: Task) => {
+        console.log('=== TASK UPDATE RESPONSE ===');
+        console.log('Updated task:', updatedTask);
+        console.log('Updated task due_date:', updatedTask.due_date);
+        console.log('Updated task due_date type:', typeof updatedTask.due_date);
+        console.log('Updated task due_date stringified:', JSON.stringify(updatedTask.due_date));
+        
+        // Check if the date changed unexpectedly
+        if (formattedDate && updatedTask.due_date) {
+          const sentDate = new Date(formattedDate);
+          const receivedDate = new Date(updatedTask.due_date);
+          console.log('Sent date:', sentDate.toDateString());
+          console.log('Received date:', receivedDate.toDateString());
+          console.log('Dates match:', sentDate.toDateString() === receivedDate.toDateString());
+        }
+        
         this.task = updatedTask;
-        this.toastService.success('Due date updated successfully');
+        console.log('Task object updated, new due_date:', this.task.due_date);
+        this.toastService.success(formattedDate ? 'Due date updated successfully' : 'Due date removed successfully');
+        console.log('=== UPDATE TASK DUE DATE END ===');
       },
       error: (error: any) => {
         console.error('Error updating task due date:', error);
