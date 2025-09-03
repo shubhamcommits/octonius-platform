@@ -69,3 +69,184 @@
     </div>
   </div>
 </ng-container>
+
+<!-- Member Actions Modal - At highest level for proper positioning -->
+<div 
+  *ngIf="selectedMemberForActions && selectedMemberForActions.user" 
+  class="modal modal-open">
+  <div class="modal-box max-w-md">
+    <!-- Loading State -->
+    <div *ngIf="!selectedMemberForActions?.user" class="flex items-center justify-center py-8">
+      <div class="loading loading-spinner loading-lg text-primary"></div>
+    </div>
+    
+    <!-- Content -->
+    <div *ngIf="selectedMemberForActions?.user">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-primary/10 rounded-lg">
+            <lucide-icon name="UserCog" class="w-5 h-5 text-primary"></lucide-icon>
+          </div>
+          <h3 class="font-bold text-xl text-base-content">Manage Member</h3>
+        </div>
+        <button 
+          (click)="closeMemberActionsModal()"
+          class="btn btn-ghost btn-sm btn-circle">
+          <lucide-icon name="X" class="w-4 h-4"></lucide-icon>
+        </button>
+      </div>
+    
+    <!-- Member Info Card -->
+    <div class="mb-8 p-5 bg-gradient-to-r from-base-200 to-base-300 rounded-xl border border-base-content/10">
+      <div class="flex items-center gap-4">
+        <div class="avatar placeholder">
+          <div class="bg-gradient-to-br from-primary to-primary/70 text-primary-content rounded-full w-16 ring-4 ring-primary/20">
+            <span class="text-xl font-bold">{{ selectedMemberForActions.user.firstName?.charAt(0) }}{{ selectedMemberForActions.user.lastName?.charAt(0) }}</span>
+          </div>
+        </div>
+        <div class="flex-1">
+          <div class="font-bold text-lg text-base-content">{{ selectedMemberForActions.user.firstName }} {{ selectedMemberForActions.user.lastName }}</div>
+          <div class="text-sm text-base-content/70 mb-2">{{ selectedMemberForActions.user.email }}</div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-base-content/60">Current Role:</span>
+            <span class="badge badge-lg font-medium px-3 py-1" 
+                  [ngClass]="{
+                    'badge-primary': selectedMemberForActions.role === 'admin',
+                    'badge-secondary': selectedMemberForActions.role === 'member',
+                    'badge-accent': selectedMemberForActions.role === 'viewer'
+                  }">
+              {{ selectedMemberForActions.role | titlecase }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role Management Section -->
+    <div class="mb-8">
+      <h4 class="font-semibold text-base text-base-content mb-4 flex items-center gap-2">
+        <lucide-icon name="Shield" class="w-4 h-4 text-primary"></lucide-icon>
+        Change Role
+      </h4>
+      
+      <div class="grid gap-3">
+        <!-- Viewer Role -->
+        <button 
+          (click)="updateMemberRole(selectedMemberForActions, 'viewer')"
+          class="group relative p-4 rounded-xl border-2 transition-all duration-200 hover:scale-[1.02]"
+          [ngClass]="{
+            'border-accent bg-accent/10': selectedMemberForActions.role === 'viewer',
+            'border-base-300 hover:border-accent/50': selectedMemberForActions.role !== 'viewer'
+          }">
+          <div class="flex items-center gap-4">
+            <div class="p-2 rounded-lg" 
+                 [ngClass]="{
+                   'bg-accent/20': selectedMemberForActions.role === 'viewer',
+                   'bg-base-200': selectedMemberForActions.role !== 'viewer'
+                 }">
+              <lucide-icon name="Eye" class="w-5 h-5" 
+                          [ngClass]="{
+                            'text-accent': selectedMemberForActions.role === 'viewer',
+                            'text-base-content/60': selectedMemberForActions.role !== 'viewer'
+                          }"></lucide-icon>
+            </div>
+            <div class="flex-1 text-left">
+              <div class="font-semibold text-base-content">Viewer</div>
+              <div class="text-sm text-base-content/60">Can view group content only</div>
+            </div>
+            <div *ngIf="selectedMemberForActions.role === 'viewer'" class="text-accent">
+              <lucide-icon name="Check" class="w-5 h-5"></lucide-icon>
+            </div>
+          </div>
+        </button>
+        
+        <!-- Member Role -->
+        <button 
+          (click)="updateMemberRole(selectedMemberForActions, 'member')"
+          class="group relative p-4 rounded-xl border-2 transition-all duration-200 hover:scale-[1.02]"
+          [ngClass]="{
+            'border-secondary bg-secondary/10': selectedMemberForActions.role === 'member',
+            'border-base-300 hover:border-secondary/50': selectedMemberForActions.role !== 'member'
+          }">
+          <div class="flex items-center gap-4">
+            <div class="p-2 rounded-lg" 
+                 [ngClass]="{
+                   'bg-secondary/20': selectedMemberForActions.role === 'member',
+                   'bg-base-200': selectedMemberForActions.role !== 'member'
+                 }">
+              <lucide-icon name="User" class="w-5 h-5" 
+                          [ngClass]="{
+                            'text-secondary': selectedMemberForActions.role === 'member',
+                            'text-base-content/60': selectedMemberForActions.role !== 'member'
+                          }"></lucide-icon>
+            </div>
+            <div class="flex-1 text-left">
+              <div class="font-semibold text-base-content">Member</div>
+              <div class="text-sm text-base-content/60">Can participate in group activities</div>
+            </div>
+            <div *ngIf="selectedMemberForActions.role === 'member'" class="text-secondary">
+              <lucide-icon name="Check" class="w-5 h-5"></lucide-icon>
+            </div>
+          </div>
+        </button>
+        
+        <!-- Admin Role -->
+        <button 
+          (click)="updateMemberRole(selectedMemberForActions, 'admin')"
+          class="group relative p-4 rounded-xl border-2 transition-all duration-200 hover:scale-[1.02]"
+          [ngClass]="{
+            'border-primary bg-primary/10': selectedMemberForActions.role === 'admin',
+            'border-base-300 hover:border-primary/50': selectedMemberForActions.role !== 'admin'
+          }">
+          <div class="flex items-center gap-4">
+            <div class="p-2 rounded-lg" 
+                 [ngClass]="{
+                   'bg-primary/20': selectedMemberForActions.role === 'admin',
+                   'bg-base-200': selectedMemberForActions.role !== 'admin'
+                 }">
+              <lucide-icon name="Shield" class="w-5 h-5" 
+                          [ngClass]="{
+                            'text-primary': selectedMemberForActions.role === 'admin',
+                            'text-base-content/60': selectedMemberForActions.role !== 'admin'
+                          }"></lucide-icon>
+            </div>
+            <div class="flex-1 text-left">
+              <div class="font-semibold text-base-content">Admin</div>
+              <div class="text-sm text-base-content/60">Full access to manage group</div>
+            </div>
+            <div *ngIf="selectedMemberForActions.role === 'admin'" class="text-primary">
+              <lucide-icon name="Check" class="w-5 h-5"></lucide-icon>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="border-t border-base-300 pt-6">
+      <h4 class="font-semibold text-base text-error mb-4 flex items-center gap-2">
+        <lucide-icon name="AlertTriangle" class="w-4 h-4"></lucide-icon>
+        Danger Zone
+      </h4>
+      
+      <button 
+        (click)="removeMember(selectedMemberForActions)"
+        class="w-full group p-4 rounded-xl border-2 border-error/30 bg-error/5 hover:bg-error/10 hover:border-error/50 transition-all duration-200 hover:scale-[1.02]">
+        <div class="flex items-center gap-4">
+          <div class="p-2 rounded-lg bg-error/20 group-hover:bg-error/30">
+            <lucide-icon name="UserMinus" class="w-5 h-5 text-error"></lucide-icon>
+          </div>
+          <div class="flex-1 text-left">
+            <div class="font-semibold text-error">Remove Member</div>
+            <div class="text-sm text-error/70">Permanently remove from group</div>
+          </div>
+          <lucide-icon name="ChevronRight" class="w-4 h-4 text-error/60"></lucide-icon>
+        </div>
+      </button>
+    </div>
+
+
+    </div>
+  </div>
+</div>
