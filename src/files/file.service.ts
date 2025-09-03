@@ -12,6 +12,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import fetch, { Response } from 'node-fetch'
+import { Op } from 'sequelize'
 
 // Import Cache Service
 import { CacheService } from '../shared/cache.service'
@@ -306,17 +307,19 @@ export class FileService {
     /**
      * Gets files for MySpace (private group only)
      */
-    async getMySpaceFiles(user_id: string, workplace_id: string): Promise<FilesResponse<File[]>> {
+    async getMySpaceFiles(user_id: string, workplace_id: string, searchQuery?: string): Promise<FilesResponse<File[]>> {
         try {
-            // Check cache first
-            const cachedFiles = await CacheService.getMySpaceFiles(user_id, workplace_id)
-            if (cachedFiles) {
-                logger.info('MySpace files retrieved from cache', { user_id, workplace_id })
-                return {
-                    success: true,
-                    message: cachedFiles.length ? FileCode.FILES_FOUND : FileCode.FILES_NOT_FOUND,
-                    code: 200,
-                    files: cachedFiles
+            // Check cache first (only for non-search queries)
+            if (!searchQuery) {
+                const cachedFiles = await CacheService.getMySpaceFiles(user_id, workplace_id)
+                if (cachedFiles) {
+                    logger.info('MySpace files retrieved from cache', { user_id, workplace_id })
+                    return {
+                        success: true,
+                        message: cachedFiles.length ? FileCode.FILES_FOUND : FileCode.FILES_NOT_FOUND,
+                        code: 200,
+                        files: cachedFiles
+                    }
                 }
             }
 
@@ -334,13 +337,44 @@ export class FileService {
                 };
             }
 
-            // Fetch files with source_context as 'note' or 'user' from the private group
+            // Build where clause with search functionality
+            let whereClause: any = {
+                workplace_id,
+                group_id: privateGroup.uuid,
+                source_context: ['note', 'user', 'private'],
+                [Op.or]: [
+                    { 
+                        source_context: 'note',
+                        type: { [Op.ne]: 'file' } // Exclude files with type='file' and source_context='note'
+                    },
+                    { 
+                        source_context: { [Op.in]: ['user', 'private'] },
+                        type: 'file' 
+                    }
+                ]
+            };
+
+            // Add search functionality if query provided
+            if (searchQuery && searchQuery.trim()) {
+                const searchTerm = searchQuery.trim();
+                logger.info('Performing MySpace files search', { searchTerm, user_id, workplace_id });
+                
+                // Use a simpler search approach to avoid JSON field issues
+                whereClause[Op.and] = [
+                    {
+                        [Op.or]: [
+                            // Search in file name
+                            { name: { [Op.iLike]: `%${searchTerm}%` } },
+                            // Search in note title
+                            { title: { [Op.iLike]: `%${searchTerm}%` } }
+                        ]
+                    }
+                ];
+            }
+
+            // Fetch files with search functionality
             const files = await File.findAll({
-                where: {
-                    workplace_id,
-                    group_id: privateGroup.uuid,
-                    source_context: ['note', 'user', 'private']
-                },
+                where: whereClause,
                 include: [
                     {
                         model: User,
@@ -357,7 +391,7 @@ export class FileService {
             });
 
             // Transform files to match frontend expectations
-            const transformedFiles = files.map(file => {
+            let transformedFiles = files.map(file => {
                 const fileData = file.toJSON() as any;
                 const owner = fileData.owner || {};
                 return {
@@ -368,10 +402,43 @@ export class FileService {
                     mime_type: fileData.mime_type
                 };
             });
+
+            // If searching, also filter by content for notes (post-processing)
+            if (searchQuery && searchQuery.trim()) {
+                const searchTerm = searchQuery.trim().toLowerCase();
+                transformedFiles = transformedFiles.filter(file => {
+                    // Check if already matched by name or title
+                    const nameMatch = file.name.toLowerCase().includes(searchTerm);
+                    const titleMatch = file.title && file.title.toLowerCase().includes(searchTerm);
+                    
+                    if (nameMatch || titleMatch) {
+                        return true;
+                    }
+                    
+                    // For notes, also check content
+                    if (file.type === 'note' && file.content) {
+                        try {
+                            const contentStr = typeof file.content === 'string' 
+                                ? file.content 
+                                : JSON.stringify(file.content);
+                            return contentStr.toLowerCase().includes(searchTerm);
+                        } catch (error) {
+                            logger.warn('Error parsing note content for search', { fileId: file.id, error });
+                            return false;
+                        }
+                    }
+                    
+                    return false;
+                });
+            }
             
-            // Cache MySpace files separately for quick access
-            await CacheService.setMySpaceFiles(user_id, workplace_id, transformedFiles)
-            logger.info('MySpace files cached successfully', { user_id, workplace_id, count: transformedFiles.length })
+            // Cache MySpace files separately for quick access (only for non-search queries)
+            if (!searchQuery) {
+                await CacheService.setMySpaceFiles(user_id, workplace_id, transformedFiles)
+                logger.info('MySpace files cached successfully', { user_id, workplace_id, count: transformedFiles.length })
+            } else {
+                logger.info('MySpace files search completed (not cached)', { user_id, workplace_id, searchQuery, count: transformedFiles.length })
+            }
 
             return {
                 success: true,

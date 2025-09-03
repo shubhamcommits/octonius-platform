@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GroupTaskService, Task, TaskColumn, Board } from '../../../services/group-task.service';
@@ -15,11 +15,17 @@ import { CreateTaskModalComponent } from './create-task-modal/create-task-modal.
   templateUrl: './group-tasks.component.html',
   styleUrl: './group-tasks.component.scss'
 })
-export class GroupTasksComponent implements OnInit, OnDestroy {
+export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('boardContainer', { static: false }) boardContainer!: ElementRef;
+  
   board: Board | undefined;
   isLoading = false;
   group: WorkGroup | null = null;
   private groupSub: Subscription | null = null;
+  
+  // Navigation arrow states
+  canScrollLeft = false;
+  canScrollRight = false;
   
   // View state
   currentView: 'board' | 'list' | 'timeline' = 'board';
@@ -61,6 +67,13 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
     });
   }
 
+  ngAfterViewInit(): void {
+    // Check scroll state after view is initialized
+    setTimeout(() => {
+      this.updateScrollState();
+    }, 100);
+  }
+
   ngOnDestroy(): void {
     if (this.groupSub) {
       this.groupSub.unsubscribe();
@@ -76,6 +89,10 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
         this.board = board;
         this.applyFiltersAndSort();
         this.isLoading = false;
+        // Update scroll state after board is loaded
+        setTimeout(() => {
+          this.updateScrollState();
+        }, 100);
       },
       error: (error) => {
         this.toastService.error('Failed to load task board');
@@ -477,5 +494,45 @@ export class GroupTasksComponent implements OnInit, OnDestroy {
   // Helper method to get user avatar with fallback
   getUserAvatarUrl(user: any): string {
     return user?.avatar_url || environment.defaultAvatarUrl;
+  }
+
+  // Navigation arrow functionality
+  scrollBoard(direction: 'left' | 'right'): void {
+    if (!this.boardContainer) return;
+    
+    const container = this.boardContainer.nativeElement;
+    const scrollAmount = 320; // Width of one column + gap
+    
+    if (direction === 'left') {
+      container.scrollLeft -= scrollAmount;
+    } else {
+      container.scrollLeft += scrollAmount;
+    }
+    
+    // Update scroll state after scrolling
+    setTimeout(() => {
+      this.updateScrollState();
+    }, 100);
+  }
+
+  updateScrollState(): void {
+    if (!this.boardContainer) return;
+    
+    const container = this.boardContainer.nativeElement;
+    const scrollLeft = container.scrollLeft;
+    const maxScrollLeft = container.scrollWidth - container.clientWidth;
+    
+    this.canScrollLeft = scrollLeft > 0;
+    this.canScrollRight = scrollLeft < maxScrollLeft - 1; // -1 for floating point precision
+    
+    this.cdr.detectChanges();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    // Update scroll state when window is resized
+    setTimeout(() => {
+      this.updateScrollState();
+    }, 100);
   }
 }
