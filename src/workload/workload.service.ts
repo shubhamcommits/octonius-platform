@@ -107,7 +107,6 @@ export class WorkloadService {
                 groups: [...new Set(tasks.map((task: any) => task.group?.name))],
                 tasksWithDueDates: tasks.filter((task: any) => task.due_date).length
             })
-
             // Calculate date ranges
             const now = new Date()
             const today = new Date(now)
@@ -118,7 +117,7 @@ export class WorkloadService {
             
             const nextWeek = new Date(today)
             nextWeek.setDate(nextWeek.getDate() + 7)
-
+          
             // Filter tasks by due date - ensure we get tasks from all groups
             // Include overdue tasks in today's list since they are due ASAP
             const overdueTasks = tasks.filter(task => {
@@ -221,7 +220,6 @@ export class WorkloadService {
 
             // Mock news (in a real app, this would come from lounge/news system)
             const news: WorkloadNews[] = []
-
             logger.info('Workload data processed', { 
                 todayTasks: todayTasks.length,
                 overdueTasks: overdueTasks.length,

@@ -1,3 +1,4 @@
+
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subject, takeUntil } from 'rxjs';
 import { WorkGroup, WorkGroupService } from '../../../../services/work-group.service';
@@ -28,8 +29,6 @@ export class AdminMembersComponent implements OnInit, OnDestroy {
   memberSearchResults: any[] = [];
   selectedMember: any = null;
   inviteMessage = '';
-  
-
   
   private destroy$ = new Subject<void>();
 
@@ -66,7 +65,6 @@ export class AdminMembersComponent implements OnInit, OnDestroy {
     
     this.isLoadingMembers = true;
     this.cdr.detectChanges(); // Trigger change detection for loading state
-    
     this.groupMemberService.getMembers(this.group.uuid).subscribe({
       next: (members) => {
         this.members = members;
@@ -91,6 +89,54 @@ export class AdminMembersComponent implements OnInit, OnDestroy {
     this.newMemberRole = 'member';
     this.inviteMessage = '';
     this.cdr.detectChanges(); // Trigger change detection after opening modal
+=======
+      }
+    });
+  }
+
+  // Invite member functionality
+  openInviteMemberModal(): void {
+    this.showInviteMemberModal = true;
+    this.inviteForm = {
+      email: '',
+      role: 'member',
+      message: ''
+    };
+  }
+
+  closeInviteMemberModal(): void {
+    this.showInviteMemberModal = false;
+  }
+
+  sendInvitation(): void {
+    if (!this.group || !this.inviteForm.email.trim() || !this.isValidEmail(this.inviteForm.email)) return;
+    
+    this.isSendingInvite = true;
+    this.groupMemberService.inviteMember(this.group.uuid, {
+      email: this.inviteForm.email.trim(),
+      role: this.inviteForm.role,
+      message: this.inviteForm.message?.trim()
+    }).subscribe({
+      next: () => {
+        this.toastService.success(`Invitation sent to ${this.inviteForm.email}`);
+        this.closeInviteMemberModal();
+        this.loadMembers(); // Refresh member list
+        this.isSendingInvite = false;
+      },
+      error: (error) => {
+        this.toastService.error('Failed to send invitation');
+        this.isSendingInvite = false;
+      }
+    });
+  }
+
+  // Add existing member functionality
+  openAddMemberModal(): void {
+    this.showAddMemberModal = true;
+    this.userSearchQuery = '';
+    this.searchResults = [];
+    this.selectedUser = null;
+    this.newMemberRole = 'member';
   }
 
   closeAddMemberModal(): void {
@@ -296,7 +342,6 @@ export class AdminMembersComponent implements OnInit, OnDestroy {
   openMemberActionsModal(member: GroupMember): void {
     this.memberActionsModalService.openModal(member);
   }
-
   // Mock current user - in real app this would come from AuthService
   private getCurrentUser() {
     this.authService.currentUser$.subscribe((user: any) => {

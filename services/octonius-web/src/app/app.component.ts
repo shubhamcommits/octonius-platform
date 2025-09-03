@@ -56,7 +56,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.modalService.closeModal();
     }, 300);
   }
-
+  
   isDatePickerModal(): boolean {
     return this.currentModal?.component?.name === 'DatePickerModalComponent';
   }

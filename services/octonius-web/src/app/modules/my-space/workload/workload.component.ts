@@ -189,7 +189,6 @@ export class WorkloadComponent implements OnInit, OnDestroy {
       default: return 'bg-base-300'
     }
   }
-
   isOverdue(dueDate: string | Date | null): boolean {
     if (!dueDate) return false;
     const due = new Date(dueDate);
