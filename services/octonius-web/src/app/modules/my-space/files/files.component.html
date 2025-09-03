@@ -23,9 +23,9 @@
             <button class="btn btn-ghost btn-circle" (click)="onCreateNote()">  
               <lucide-icon name="Plus" class="w-6 h-6"></lucide-icon> 
             </button>
-            <button class="btn btn-ghost btn-circle" (click)="onUploadFile()">
+            <!-- <button class="btn btn-ghost btn-circle" (click)="onUploadFile()">
               <lucide-icon name="Upload" class="w-6 h-6"></lucide-icon> 
-            </button>
+            </button> -->
           </div>
         </div>
       </div>
@@ -59,15 +59,37 @@
         <input 
           type="text" 
           placeholder="Search files..." 
-          class="input input-bordered w-full pl-10 h-10 text-sm" 
+          class="input input-bordered w-full pl-10 pr-10 h-10 text-sm" 
           [(ngModel)]="searchQuery" 
           (input)="onSearch()"
         >
+        <!-- Search loading indicator -->
+        <div 
+          *ngIf="isSearching" 
+          class="absolute right-3 flex items-center">
+          <div class="loading loading-spinner loading-xs"></div>
+        </div>
+        <!-- Clear search button -->
+        <button 
+          *ngIf="searchQuery.trim() && !isSearching" 
+          class="absolute right-3 btn btn-ghost btn-circle btn-xs"
+          (click)="clearSearch()"
+          type="button">
+          <lucide-icon name="X" class="w-4 h-4"></lucide-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search Status Indicator -->
+    <div *ngIf="searchQuery.trim() && isSearching" class="mb-4 p-3 bg-info/10 border border-info/20 rounded-lg">
+      <div class="flex items-center gap-2 text-info">
+        <div class="loading loading-spinner loading-sm"></div>
+        <span class="text-sm">Searching through all files...</span>
       </div>
     </div>
 
     <!-- Files List -->
-    <div class="space-y-2">
+    <div class="space-y-2" *ngIf="filteredFiles.length > 0">
       <div *ngFor="let file of filteredFiles; let i = index" 
            class="flex items-center justify-between p-4 hover:bg-base-200 rounded-lg transition-colors cursor-pointer relative" 
            (click)="onFileClick(file)">
@@ -108,8 +130,8 @@
                   <span>Preview</span>
                 </a>
               </li>
-              <!-- Download Option -->
-              <li>
+              <!-- Download Option (only for files, not notes) -->
+              <li *ngIf="file.type !== 'note'">
                 <a (click)="onDownloadFile(file); $event.stopPropagation()" 
                    class="flex items-center gap-3 px-3 py-2 hover:bg-base-200 rounded-lg">
                   <lucide-icon name="Download" class="w-4 h-4"></lucide-icon>
@@ -127,6 +149,32 @@
             </ul>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Empty State Placeholder -->
+    <div *ngIf="filteredFiles.length === 0 && !isLoading" class="flex flex-col items-center justify-center py-16 text-center">
+      <div class="w-24 h-24 mb-6 rounded-full bg-base-200 flex items-center justify-center">
+        <lucide-icon name="FileX" class="w-12 h-12 text-base-content/40"></lucide-icon>
+      </div>
+      <h3 class="text-lg font-medium text-base-content/80 mb-2">No files found</h3>
+      <p class="text-base-content/60 mb-6 max-w-md">
+        <span *ngIf="searchQuery.trim()">
+          No files match your search for "{{searchQuery}}". Try adjusting your search terms.
+        </span>
+        <span *ngIf="!searchQuery.trim()">
+          You haven't uploaded any files or created any notes yet. Get started by creating your first note or uploading a file.
+        </span>
+      </p>
+      <div class="flex gap-3">
+        <button class="btn btn-primary" (click)="onCreateNote()">
+          <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon>
+          Create Note
+        </button>
+        <button class="btn btn-outline" (click)="onUploadFile()">
+          <lucide-icon name="Upload" class="w-4 h-4"></lucide-icon>
+          Upload File
+        </button>
       </div>
     </div>
   </ng-container>
