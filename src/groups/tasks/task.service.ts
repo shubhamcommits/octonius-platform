@@ -268,6 +268,16 @@ export class TaskService {
         userId: string
     ): Promise<TaskResponse<Task>> {
         try {
+            // Log the incoming update data
+            logger.info('Task update request', { 
+                taskId, 
+                groupId, 
+                userId, 
+                updateData,
+                dueDateReceived: updateData.due_date,
+                dueDateType: typeof updateData.due_date
+            })
+
             // Finds the task
             const task = await Task.findOne({
                 where: {
@@ -284,6 +294,13 @@ export class TaskService {
                     stack: new Error('Task not found in this group')
                 }
             }
+
+            // Log the current task state
+            logger.info('Current task state', { 
+                taskId, 
+                currentDueDate: task.due_date,
+                currentDueDateType: typeof task.due_date
+            })
 
             // Updates task completion status if changing to done
             if (updateData.status === 'done' && task.status !== 'done') {
@@ -309,6 +326,13 @@ export class TaskService {
                         through: { attributes: ['assigned_at', 'assigned_by'] }
                     }
                 ]
+            })
+
+            // Log the updated task state
+            logger.info('Updated task state', { 
+                taskId, 
+                updatedDueDate: updatedTask?.due_date,
+                updatedDueDateType: typeof updatedTask?.due_date
             })
 
             // Logs success
@@ -419,11 +443,40 @@ export class TaskService {
                 }
             )
 
-            // Updates the task
-            await task.update({
+            // Determine the new status based on the column name
+            let newStatus = task.status // Keep current status by default
+            const columnName = column.name.toLowerCase()
+            
+            if (columnName.includes('to do') || columnName.includes('todo')) {
+                newStatus = 'todo'
+            } else if (columnName.includes('in progress') || columnName.includes('progress')) {
+                newStatus = 'in_progress'
+            } else if (columnName.includes('review')) {
+                newStatus = 'review'
+            } else if (columnName.includes('done') || columnName.includes('complete')) {
+                newStatus = 'done'
+            }
+
+            // Update completion fields if moving to/from done status
+            let updateData: any = {
                 column_id: moveData.column_id,
-                position: moveData.position
-            }, { transaction })
+                position: moveData.position,
+                status: newStatus
+            }
+
+            // If moving to done status and not already done
+            if (newStatus === 'done' && task.status !== 'done') {
+                updateData.completed_at = new Date()
+                updateData.completed_by = userId
+            } 
+            // If moving away from done status
+            else if (newStatus !== 'done' && task.status === 'done') {
+                updateData.completed_at = null
+                updateData.completed_by = null
+            }
+
+            // Updates the task
+            await task.update(updateData, { transaction })
 
             await transaction.commit()
 
@@ -442,7 +495,7 @@ export class TaskService {
             })
 
             // Logs success
-            logger.info('Task moved successfully', { taskId, groupId, moveData, userId })
+            logger.info('Task moved successfully', { taskId, groupId, moveData, userId, newStatus })
 
             // Returns success response
             return {

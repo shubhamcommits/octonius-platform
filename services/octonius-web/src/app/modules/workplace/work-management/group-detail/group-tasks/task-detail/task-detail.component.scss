@@ -1,0 +1,27 @@
+// Task detail specific styles
+:host {
+  display: block;
+}
+
+// Ensure tiptap editor in auto-expand mode doesn't show scrollbars
+::ng-deep .tiptap-editor.auto-expand {
+  overflow-y: visible !important;
+  max-height: none !important;
+}
+
+// Hide scrollbars for auto-expand editors
+::ng-deep .tiptap-editor.auto-expand::-webkit-scrollbar {
+  display: none;
+}
+
+::ng-deep .tiptap-editor.auto-expand {
+  scrollbar-width: none; /* Firefox */
+}
+
+// Ensure the editor content area grows with content
+::ng-deep .tiptap-content-area {
+  .tiptap-editor.auto-expand {
+    height: auto !important;
+    min-height: 120px;
+  }
+}

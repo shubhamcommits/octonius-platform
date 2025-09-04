@@ -38,6 +38,7 @@ export interface TiptapEditorConfig {
   enableEmojiPicker?: boolean
   enableTableControls?: boolean
   sourceContext?: string
+  autoExpand?: boolean
 }
 
 @Component({
@@ -171,7 +172,9 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
         editorProps: {
           attributes: {
             class: this.getEditorClasses(),
-            style: `min-height: ${this.config.minHeight || '120px'}; max-height: ${this.config.maxHeight || '200px'};` // allow dynamic height
+            style: this.config.autoExpand 
+              ? `min-height: ${this.config.minHeight || '120px'};`
+              : `min-height: ${this.config.minHeight || '120px'}; max-height: ${this.config.maxHeight || '200px'};`
           },
           handleDrop: (view, event, slice, moved) => {
             if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
@@ -807,38 +810,38 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
       '[&_p]:leading-relaxed',
       // Lists
       '[&_ul]:text-base-content',
+      '[&_ul]:list-disc',
+      '[&_ul]:pl-4',
       '[&_ul]:mb-2',
       '[&_ol]:text-base-content',
+      '[&_ol]:list-decimal',
+      '[&_ol]:pl-4',
       '[&_ol]:mb-2',
-      '[&_li]:mb-1',
+      '[&_li]:text-base-content',
+      '[&_li]:mb-0.5',
       // Task lists
-      '[&_ul[data-type="taskList"]]:list-none',
-      '[&_ul[data-type="taskList"]]:pl-0',
-      '[&_ul[data-type="taskList"]_li]:flex',
-      '[&_ul[data-type="taskList"]_li]:items-start',
-      '[&_ul[data-type="taskList"]_li]:gap-2',
-      '[&_ul[data-type="taskList"]_li]:mb-1',
-      '[&_ul[data-type="taskList"]_input]:mt-0.5',
-      '[&_ul[data-type="taskList"]_input]:cursor-pointer',
+      '[&_.task-list]:list-none',
+      '[&_.task-list]:pl-0',
+      '[&_.task-list-item]:flex',
+      '[&_.task-list-item]:items-start',
+      '[&_.task-list-item]:mb-1',
+      '[&_.task-list-item_input]:mr-2',
+      '[&_.task-list-item_input]:mt-1',
       // Blockquotes
-      '[&_blockquote]:border-l-2',
+      '[&_blockquote]:border-l-4',
       '[&_blockquote]:border-primary',
-      '[&_blockquote]:pl-3',
+      '[&_blockquote]:pl-4',
       '[&_blockquote]:italic',
       '[&_blockquote]:text-base-content/80',
-      '[&_blockquote]:my-2',
-      // Code
+      '[&_blockquote]:mb-2',
+      // Code blocks
       '[&_pre]:bg-base-200',
-      '[&_pre]:border',
-      '[&_pre]:border-base-300',
+      '[&_pre]:text-base-content',
+      '[&_pre]:p-3',
       '[&_pre]:rounded',
-      '[&_pre]:p-2',
       '[&_pre]:mb-2',
       '[&_pre]:overflow-x-auto',
-      '[&_pre_code]:bg-transparent',
-      '[&_pre_code]:p-0',
-      '[&_pre_code]:text-xs',
-      '[&_pre_code]:font-mono',
+      // Inline code
       '[&_code]:bg-base-200',
       '[&_code]:text-base-content',
       '[&_code]:px-1',
@@ -852,35 +855,27 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
       '[&_a]:cursor-pointer',
       '[&_a:hover]:text-primary-focus',
       // Tables
-      '[&_table]:border-collapse',
-      '[&_table]:border',
-      '[&_table]:border-base-300',
       '[&_table]:w-full',
-      '[&_table]:my-2',
-      '[&_th]:border',
-      '[&_th]:border-base-300',
-      '[&_th]:bg-base-200',
-      '[&_th]:p-1',
-      '[&_th]:text-left',
-      '[&_th]:font-semibold',
-      '[&_th]:text-xs',
+      '[&_table]:mb-2',
       '[&_td]:border',
       '[&_td]:border-base-300',
-      '[&_td]:p-1',
-      '[&_td]:text-xs',
-      // Images
-      '[&_img]:max-w-full',
-      '[&_img]:h-auto',
-      '[&_img]:rounded',
-      '[&_img]:my-2',
-      // HR
-      '[&_hr]:border-none',
-      '[&_hr]:border-t',
+      '[&_td]:p-2',
+      '[&_th]:border',
+      '[&_th]:border-base-300',
+      '[&_th]:p-2',
+      '[&_th]:bg-base-200',
+      '[&_th]:font-semibold',
+      // Horizontal rule
       '[&_hr]:border-base-300',
       '[&_hr]:my-3',
       // Selection
       '[&_::selection]:bg-primary/20',
     ]
+
+    // Add auto-expand class if configured
+    if (this.config.autoExpand) {
+      baseClasses.push('auto-expand')
+    }
 
     return baseClasses.join(' ')
   }

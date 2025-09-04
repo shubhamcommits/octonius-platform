@@ -12,6 +12,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import fetch, { Response } from 'node-fetch'
+import { Op } from 'sequelize'
 
 // Import Cache Service
 import { CacheService } from '../shared/cache.service'
@@ -100,9 +101,17 @@ export class FileService {
                 data.group_id
             );
 
+            // Infer source context if not provided
+            const sourceContext = data.source_context || this.inferFileSourceContext(
+                data.name, 
+                data.mime_type || '', 
+                resolvedGroupId
+            );
+
             const file = await File.create({
                 ...data,
                 group_id: resolvedGroupId,
+                source_context: sourceContext, // Set source_context
                 last_modified: data.last_modified || new Date(),
             })
 
@@ -298,17 +307,19 @@ export class FileService {
     /**
      * Gets files for MySpace (private group only)
      */
-    async getMySpaceFiles(user_id: string, workplace_id: string): Promise<FilesResponse<File[]>> {
+    async getMySpaceFiles(user_id: string, workplace_id: string, searchQuery?: string): Promise<FilesResponse<File[]>> {
         try {
-            // Check cache first
-            const cachedFiles = await CacheService.getMySpaceFiles(user_id, workplace_id)
-            if (cachedFiles) {
-                logger.info('MySpace files retrieved from cache', { user_id, workplace_id })
-                return {
-                    success: true,
-                    message: cachedFiles.length ? FileCode.FILES_FOUND : FileCode.FILES_NOT_FOUND,
-                    code: 200,
-                    files: cachedFiles
+            // Check cache first (only for non-search queries)
+            if (!searchQuery) {
+                const cachedFiles = await CacheService.getMySpaceFiles(user_id, workplace_id)
+                if (cachedFiles) {
+                    logger.info('MySpace files retrieved from cache', { user_id, workplace_id })
+                    return {
+                        success: true,
+                        message: cachedFiles.length ? FileCode.FILES_FOUND : FileCode.FILES_NOT_FOUND,
+                        code: 200,
+                        files: cachedFiles
+                    }
                 }
             }
 
@@ -326,13 +337,115 @@ export class FileService {
                 };
             }
 
-            const result = await this.getFilesByUserAndWorkplace(user_id, workplace_id, privateGroup.uuid, 'file')
-            
-            // Cache MySpace files separately for quick access
-            await CacheService.setMySpaceFiles(user_id, workplace_id, result.files)
-            logger.info('MySpace files cached successfully', { user_id, workplace_id, count: result.files.length })
+            // Build where clause with search functionality
+            let whereClause: any = {
+                workplace_id,
+                group_id: privateGroup.uuid,
+                source_context: ['note', 'user', 'private'],
+                [Op.or]: [
+                    { 
+                        source_context: 'note',
+                        type: { [Op.ne]: 'file' } // Exclude files with type='file' and source_context='note'
+                    },
+                    { 
+                        source_context: { [Op.in]: ['user', 'private'] },
+                        type: 'file' 
+                    }
+                ]
+            };
 
-            return result;
+            // Add search functionality if query provided
+            if (searchQuery && searchQuery.trim()) {
+                const searchTerm = searchQuery.trim();
+                logger.info('Performing MySpace files search', { searchTerm, user_id, workplace_id });
+                
+                // Use a simpler search approach to avoid JSON field issues
+                whereClause[Op.and] = [
+                    {
+                        [Op.or]: [
+                            // Search in file name
+                            { name: { [Op.iLike]: `%${searchTerm}%` } },
+                            // Search in note title
+                            { title: { [Op.iLike]: `%${searchTerm}%` } }
+                        ]
+                    }
+                ];
+            }
+
+            // Fetch files with search functionality
+            const files = await File.findAll({
+                where: whereClause,
+                include: [
+                    {
+                        model: User,
+                        as: 'owner',
+                        attributes: ['uuid', 'first_name', 'last_name', 'email', 'avatar_url']
+                    },
+                    {
+                        model: Group,
+                        as: 'group',
+                        attributes: ['uuid', 'name', 'type']
+                    }
+                ],
+                order: [['last_modified', 'DESC']]
+            });
+
+            // Transform files to match frontend expectations
+            let transformedFiles = files.map(file => {
+                const fileData = file.toJSON() as any;
+                const owner = fileData.owner || {};
+                return {
+                    ...fileData,
+                    owner: `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || owner.email || 'Unknown User',
+                    owner_avatar: owner.avatar_url || this.getInitials(`${owner.first_name || ''} ${owner.last_name || ''}`.trim() || owner.email || 'U'),
+                    last_modified: fileData.last_modified || fileData.updated_at,
+                    mime_type: fileData.mime_type
+                };
+            });
+
+            // If searching, also filter by content for notes (post-processing)
+            if (searchQuery && searchQuery.trim()) {
+                const searchTerm = searchQuery.trim().toLowerCase();
+                transformedFiles = transformedFiles.filter(file => {
+                    // Check if already matched by name or title
+                    const nameMatch = file.name.toLowerCase().includes(searchTerm);
+                    const titleMatch = file.title && file.title.toLowerCase().includes(searchTerm);
+                    
+                    if (nameMatch || titleMatch) {
+                        return true;
+                    }
+                    
+                    // For notes, also check content
+                    if (file.type === 'note' && file.content) {
+                        try {
+                            const contentStr = typeof file.content === 'string' 
+                                ? file.content 
+                                : JSON.stringify(file.content);
+                            return contentStr.toLowerCase().includes(searchTerm);
+                        } catch (error) {
+                            logger.warn('Error parsing note content for search', { fileId: file.id, error });
+                            return false;
+                        }
+                    }
+                    
+                    return false;
+                });
+            }
+            
+            // Cache MySpace files separately for quick access (only for non-search queries)
+            if (!searchQuery) {
+                await CacheService.setMySpaceFiles(user_id, workplace_id, transformedFiles)
+                logger.info('MySpace files cached successfully', { user_id, workplace_id, count: transformedFiles.length })
+            } else {
+                logger.info('MySpace files search completed (not cached)', { user_id, workplace_id, searchQuery, count: transformedFiles.length })
+            }
+
+            return {
+                success: true,
+                message: transformedFiles.length ? FileCode.FILES_FOUND : FileCode.FILES_NOT_FOUND,
+                code: 200,
+                files: transformedFiles
+            };
         } catch (error) {
             logger.error('MySpace files retrieval failed', { error, user_id, workplace_id })
             throw {
@@ -417,6 +530,7 @@ export class FileService {
             const note = await File.create({
                 ...data,
                 group_id: resolvedGroupId,
+                source_context: 'note', // Set source_context explicitly for notes
                 last_modified: data.last_modified || new Date(),
             })
 
@@ -526,10 +640,15 @@ export class FileService {
                 last_modified: new Date()
             });
 
-            // Invalidate file-related caches
-            await CacheService.invalidateFileList(userId, note.workplace_id)
-            await CacheService.invalidateMySpaceFiles(userId, note.workplace_id)
-            logger.info('File caches invalidated after note update', { noteId: id })
+            // Invalidate file-related caches for the note owner (not the updating user)
+            await CacheService.invalidateFileList(note.user_id, note.workplace_id)
+            await CacheService.invalidateMySpaceFiles(note.user_id, note.workplace_id)
+            logger.info('File caches invalidated after note update', { 
+                noteId: id, 
+                ownerId: note.user_id, 
+                workplaceId: note.workplace_id,
+                updatedBy: userId 
+            })
 
             // Fetch updated note with user info
             const updatedNote = await File.findByPk(id, {
@@ -582,6 +701,9 @@ export class FileService {
             // Get file type from extension
             const fileType = this.getFileTypeFromExtension(fileExtension);
 
+            // Infer source context
+            const inferredSourceContext = this.inferFileSourceContext(file.originalname, file.mimetype, resolvedGroupId);
+
             // Create file record in database
             const fileRecord = await File.create({
                 name: file.originalname,
@@ -590,6 +712,7 @@ export class FileService {
                 user_id: userId,
                 workplace_id: workplaceId,
                 group_id: resolvedGroupId,
+                source_context: inferredSourceContext, // Set source_context
                 size: file.size,
                 mime_type: file.mimetype,
                 content: { filePath: fileName }, // Store the filename for retrieval
