@@ -27,6 +27,12 @@
   box-sizing: border-box;
   overflow-y: auto;
 
+  // Auto-expand mode - no max height constraint
+  &.auto-expand {
+    max-height: none;
+    overflow-y: visible;
+  }
+
   // Remove default margins
   > *:first-child {
     margin-top: 0;
@@ -84,6 +90,11 @@
     padding: 0.5rem;
     min-height: 80px;
     max-height: 120px;
+    
+    // Auto-expand mode for mobile too
+    &.auto-expand {
+      max-height: none;
+    }
   }
 }
 

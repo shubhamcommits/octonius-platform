@@ -1,6 +1,6 @@
 {
     "name": "octonius-platform",
-    "version": "9.0.2",
+    "version": "2.0.0",
     "description": "Octonius Platform - A modern web application with Terraform infrastructure",
     "main": "dist/server.js",
     "repository": "https://github.com/Octonius/octonius-platform",

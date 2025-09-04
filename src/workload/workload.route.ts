@@ -22,5 +22,15 @@ export class WorkloadRoute {
                 this.workload_controller.getWorkload(req, res);
             }
         );
+
+        // Get paginated tasks for specific section
+        this.router.get('/paginated', 
+            verifyAccessToken,
+            isLoggedIn,
+            requireWorkplace,
+            (req: Request, res: Response) => {
+                this.workload_controller.getPaginatedTasks(req, res);
+            }
+        );
     }
 } 

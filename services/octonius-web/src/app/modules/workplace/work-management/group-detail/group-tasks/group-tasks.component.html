@@ -39,8 +39,26 @@
     </div>
 
     <!-- Kanban Board Grid -->
-    <div *ngIf="currentView === 'board'" class="kanban-board-wrapper flex-1 overflow-hidden">
-        <div class="kanban-board-container h-full overflow-x-auto overflow-y-hidden">
+    <div *ngIf="currentView === 'board'" class="kanban-board-wrapper flex-1 overflow-hidden relative">
+        <!-- Left Navigation Arrow -->
+        <button 
+            class="kanban-nav-arrow kanban-nav-arrow-left"
+            (click)="scrollBoard('left')"
+            [class.disabled]="!canScrollLeft"
+            title="Scroll left">
+            <lucide-icon name="ChevronLeft" class="w-5 h-5"></lucide-icon>
+        </button>
+        
+        <!-- Right Navigation Arrow -->
+        <button 
+            class="kanban-nav-arrow kanban-nav-arrow-right"
+            (click)="scrollBoard('right')"
+            [class.disabled]="!canScrollRight"
+            title="Scroll right">
+            <lucide-icon name="ChevronRight" class="w-5 h-5"></lucide-icon>
+        </button>
+        
+        <div class="kanban-board-container h-full overflow-x-auto overflow-y-hidden" #boardContainer (scroll)="updateScrollState()">
             <div class="kanban-board flex gap-4 p-4 h-full" style="min-width: max-content;">
                 <!-- Loop over columns -->
                 <div *ngFor="let column of board.columns"
