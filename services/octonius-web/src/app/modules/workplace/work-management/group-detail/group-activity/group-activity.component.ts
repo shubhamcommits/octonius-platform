@@ -67,24 +67,7 @@ export class GroupActivityComponent implements OnInit, OnDestroy, AfterViewInit 
     this.isSubmitting = true;
     this.activityService.create(this.group.uuid, this.newPostContent.trim()).subscribe({
       next: (post) => {
-        // Ensure the post has all necessary data, including user information
-        const newPost: GroupActivityPost = {
-          ...post,
-          showMenu: false,
-          showComments: false,
-          loadingComments: false,
-          comments: [],
-          newComment: '',
-          submittingComment: false,
-          // Ensure user data is present
-          user: post.user || {
-            uuid: this.currentUser?.uuid || '',
-            first_name: this.currentUser?.first_name || 'Unknown',
-            last_name: this.currentUser?.last_name || 'User',
-            avatar_url: this.currentUser?.avatar_url || undefined
-          }
-        };
-        this.posts.unshift(newPost);
+        this.posts.unshift({ ...post, showMenu: false });
         this.newPostContent = '';
         this.isSubmitting = false;
       },
@@ -165,20 +148,9 @@ export class GroupActivityComponent implements OnInit, OnDestroy, AfterViewInit 
     post.submittingComment = true;
     this.activityService.createComment(this.group.uuid, post.uuid, post.newComment.trim()).subscribe({
       next: (comment) => {
-        // Ensure the comment has all necessary user data
-        const newComment = {
-          ...comment,
-          user: comment.user || {
-            uuid: this.currentUser?.uuid || '',
-            first_name: this.currentUser?.first_name || 'Unknown',
-            last_name: this.currentUser?.last_name || 'User',
-            avatar_url: this.currentUser?.avatar_url || undefined
-          }
-        };
-        
         // Add the new comment to the list
         if (!post.comments) post.comments = [];
-        post.comments.push(newComment);
+        post.comments.push(comment);
         post.comment_count = (post.comment_count || 0) + 1;
         post.newComment = '';
         post.submittingComment = false;

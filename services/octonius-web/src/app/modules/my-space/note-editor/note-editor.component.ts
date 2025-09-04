@@ -827,7 +827,6 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
             next: (updatedNote) => {
               console.log('Note updated successfully:', updatedNote)
               this.note = updatedNote
-              this.noteTitle = updatedNote.title || this.noteTitle // Update the title from the server response
               this.hasUnsavedChanges = false
               this.saveStatus = 'saved'
               this.lastSavedTime = new Date().toLocaleTimeString()
@@ -866,7 +865,6 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
               console.log('Note created successfully:', newNote)
               this.note = newNote
               this.noteId = newNote.id
-              this.noteTitle = newNote.title || this.noteTitle // Update title from server response
               // Update URL to include the new note ID
               this.router.navigate(['/myspace/note-editor', newNote.id], { replaceUrl: true })
               this.hasUnsavedChanges = false
