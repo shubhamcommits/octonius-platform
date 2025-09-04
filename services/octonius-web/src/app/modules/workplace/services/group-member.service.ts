@@ -247,6 +247,29 @@ export class GroupMemberService {
   }
 
   /**
+   * Search for all users (general search)
+   */
+  searchAllUsers(query: string, limit: number = 10): Observable<any[]> {
+    const params = new HttpParams()
+      .set('search', query)
+      .set('limit', limit.toString());
+
+    return this.http.get<BackendResponse<any>>(`${environment.apiUrl}/users`, { params })
+      .pipe(
+        map(response => {
+          if (!response.success || !response.data) {
+            throw new Error(response.message || 'Failed to search users');
+          }
+          return response.data;
+        }),
+        catchError(error => {
+          console.error('Error searching users:', error);
+          return throwError(() => new Error('Failed to search users'));
+        })
+      );
+  }
+
+  /**
    * Get pending invitations for a group
    */
   getPendingInvitations(groupId: string): Observable<any[]> {
