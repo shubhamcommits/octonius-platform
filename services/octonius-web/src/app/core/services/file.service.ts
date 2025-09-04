@@ -15,13 +15,8 @@ export class FileService {
   constructor(private http: HttpClient) {}
 
   // File Operations for MySpace (private group files)
-  getMySpaceFiles(searchQuery?: string): Observable<File[]> {
-    let params = new HttpParams();
-    if (searchQuery && searchQuery.trim()) {
-      params = params.set('search', searchQuery.trim());
-    }
-
-    return this.http.get<any>(`${this.apiUrl}/myspace`, { params }).pipe(
+  getMySpaceFiles(): Observable<File[]> {
+    return this.http.get<any>(`${this.apiUrl}/myspace`).pipe(
       map(response => {
         if (response.success && response.data) {
           return response.data;

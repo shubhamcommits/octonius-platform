@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { RouterModule, Router } from '@angular/router'
+import { RouterModule } from '@angular/router'
 import { UserService } from '../../../core/services/user.service'
 import { WorkloadService } from '../../shared/services/workload.service'
 import { ToastService } from '../../../core/services/toast.service'
@@ -43,7 +43,6 @@ interface News {
 })
 export class InboxComponent implements OnInit, OnDestroy {
   userName: string = 'User'
-  user: User | null = null
   isLoading: boolean = true
   error: string | null = null
   workloadStats = {
@@ -63,8 +62,7 @@ export class InboxComponent implements OnInit, OnDestroy {
     private userService: UserService,
     private workloadService: WorkloadService,
     private toastService: ToastService,
-    private themeService: ThemeService,
-    private router: Router
+    private themeService: ThemeService
   ) {
     this.currentTheme = this.themeService.getCurrentTheme();
     this.themeSubscription = this.themeService.currentTheme$.subscribe(theme => {
@@ -80,19 +78,6 @@ export class InboxComponent implements OnInit, OnDestroy {
     if (this.themeSubscription) {
       this.themeSubscription.unsubscribe();
     }
-  }
-
-  get userAvatar(): string | null {
-    return this.user?.avatar_url || null;
-  }
-
-  get userInitials(): string {
-    if (!this.user) return '';
-    const firstName = this.user.first_name || '';
-    const lastName = this.user.last_name || '';
-    const firstInitial = firstName.charAt(0) || '';
-    const lastInitial = lastName.charAt(0) || '';
-    return `${firstInitial}${lastInitial}`.toUpperCase();
   }
 
   getRecentActivityEmptyStateImage(): string {
@@ -121,7 +106,6 @@ export class InboxComponent implements OnInit, OnDestroy {
       next: (user_data: User) => {
         const user = user_data
         this.userName = user.first_name || user.email?.split('@')[0] || 'User'
-        this.user = user; // Assign the user object to the component's user property
         // Fetch workload/activity/messages/news for this user and workplace
         const userId = user.uuid
         const workplaceId = user.current_workplace_id
@@ -173,9 +157,5 @@ export class InboxComponent implements OnInit, OnDestroy {
         this.toastService.error('Failed to load user data. Please try again.')
       }
     })
-  }
-
-  navigateToWorkload(): void {
-    this.router.navigate(['/myspace/workload']);
   }
 } 

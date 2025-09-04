@@ -26,12 +26,8 @@
     <div class="card bg-base-100 shadow-sm">
       <div class="card-body">
         <div class="flex items-center gap-4">
-          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-base-300 overflow-hidden">
-            <img *ngIf="userAvatar" 
-                 [src]="userAvatar" 
-                 [alt]="userName"
-                 class="w-full h-full object-cover">
-            <span *ngIf="!userAvatar" class="text-lg font-medium text-base-content/70">{{ userInitials }}</span>
+          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-base-300">
+            <span class="text-lg">👤</span>
           </div>
           <div class="flex-1">
             <p class="text-base-content leading-normal">This is your Mission Control. Check the status of your work, access latest updates from your teams and more.</p>
@@ -41,19 +37,18 @@
     </div>
 
     <!-- My Workload Section -->
-    <div class="card bg-base-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow" routerLink="/myspace/workload">
+    <div class="card bg-base-100 shadow-sm">
       <div class="card-body">
         <h2 class="card-title text-lg mb-4">My Workload</h2>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
+        <div class="flex justify-between items-center">
+          <div class="flex-1">
+            <span class="badge badge-ghost text-base-content opacity-50">{{workloadStats.total}} Tasks for today</span>
+          </div>
+          <div class="flex gap-4 text-sm">
             <span class="badge badge-error">{{workloadStats.overdue}} overdue</span>
             <span class="badge badge-warning">{{workloadStats.todo}} to do</span>
             <span class="badge badge-success">{{workloadStats.inProgress}} in progress</span>
-          </div>
-          <div class="text-base-content/50">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-            </svg>
+            <span class="badge badge-info">{{workloadStats.done}} done</span>
           </div>
         </div>
       </div>

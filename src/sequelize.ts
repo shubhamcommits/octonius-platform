@@ -14,7 +14,6 @@ const dbConfig = getDatabaseConfig()
 const sequelizeOptions: any = {
     dialect: 'postgres',
     port: dbConfig.writer.port,
-    timezone: '+00:00', // Use UTC timezone
     replication: {
         read: [
             {
