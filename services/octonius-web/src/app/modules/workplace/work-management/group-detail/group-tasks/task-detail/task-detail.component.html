@@ -47,7 +47,7 @@
                     showToolbar: true,
                     showBubbleMenu: true,
                     showCharacterCount: true,
-                    autoExpand: true,
+                    maxHeight: '300px',
                     minHeight: '120px',
                     toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
                   }"
@@ -165,12 +165,9 @@
                   [(ngModel)]="newComment"
                   [config]="{
                     placeholder: 'Add a comment...',
-                    showToolbar: true,
-                    showBubbleMenu: true,
                     showCharacterCount: false,
-                    autoExpand: true,
                     minHeight: '80px',
-                    toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
+                    maxHeight: '200px'
                   }">
                 </app-tiptap-editor>
                 <div class="flex justify-end mt-2">
@@ -391,8 +388,6 @@
     </div>
   </div>
 </div>
-
-
 
 <!-- Error State -->
 <div *ngIf="!isLoading && !task" class="max-w-6xl mx-auto py-10 px-4">

@@ -14,65 +14,6 @@
   overflow: hidden;
 }
 
-// Navigation arrows
-.kanban-nav-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(8px);
-  
-  &:hover:not(.disabled) {
-    background: rgba(255, 255, 255, 1);
-    transform: translateY(-50%) scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-  
-  &:active:not(.disabled) {
-    transform: translateY(-50%) scale(0.95);
-  }
-  
-  &.disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-    background: rgba(255, 255, 255, 0.5);
-  }
-  
-  // Dark mode adjustments
-  @media (prefers-color-scheme: dark) {
-    background: rgba(0, 0, 0, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    
-    &:hover:not(.disabled) {
-      background: rgba(0, 0, 0, 0.8);
-    }
-    
-    &.disabled {
-      background: rgba(0, 0, 0, 0.3);
-    }
-  }
-}
-
-.kanban-nav-arrow-left {
-  left: 8px;
-}
-
-.kanban-nav-arrow-right {
-  right: 8px;
-}
-
 .kanban-board-container {
   position: relative;
   flex: 1;
@@ -80,13 +21,24 @@
   overflow-x: auto;
   overflow-y: hidden;
   
-  // Hide horizontal scrollbar while keeping scroll functionality
+  // Custom scrollbar for horizontal scrolling
   &::-webkit-scrollbar {
-    display: none;
+    height: 12px;
   }
   
-  // For Firefox
-  scrollbar-width: none;
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.4);
+    }
+  }
 }
 
 .kanban-board {

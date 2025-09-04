@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core'
+import { Component, OnInit, HostListener } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { RouterModule, Router } from '@angular/router'
 import { FormsModule } from '@angular/forms'
@@ -19,7 +19,7 @@ import { environment } from '../../../../environments/environment'
   templateUrl: './files.component.html',
   styleUrls: ['./files.component.scss']
 })
-export class FilesComponent implements OnInit, OnDestroy {
+export class FilesComponent implements OnInit {
   userName: string = 'User'
   files: File[] = []
   filteredFiles: File[] = []
@@ -27,10 +27,6 @@ export class FilesComponent implements OnInit, OnDestroy {
   error: string | null = null
   user: User | null = null
   searchQuery: string = ''
-  private searchTimer: any = null
-  isSearching: boolean = false
-  searchMode: 'local' | 'backend' | 'hybrid' = 'hybrid'
-  lastBackendSearch: string = ''
 
   constructor(
     private router: Router,
@@ -42,13 +38,6 @@ export class FilesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadData()
-  }
-
-  ngOnDestroy(): void {
-    // Clear search timer to prevent memory leaks
-    if (this.searchTimer) {
-      clearTimeout(this.searchTimer)
-    }
   }
 
   private async loadData(): Promise<void> {
@@ -204,106 +193,15 @@ export class FilesComponent implements OnInit, OnDestroy {
   }
 
   onSearch(): void {
-    // Clear existing timer
-    if (this.searchTimer) {
-      clearTimeout(this.searchTimer)
-    }
-
-    // Debounce search by 300ms
-    this.searchTimer = setTimeout(() => {
-      this.performHybridSearch()
-    }, 300)
-  }
-
-  private async performHybridSearch(): Promise<void> {
     if (!this.searchQuery.trim()) {
       this.filteredFiles = [...this.files]
-      this.isSearching = false
-      this.lastBackendSearch = ''
       return
     }
 
-    const query = this.searchQuery.toLowerCase().trim()
-    
-    // Step 1: Perform local search first for instant results
-    const localResults = this.performLocalSearch(query)
-    this.filteredFiles = localResults
-    this.isSearching = true
-
-    // Step 2: If local results are limited or query is substantial, perform backend search
-    const shouldSearchBackend = this.shouldPerformBackendSearch(query, localResults.length)
-    
-    if (shouldSearchBackend) {
-      try {
-        this.lastBackendSearch = query
-        const backendResults = await firstValueFrom(this.fileService.getMySpaceFiles(query))
-        
-        // Merge and deduplicate results (backend results take priority)
-        const mergedResults = this.mergeSearchResults(backendResults, localResults)
-        this.filteredFiles = mergedResults
-      } catch (error) {
-        console.error('Backend search failed, using local results:', error)
-        // Keep local results if backend search fails
-      }
-    }
-    
-    this.isSearching = false
-  }
-
-  private performLocalSearch(query: string): File[] {
-    return this.files.filter(file => {
-      // Search in file name
-      const nameMatch = file.name.toLowerCase().includes(query)
-      
-      // For notes, also search in title
-      const titleMatch = file.type === 'note' && file.title 
-        ? file.title.toLowerCase().includes(query)
-        : false
-      
-      // For notes, also search in content if available
-      const contentMatch = file.type === 'note' && file.content?.text
-        ? file.content.text.toLowerCase().includes(query)
-        : false
-      
-      return nameMatch || titleMatch || contentMatch
-    })
-  }
-
-  private shouldPerformBackendSearch(query: string, localResultCount: number): boolean {
-    // Perform backend search if:
-    // 1. Query is longer than 2 characters
-    // 2. Local results are less than 5 items
-    // 3. We haven't searched for this exact query recently
-    return query.length > 2 && 
-           (localResultCount < 5 || localResultCount === 0) &&
-           this.lastBackendSearch !== query
-  }
-
-  private mergeSearchResults(backendResults: File[], localResults: File[]): File[] {
-    // Create a map of backend results by ID for quick lookup
-    const backendMap = new Map(backendResults.map(file => [file.id, file]))
-    
-    // Start with backend results
-    const merged = [...backendResults]
-    
-    // Add local results that aren't already in backend results
-    localResults.forEach(localFile => {
-      if (!backendMap.has(localFile.id)) {
-        merged.push(localFile)
-      }
-    })
-    
-    // Sort by last_modified (most recent first)
-    return merged.sort((a, b) => 
-      new Date(b.last_modified).getTime() - new Date(a.last_modified).getTime()
+    const query = this.searchQuery.toLowerCase()
+    this.filteredFiles = this.files.filter(file => 
+      file.name.toLowerCase().includes(query)
     )
-  }
-
-  clearSearch(): void {
-    this.searchQuery = ''
-    this.filteredFiles = [...this.files]
-    this.isSearching = false
-    this.lastBackendSearch = ''
   }
 
   getFileIcon(type: string): string {

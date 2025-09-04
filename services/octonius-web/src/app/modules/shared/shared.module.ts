@@ -122,10 +122,7 @@ import { LucideAngularModule,
   CreditCard,
   Key,
   Send,
-  Flag,
-  Sun,
-  Sunrise,
-  XCircle
+  Flag
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -267,10 +264,7 @@ import { InfiniteScrollListComponent } from './components/infinite-scroll-list/i
       CreditCard,
       Key,
       Send,
-      Flag,
-      Sun,
-      Sunrise,
-      XCircle,
+      Flag
     })
   ],
   exports: [
