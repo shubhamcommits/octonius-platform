@@ -13,6 +13,7 @@ data "aws_acm_certificate" "wildcard" {
   statuses = ["ISSUED"]
 }
 
+
 # Only create custom domain resources if we have valid domain configuration
 locals {
   custom_domains_enabled = var.domain_name != "" && length(local.service_domain_configs) > 0
@@ -33,8 +34,8 @@ locals {
   services_with_domains = {
     for service_name, domain_config in local.service_domain_configs :
     service_name => {
-      domain_name = lookup(domain_config, "subdomain", service_name) == "" ? var.domain_name : (var.environment == "prod" ? "${lookup(domain_config, "subdomain", service_name)}.${var.domain_name}" : "${var.environment}.${lookup(domain_config, "subdomain", service_name)}.${var.domain_name}")
-      certificate_arn = var.domain_name != "" ? data.aws_acm_certificate.wildcard[0].arn : null  # Use existing wildcard certificate
+      domain_name = lookup(domain_config, "subdomain", service_name) == "" ? var.domain_name : (var.environment == "prod" ? "${lookup(domain_config, "subdomain", service_name)}.${var.domain_name}" : "${var.environment}-${lookup(domain_config, "subdomain", service_name)}.${var.domain_name}")
+      certificate_arn = var.domain_name != "" ? data.aws_acm_certificate.wildcard[0].arn : null
       hosted_zone_id  = local.route53_zone_id
       create_dns      = lookup(domain_config, "createDns", true)
     }
@@ -42,8 +43,9 @@ locals {
   }
 }
 
-# Note: Using existing wildcard certificate, no need to create new certificates
-# The wildcard certificate (*.octonius.com) will cover all subdomains
+# Note: Using single wildcard certificate (*.octonius.com) for all environments
+# - Production: resource.octonius.com
+# - Development: dev-resource.octonius.com
 
 # API Gateway custom domain
 resource "aws_apigatewayv2_domain_name" "api" {
