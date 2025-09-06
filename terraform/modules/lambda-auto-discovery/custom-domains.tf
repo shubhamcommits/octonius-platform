@@ -6,6 +6,13 @@ data "aws_route53_zone" "main" {
   name  = var.domain_name
 }
 
+# Look up existing wildcard certificate
+data "aws_acm_certificate" "wildcard" {
+  count    = var.domain_name != "" ? 1 : 0
+  domain   = "*.${var.domain_name}"
+  statuses = ["ISSUED"]
+}
+
 # Only create custom domain resources if we have valid domain configuration
 locals {
   custom_domains_enabled = var.domain_name != "" && length(local.service_domain_configs) > 0
@@ -27,7 +34,7 @@ locals {
     for service_name, domain_config in local.service_domain_configs :
     service_name => {
       domain_name = lookup(domain_config, "subdomain", service_name) == "" ? var.domain_name : (var.environment == "prod" ? "${lookup(domain_config, "subdomain", service_name)}.${var.domain_name}" : "${var.environment}.${lookup(domain_config, "subdomain", service_name)}.${var.domain_name}")
-      certificate_arn = null  # Always create new certificates
+      certificate_arn = var.domain_name != "" ? data.aws_acm_certificate.wildcard[0].arn : null  # Use existing wildcard certificate
       hosted_zone_id  = local.route53_zone_id
       create_dns      = lookup(domain_config, "createDns", true)
     }
@@ -35,53 +42,8 @@ locals {
   }
 }
 
-# Create ACM certificates if not provided
-resource "aws_acm_certificate" "api_domain" {
-  for_each = {
-    for service, config in local.services_with_domains :
-    service => config
-    if config.certificate_arn == null
-  }
-
-  domain_name       = each.value.domain_name
-  validation_method = "DNS"
-
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  tags = merge(var.tags, {
-    Service = each.key
-  })
-}
-
-# DNS validation records for ACM
-resource "aws_route53_record" "cert_validation" {
-  for_each = {
-    for service, cert in aws_acm_certificate.api_domain :
-    service => cert.domain_validation_options
-    if local.services_with_domains[service].hosted_zone_id != null
-  }
-
-  allow_overwrite = true
-  name            = tolist(each.value)[0].resource_record_name
-  records         = [tolist(each.value)[0].resource_record_value]
-  ttl             = 60
-  type            = tolist(each.value)[0].resource_record_type
-  zone_id         = local.services_with_domains[each.key].hosted_zone_id
-}
-
-# Wait for certificate validation
-resource "aws_acm_certificate_validation" "api_domain" {
-  for_each = {
-    for service, cert in aws_acm_certificate.api_domain :
-    service => cert
-    if local.services_with_domains[service].hosted_zone_id != null
-  }
-
-  certificate_arn         = each.value.arn
-  validation_record_fqdns = try([aws_route53_record.cert_validation[each.key].fqdn], [])
-}
+# Note: Using existing wildcard certificate, no need to create new certificates
+# The wildcard certificate (*.octonius.com) will cover all subdomains
 
 # API Gateway custom domain
 resource "aws_apigatewayv2_domain_name" "api" {
@@ -90,15 +52,10 @@ resource "aws_apigatewayv2_domain_name" "api" {
   domain_name = each.value.domain_name
 
   domain_name_configuration {
-    certificate_arn = coalesce(
-      each.value.certificate_arn,
-      aws_acm_certificate.api_domain[each.key].arn
-    )
+    certificate_arn = each.value.certificate_arn  # Use existing wildcard certificate
     endpoint_type   = "REGIONAL"
     security_policy = "TLS_1_2"
   }
-
-  depends_on = [aws_acm_certificate_validation.api_domain]
 
   tags = merge(var.tags, {
     Service = each.key
