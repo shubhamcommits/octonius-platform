@@ -290,4 +290,31 @@ module "web" {
   project_name = local.project_name
   common_tags  = local.common_tags
   aws_region   = local.aws_region
-} 
+}
+
+# Lambda Auto-Discovery Module
+module "lambda_services" {
+  source = "./modules/lambda-auto-discovery"
+
+  environment        = var.environment
+  aws_region         = var.aws_region
+  project_name       = local.project_name
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+  tags               = local.common_tags
+  
+  # RDS security group for database access
+  rds_security_group_id = module.rds.security_group_id
+
+  # JWT configuration for API Gateway (if needed)
+  jwt_issuer   = "" # Configure if using JWT auth
+  jwt_audience = [] # Configure if using JWT auth
+  
+  # Container image configuration
+  use_container_images = true
+  ecr_repository_urls  = {} # Start with empty map, Terraform will create repositories as needed
+  lambda_image_tag     = var.lambda_image_tag
+
+  # Domain configuration (for services that enable custom domains in their config)
+  domain_name      = var.domain_name
+}
