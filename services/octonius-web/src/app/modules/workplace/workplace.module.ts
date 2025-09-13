@@ -28,6 +28,8 @@ import { AdminMembersComponent } from './work-management/group-detail/group-admi
 import { AdminPermissionsComponent } from './work-management/group-detail/group-admin/admin-permissions/admin-permissions.component';
 import { AdminDangerZoneComponent } from './work-management/group-detail/group-admin/admin-danger-zone/admin-danger-zone.component';
 import { CreateTaskModalComponent } from './work-management/group-detail/group-tasks/create-task-modal/create-task-modal.component';
+import { RenameColumnModalComponent } from './work-management/group-detail/group-tasks/rename-column-modal/rename-column-modal.component';
+import { DeleteColumnModalComponent } from './work-management/group-detail/group-tasks/delete-column-modal/delete-column-modal.component';
 
 @NgModule({
   declarations: [
@@ -61,7 +63,9 @@ import { CreateTaskModalComponent } from './work-management/group-detail/group-t
     SharedModule,
     ReactiveFormsModule,
     FormsModule,
-    CreateTaskModalComponent
+    CreateTaskModalComponent,
+    RenameColumnModalComponent,
+    DeleteColumnModalComponent
   ]
 })
 export class WorkplaceModule { }
