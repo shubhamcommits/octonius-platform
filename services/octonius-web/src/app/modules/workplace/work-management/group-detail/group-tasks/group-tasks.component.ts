@@ -8,6 +8,8 @@ import { AuthService } from '../../../../../core/services/auth.service';
 import { ModalService } from '../../../../../core/services/modal.service';
 import { environment } from '../../../../../../environments/environment';
 import { CreateTaskModalComponent } from './create-task-modal/create-task-modal.component';
+import { RenameColumnModalComponent } from './rename-column-modal/rename-column-modal.component';
+import { DeleteColumnModalComponent } from './delete-column-modal/delete-column-modal.component';
 
 @Component({
   selector: 'app-group-tasks',
@@ -39,6 +41,7 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
   
   // UI state
   showAddColumnModal = false;
+  showDeleteModal = false;
   selectedColumn: any = null;
   selectedTask: Task | null = null;
   columnMenuOpen: { [key: string]: boolean } = {};
@@ -152,28 +155,17 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
         tasks = tasks.filter(task => task.priority === this.filterPriority);
       }
 
-      // Apply sorting
+      // Apply sorting - always sort by creation date (newest first), then by UUID for consistency
       tasks.sort((a, b) => {
-        let compareValue = 0;
-        switch (this.sortBy) {
-          case 'dueDate':
-            compareValue = (a.due_date ? new Date(a.due_date).getTime() : Infinity) - 
-                          (b.due_date ? new Date(b.due_date).getTime() : Infinity);
-            break;
-          case 'priority':
-            const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-            compareValue = priorityOrder[a.priority] - priorityOrder[b.priority];
-            break;
-          case 'assignee':
-            const getFirstAssigneeName = (task: Task) => 
-              task.assignees && task.assignees.length > 0 ? task.assignees[0].first_name : '';
-            compareValue = getFirstAssigneeName(a).localeCompare(getFirstAssigneeName(b));
-            break;
-          case 'created':
-            compareValue = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-            break;
+        // First sort by creation date (newest first)
+        const dateCompare = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (dateCompare !== 0) {
+          return dateCompare;
         }
-        return this.sortOrder === 'asc' ? compareValue : -compareValue;
+        
+        // If creation dates are the same, sort by UUID for consistent ordering
+        const uuidCompare = a.uuid.localeCompare(b.uuid);
+        return uuidCompare;
       });
 
       column.tasks = tasks;
@@ -181,39 +173,79 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // Column actions
-  toggleColumnMenu(columnId: string): void {
+  toggleColumnMenu(columnId: string, event: Event): void {
+    event.stopPropagation();
+    
+    // Close all other menus first
+    this.closeAllColumnMenus();
+    
+    // Toggle the clicked menu
     this.columnMenuOpen[columnId] = !this.columnMenuOpen[columnId];
   }
 
-  editColumn(column: any): void {
-    const newName = prompt('Edit column name:', column.name);
-    if (newName && newName.trim() && this.group) {
-      this.taskService.updateColumn(this.group.uuid, column.id, { name: newName.trim() }).subscribe({
-        next: () => {
-          column.name = newName.trim();
-          this.toastService.success('Column updated successfully');
-        },
-        error: () => {
-          this.toastService.error('Failed to update column');
-        }
-      });
-    }
+  closeAllColumnMenus(): void {
+    this.columnMenuOpen = {};
   }
 
-  deleteColumn(column: any): void {
+  openRenameModal(column: any): void {
+    this.selectedColumn = column;
+    this.modalService.openModal(RenameColumnModalComponent, {
+      currentName: column.name,
+      columnId: column.id,
+      onCloseCallback: () => this.closeRenameModal(),
+      onRenameCallback: (data: any) => this.onRenameColumn(data)
+    });
+    this.closeAllColumnMenus();
+  }
+
+  closeRenameModal(): void {
+    this.modalService.closeModal();
+    this.selectedColumn = null;
+  }
+
+  onRenameColumn(data: { columnId: string; newName: string }): void {
     if (!this.group) return;
-    
-    if (confirm(`Are you sure you want to delete the column "${column.name}"? All tasks will be deleted.`)) {
-      this.taskService.deleteColumn(this.group.uuid, column.id).subscribe({
-        next: () => {
-          this.loadBoard();
-          this.toastService.success('Column deleted successfully');
-        },
-        error: () => {
-          this.toastService.error('Failed to delete column');
+
+    this.taskService.updateColumn(this.group.uuid, data.columnId, { 
+      name: data.newName 
+    }).subscribe({
+      next: () => {
+        if (this.selectedColumn) {
+          this.selectedColumn.name = data.newName;
         }
-      });
-    }
+        this.toastService.success('Column renamed successfully');
+        this.closeRenameModal();
+      },
+      error: () => {
+        this.toastService.error('Failed to rename column');
+      }
+    });
+  }
+
+  openDeleteModal(column: any): void {
+    this.selectedColumn = column;
+    this.showDeleteModal = true;
+    this.closeAllColumnMenus();
+  }
+
+  closeDeleteModal(): void {
+    this.showDeleteModal = false;
+    this.selectedColumn = null;
+  }
+
+  onDeleteColumn(data: { columnId: string }): void {
+    if (!this.group) return;
+
+    this.taskService.deleteColumn(this.group.uuid, data.columnId).subscribe({
+      next: () => {
+        this.loadBoard();
+        this.toastService.success('Column deleted successfully');
+        this.closeDeleteModal();
+      },
+      error: () => {
+        this.toastService.error('Failed to delete column');
+      }
+    });
   }
 
   // Add section (column)
@@ -300,8 +332,8 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
               task.attachments = [];
             }
             
-            // Add task and create new array reference to trigger change detection
-            column.tasks = [...column.tasks, task];
+            // Add task to the top and create new array reference to trigger change detection
+            column.tasks = [task, ...column.tasks];
             
             // Force change detection
             this.cdr.detectChanges();
@@ -534,5 +566,14 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
     setTimeout(() => {
       this.updateScrollState();
     }, 100);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    // Close all column menus when clicking outside
+    const target = event.target as HTMLElement;
+    if (!target.closest('.column-menu-container')) {
+      this.closeAllColumnMenus();
+    }
   }
 }
