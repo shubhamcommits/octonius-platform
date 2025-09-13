@@ -1390,4 +1390,199 @@ export class TaskController {
             })
         }
     }
+
+    /**
+     * Updates a time entry in a task.
+     * 
+     * @param req - Express request object containing time entry data
+     * @param res - Express response object
+     * @returns Updated task or error response
+     */
+    async updateTimeEntry(req: Request, res: Response): Promise<Response> {
+        const startTime = Date.now()
+        
+        try {
+            logger.info('Updating time entry in task', {
+                method: req.method,
+                path: req.path,
+                params: req.params,
+                userId: req.user?.uuid,
+                ip: req.ip
+            })
+
+            // Extracts data from request
+            const { group_id, task_id, time_entry_index } = req.params
+            const timeData = req.body
+            const userId = req.user!.uuid // Middleware ensures user exists
+
+            // Validates required fields
+            if (!timeData.hours || timeData.hours <= 0) {
+                const responseTime = Date.now() - startTime
+                logger.warn('Time entry update failed - valid hours required', {
+                    responseTime: `${responseTime}ms`,
+                    statusCode: 400
+                })
+
+                return res.status(400).json({
+                    success: false,
+                    message: 'Valid hours value is required',
+                    meta: {
+                        responseTime: `${responseTime}ms`
+                    }
+                })
+            }
+
+            // Validates time entry index
+            const timeEntryIndex = parseInt(time_entry_index)
+            if (isNaN(timeEntryIndex) || timeEntryIndex < 0) {
+                const responseTime = Date.now() - startTime
+                logger.warn('Time entry update failed - invalid index', {
+                    responseTime: `${responseTime}ms`,
+                    statusCode: 400
+                })
+
+                return res.status(400).json({
+                    success: false,
+                    message: 'Valid time entry index is required',
+                    meta: {
+                        responseTime: `${responseTime}ms`
+                    }
+                })
+            }
+
+            // Updates time entry using the service
+            const result = await this.taskService.updateTimeEntry(group_id, task_id, timeEntryIndex, timeData, userId)
+
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Log successful update
+            logger.info('Time entry updated successfully', {
+                taskId: task_id,
+                groupId: group_id,
+                timeEntryIndex: timeEntryIndex,
+                hours: timeData.hours,
+                responseTime: `${responseTime}ms`,
+                statusCode: 200
+            })
+
+            // Returns success response with updated task
+            return res.status(200).json({
+                success: true,
+                message: result.message,
+                data: result.task,
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        } catch (error: any) {
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Log error
+            logger.error('Time entry update failed', {
+                error: error.message,
+                stack: error.stack,
+                responseTime: `${responseTime}ms`,
+                statusCode: error.code || 500
+            })
+
+            // Returns error response
+            return res.status(error.code || 500).json({
+                success: false,
+                message: error.message || 'Internal server error',
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        }
+    }
+
+    /**
+     * Deletes a time entry from a task.
+     * 
+     * @param req - Express request object
+     * @param res - Express response object
+     * @returns Updated task or error response
+     */
+    async deleteTimeEntry(req: Request, res: Response): Promise<Response> {
+        const startTime = Date.now()
+        
+        try {
+            logger.info('Deleting time entry from task', {
+                method: req.method,
+                path: req.path,
+                params: req.params,
+                userId: req.user?.uuid,
+                ip: req.ip
+            })
+
+            // Extracts data from request
+            const { group_id, task_id, time_entry_index } = req.params
+            const userId = req.user!.uuid // Middleware ensures user exists
+
+            // Validates time entry index
+            const timeEntryIndex = parseInt(time_entry_index)
+            if (isNaN(timeEntryIndex) || timeEntryIndex < 0) {
+                const responseTime = Date.now() - startTime
+                logger.warn('Time entry deletion failed - invalid index', {
+                    responseTime: `${responseTime}ms`,
+                    statusCode: 400
+                })
+
+                return res.status(400).json({
+                    success: false,
+                    message: 'Valid time entry index is required',
+                    meta: {
+                        responseTime: `${responseTime}ms`
+                    }
+                })
+            }
+
+            // Deletes time entry using the service
+            const result = await this.taskService.deleteTimeEntry(group_id, task_id, timeEntryIndex, userId)
+
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Log successful deletion
+            logger.info('Time entry deleted successfully', {
+                taskId: task_id,
+                groupId: group_id,
+                timeEntryIndex: timeEntryIndex,
+                responseTime: `${responseTime}ms`,
+                statusCode: 200
+            })
+
+            // Returns success response with updated task
+            return res.status(200).json({
+                success: true,
+                message: result.message,
+                data: result.task,
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        } catch (error: any) {
+            // Calculate response time
+            const responseTime = Date.now() - startTime
+
+            // Log error
+            logger.error('Time entry deletion failed', {
+                error: error.message,
+                stack: error.stack,
+                responseTime: `${responseTime}ms`,
+                statusCode: error.code || 500
+            })
+
+            // Returns error response
+            return res.status(error.code || 500).json({
+                success: false,
+                message: error.message || 'Internal server error',
+                meta: {
+                    responseTime: `${responseTime}ms`
+                }
+            })
+        }
+    }
 } 

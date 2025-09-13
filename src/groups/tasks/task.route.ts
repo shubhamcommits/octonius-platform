@@ -177,6 +177,22 @@ export class TaskRoute {
                     this.task_controller.addTimeEntry(req, res)
                 }
             )
+            // Update time entry in task
+            .put('/:task_id/time-entries/:time_entry_index',
+                verifyAccessToken,
+                isLoggedIn,
+                (req: Request, res: Response) => {
+                    this.task_controller.updateTimeEntry(req, res)
+                }
+            )
+            // Delete time entry from task
+            .delete('/:task_id/time-entries/:time_entry_index',
+                verifyAccessToken,
+                isLoggedIn,
+                (req: Request, res: Response) => {
+                    this.task_controller.deleteTimeEntry(req, res)
+                }
+            )
 
         // Custom fields routes
         this.router
