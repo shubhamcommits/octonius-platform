@@ -1,0 +1,63 @@
+<div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden">
+  <!-- Header -->
+  <div class="flex items-center justify-between p-6 pb-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+        <lucide-icon name="Edit3" class="w-5 h-5 text-primary"></lucide-icon>
+      </div>
+      <div>
+        <h2 class="text-xl font-semibold text-base-content">Rename Section</h2>
+        <p class="text-sm text-base-content/70">Update the name of this section</p>
+      </div>
+    </div>
+    <button 
+      class="btn btn-ghost btn-sm btn-circle hover:bg-base-200 transition-colors" 
+      (click)="onClose()"
+      title="Close">
+      <lucide-icon name="X" class="w-4 h-4"></lucide-icon>
+    </button>
+  </div>
+  
+  <!-- Content -->
+  <div class="px-6 pb-6">
+    <form (ngSubmit)="onSubmit()" class="space-y-6">
+      <div class="space-y-2">
+        <label class="block text-sm font-medium text-base-content">
+          Section Name <span class="text-error">*</span>
+        </label>
+        <input 
+          type="text" 
+          [(ngModel)]="columnName" 
+          name="columnName"
+          placeholder="Enter new section name" 
+          class="input input-bordered w-full focus:input-primary transition-colors" 
+          [class.input-error]="hasError"
+          [class.border-error]="hasError"
+          required 
+          autofocus />
+        <div *ngIf="hasError" class="flex items-center gap-2 text-error text-sm">
+          <lucide-icon name="AlertCircle" class="w-4 h-4"></lucide-icon>
+          {{ errorMessage }}
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-3 pt-2">
+        <button 
+          type="button" 
+          class="btn btn-ghost hover:bg-base-200 transition-colors" 
+          (click)="onClose()">
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          class="btn btn-primary gap-2" 
+          [disabled]="!columnName.trim() || isSubmitting">
+          <span *ngIf="isSubmitting" class="loading loading-spinner loading-sm"></span>
+          <lucide-icon *ngIf="!isSubmitting" name="Check" class="w-4 h-4"></lucide-icon>
+          {{ isSubmitting ? 'Renaming...' : 'Rename' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
