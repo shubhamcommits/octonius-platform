@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TiptapEditorComponent } from '../../../../../../../core/components/tiptap-editor/tiptap-editor.component';
@@ -15,7 +15,7 @@ export interface TimeEntryData {
   imports: [CommonModule, FormsModule, TiptapEditorComponent],
   template: `
     <div class="w-full">
-      <h3 class="font-bold text-lg mb-4">Add Time Entry</h3>
+      <h3 class="font-bold text-lg mb-4">{{ isEditing ? 'Edit Time Entry' : 'Add Time Entry' }}</h3>
       
       <div class="space-y-4">
         <div class="form-control">
@@ -80,7 +80,7 @@ export interface TimeEntryData {
           [disabled]="formData.hours <= 0 || isSubmitting" 
           >
           <span *ngIf="isSubmitting" class="loading loading-spinner loading-xs"></span>
-          {{ isSubmitting ? 'Adding...' : 'Add Entry' }}
+          {{ isSubmitting ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Entry' : 'Add Entry') }}
         </button>
       </div>
     </div>
@@ -91,9 +91,10 @@ export interface TimeEntryData {
     }
   `]
 })
-export class TimeEntryModalComponent {
+export class TimeEntryModalComponent implements OnInit {
   @Input() onSave?: (data: TimeEntryData) => void;
   @Input() onCancel?: () => void;
+  @Input() initialData?: TimeEntryData;
 
   formData: TimeEntryData = {
     hours: 0,
@@ -103,6 +104,14 @@ export class TimeEntryModalComponent {
 
   errors: { [key: string]: string } = {};
   isSubmitting = false;
+  isEditing = false;
+
+  ngOnInit(): void {
+    if (this.initialData) {
+      this.formData = { ...this.initialData };
+      this.isEditing = true;
+    }
+  }
 
   onSubmit(): void {
     this.errors = {};
