@@ -387,4 +387,45 @@ export class GroupTaskService {
         })
       );
   }
+
+  /**
+   * Update a time entry in a task
+   * @param groupId The group UUID
+   * @param taskId The task UUID
+   * @param timeEntryIndex The index of the time entry to update
+   * @param timeData Updated time entry data
+   * @returns Observable of the updated task
+   */
+  updateTimeEntry(groupId: string, taskId: string, timeEntryIndex: number, timeData: {
+    hours: number;
+    description?: string;
+    date?: Date;
+  }): Observable<Task> {
+    return this.http.put<ApiResponse<Task>>(`${this.apiUrl}/${groupId}/tasks/${taskId}/time-entries/${timeEntryIndex}`, timeData)
+      .pipe(
+        map(response => response.data),
+        catchError(error => {
+          console.error('Error updating time entry:', error);
+          return throwError(() => new Error('Failed to update time entry'));
+        })
+      );
+  }
+
+  /**
+   * Delete a time entry from a task
+   * @param groupId The group UUID
+   * @param taskId The task UUID
+   * @param timeEntryIndex The index of the time entry to delete
+   * @returns Observable of the updated task
+   */
+  deleteTimeEntry(groupId: string, taskId: string, timeEntryIndex: number): Observable<Task> {
+    return this.http.delete<ApiResponse<Task>>(`${this.apiUrl}/${groupId}/tasks/${taskId}/time-entries/${timeEntryIndex}`)
+      .pipe(
+        map(response => response.data),
+        catchError(error => {
+          console.error('Error deleting time entry:', error);
+          return throwError(() => new Error('Failed to delete time entry'));
+        })
+      );
+  }
 } 
