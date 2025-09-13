@@ -157,7 +157,8 @@ export class TaskService {
             }],
             order: [
                 ['position', 'ASC'],
-                [{ model: Task, as: 'tasks' }, 'position', 'ASC']
+                [{ model: Task, as: 'tasks' }, 'created_at', 'DESC'],
+                [{ model: Task, as: 'tasks' }, 'uuid', 'ASC']
             ]
         })
 
@@ -1505,6 +1506,233 @@ export class TaskService {
                 message: TaskCode.DATABASE_ERROR,
                 code: 400,
                 stack: error instanceof Error ? error : new Error('Database operation failed')
+            }
+        }
+    }
+
+    /**
+     * Updates a time entry in a task.
+     * 
+     * @param groupId - The UUID of the group
+     * @param taskId - The UUID of the task
+     * @param timeEntryIndex - The index of the time entry to update
+     * @param timeData - The updated time entry data
+     * @param userId - The UUID of the user updating the time entry
+     * @returns A response containing the updated task
+     * @throws TaskError if the time entry update process fails
+     */
+    async updateTimeEntry(
+        groupId: string,
+        taskId: string,
+        timeEntryIndex: number,
+        timeData: { hours: number; description?: string; date?: Date },
+        userId: string
+    ): Promise<TaskResponse<Task>> {
+        try {
+            // Finds the task
+            const task = await Task.findOne({
+                where: {
+                    uuid: taskId,
+                    group_id: groupId
+                }
+            })
+
+            if (!task) {
+                throw {
+                    success: false,
+                    message: TaskCode.TASK_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Task not found in this group')
+                }
+            }
+
+            // Gets current metadata
+            const currentMetadata = task.metadata || {}
+            const currentTimeEntries = currentMetadata.time_entries || []
+
+            // Validates time entry index
+            if (timeEntryIndex < 0 || timeEntryIndex >= currentTimeEntries.length) {
+                throw {
+                    success: false,
+                    message: 'Time entry not found',
+                    code: 404,
+                    stack: new Error('Time entry index out of bounds')
+                }
+            }
+
+            // Gets the old time entry to calculate the difference
+            const oldTimeEntry = currentTimeEntries[timeEntryIndex]
+            const hoursDifference = timeData.hours - oldTimeEntry.hours
+
+            // Updates the time entry
+            const updatedTimeEntries = [...currentTimeEntries]
+            updatedTimeEntries[timeEntryIndex] = {
+                user_id: userId,
+                hours: timeData.hours,
+                description: timeData.description || '',
+                date: timeData.date || new Date()
+            }
+
+            // Updates metadata with updated time entry
+            const updatedMetadata = {
+                ...currentMetadata,
+                time_entries: updatedTimeEntries,
+                actual_hours: (currentMetadata.actual_hours || 0) + hoursDifference
+            }
+
+            // Updates the task
+            await task.update({ metadata: updatedMetadata })
+
+            // Fetches updated task with associations
+            const updatedTask = await Task.findByPk(task.uuid, {
+                include: [
+                    {
+                        model: User,
+                        as: 'creator',
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url']
+                    },
+                    {
+                        model: User,
+                        as: 'assignees',
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'],
+                        through: {
+                            attributes: ['assigned_at', 'assigned_by']
+                        }
+                    }
+                ]
+            })
+
+            if (!updatedTask) {
+                throw {
+                    success: false,
+                    message: 'Failed to fetch updated task',
+                    code: 500,
+                    stack: new Error('Task not found after update')
+                }
+            }
+
+            return {
+                success: true,
+                message: TaskCode.TASK_UPDATED,
+                code: 200,
+                task: updatedTask as Task
+            }
+        } catch (error: any) {
+            logger.error('Error updating time entry:', error)
+            throw {
+                success: false,
+                message: error.message || 'Failed to update time entry',
+                code: error.code || 500,
+                stack: error.stack
+            }
+        }
+    }
+
+    /**
+     * Deletes a time entry from a task.
+     * 
+     * @param groupId - The UUID of the group
+     * @param taskId - The UUID of the task
+     * @param timeEntryIndex - The index of the time entry to delete
+     * @param userId - The UUID of the user deleting the time entry
+     * @returns A response containing the updated task
+     * @throws TaskError if the time entry deletion process fails
+     */
+    async deleteTimeEntry(
+        groupId: string,
+        taskId: string,
+        timeEntryIndex: number,
+        userId: string
+    ): Promise<TaskResponse<Task>> {
+        try {
+            // Finds the task
+            const task = await Task.findOne({
+                where: {
+                    uuid: taskId,
+                    group_id: groupId
+                }
+            })
+
+            if (!task) {
+                throw {
+                    success: false,
+                    message: TaskCode.TASK_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Task not found in this group')
+                }
+            }
+
+            // Gets current metadata
+            const currentMetadata = task.metadata || {}
+            const currentTimeEntries = currentMetadata.time_entries || []
+
+            // Validates time entry index
+            if (timeEntryIndex < 0 || timeEntryIndex >= currentTimeEntries.length) {
+                throw {
+                    success: false,
+                    message: 'Time entry not found',
+                    code: 404,
+                    stack: new Error('Time entry index out of bounds')
+                }
+            }
+
+            // Gets the time entry to be deleted to calculate the hours to subtract
+            const timeEntryToDelete = currentTimeEntries[timeEntryIndex]
+
+            // Removes the time entry
+            const updatedTimeEntries = currentTimeEntries.filter((_, index) => index !== timeEntryIndex)
+
+            // Updates metadata with removed time entry
+            const updatedMetadata = {
+                ...currentMetadata,
+                time_entries: updatedTimeEntries,
+                actual_hours: Math.max(0, (currentMetadata.actual_hours || 0) - timeEntryToDelete.hours)
+            }
+
+            // Updates the task
+            await task.update({ metadata: updatedMetadata })
+
+            // Fetches updated task with associations
+            const updatedTask = await Task.findByPk(task.uuid, {
+                include: [
+                    {
+                        model: User,
+                        as: 'creator',
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url']
+                    },
+                    {
+                        model: User,
+                        as: 'assignees',
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'],
+                        through: {
+                            attributes: ['assigned_at', 'assigned_by']
+                        }
+                    }
+                ]
+            })
+
+            if (!updatedTask) {
+                throw {
+                    success: false,
+                    message: 'Failed to fetch updated task',
+                    code: 500,
+                    stack: new Error('Task not found after update')
+                }
+            }
+
+            return {
+                success: true,
+                message: TaskCode.TASK_DELETED,
+                code: 200,
+                task: updatedTask as Task
+            }
+        } catch (error: any) {
+            logger.error('Error deleting time entry:', error)
+            throw {
+                success: false,
+                message: error.message || 'Failed to delete time entry',
+                code: error.code || 500,
+                stack: error.stack
             }
         }
     }
