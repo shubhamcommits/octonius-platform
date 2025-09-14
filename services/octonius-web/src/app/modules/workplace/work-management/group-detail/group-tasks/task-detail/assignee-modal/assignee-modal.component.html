@@ -2,9 +2,32 @@
   <h3 class="font-bold text-lg mb-4">Manage Assignees</h3>
   
   <div class="space-y-4">
+    <!-- Search Bar -->
+    <div class="form-control">
+      <div class="relative">
+        <input 
+          type="text" 
+          placeholder="Search members by name or email..."
+          [(ngModel)]="searchQuery"
+          (input)="onSearchChange($any($event.target).value)"
+          class="input input-bordered w-full pr-10"
+          [class.input-disabled]="isLoadingMembers" />
+        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+          <span *ngIf="isLoadingMembers" class="loading loading-spinner loading-sm"></span>
+          <lucide-icon *ngIf="!isLoadingMembers" name="Search" class="w-4 h-4 text-base-content/40"></lucide-icon>
+        </div>
+      </div>
+    </div>
+
     <!-- Group Members List -->
-    <div *ngIf="groupMembers.length === 0" class="text-center py-8 text-base-content/60">
-      <p>No group members available</p>
+    <div *ngIf="isLoadingMembers && groupMembers.length === 0" class="text-center py-8">
+      <span class="loading loading-spinner loading-md"></span>
+      <p class="mt-2 text-base-content/60">Loading members...</p>
+    </div>
+
+    <div *ngIf="!isLoadingMembers && groupMembers.length === 0" class="text-center py-8 text-base-content/60">
+      <p *ngIf="searchQuery">No members found matching "{{ searchQuery }}"</p>
+      <p *ngIf="!searchQuery">No group members available</p>
     </div>
 
     <div *ngIf="groupMembers.length > 0" class="space-y-3">
@@ -14,21 +37,22 @@
         (click)="toggleAssignee(member.uuid, $event)">
         
         <!-- Avatar -->
-        <div class="avatar">
-          <div class="w-10 h-10 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm font-medium">
-            <img *ngIf="getUserAvatarUrl(member)" [src]="getUserAvatarUrl(member)" [alt]="getUserDisplayName(member)" class="w-full h-full rounded-full object-cover" />
-            <span *ngIf="!getUserAvatarUrl(member)">{{ getUserInitials(member) }}</span>
-          </div>
-        </div>
+        <app-avatar 
+          [avatarUrl]="getAvatarUrl(member)"
+          [initials]="getUserInitials(member)"
+          [altText]="getUserDisplayName(member)"
+          [showInitials]="true"
+          size="md">
+        </app-avatar>
 
         <!-- User Info -->
-        <div class="flex-1">
-          <div class="font-medium text-base-content">{{ getUserDisplayName(member) }}</div>
-          <div class="text-sm text-base-content/60">{{ member.email }}</div>
+        <div class="flex-1 min-w-0 pr-3">
+          <div class="font-medium text-base-content whitespace-nowrap overflow-hidden text-ellipsis">{{ getUserDisplayName(member) }}</div>
+          <div class="text-sm text-base-content/60 whitespace-nowrap overflow-hidden text-ellipsis">{{ member.email }}</div>
         </div>
 
         <!-- Radio Button -->
-        <div class="flex items-center">
+        <div class="flex items-center flex-shrink-0">
           <input 
             type="radio" 
             [name]="'assignee-' + member.uuid"
@@ -36,6 +60,22 @@
             (click)="toggleAssignee(member.uuid, $event)"
             class="radio radio-primary" />
         </div>
+      </div>
+
+      <!-- Load More Button -->
+      <div *ngIf="hasMore" class="text-center pt-2">
+        <button 
+          class="btn btn-outline btn-sm w-full"
+          (click)="loadMore()"
+          [disabled]="isLoadingMore">
+          <span *ngIf="isLoadingMore" class="loading loading-spinner loading-xs"></span>
+          {{ isLoadingMore ? 'Loading...' : 'Load More Members' }}
+        </button>
+      </div>
+
+      <!-- Results Info -->
+      <div *ngIf="totalCount > 0" class="text-xs text-base-content/60 text-center pt-2">
+        Showing {{ groupMembers.length }} of {{ totalCount }} members
       </div>
     </div>
 
