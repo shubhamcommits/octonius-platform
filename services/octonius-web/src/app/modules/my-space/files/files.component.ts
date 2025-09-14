@@ -12,7 +12,6 @@ import { firstValueFrom } from 'rxjs'
 import { SharedModule } from '../../shared/shared.module'
 import { AvatarComponent } from '../../../core/components/avatar/avatar.component'
 import { AvatarService } from '../../../core/services/avatar.service'
-import { environment } from '../../../../environments/environment'
 
 @Component({
   selector: 'app-files',

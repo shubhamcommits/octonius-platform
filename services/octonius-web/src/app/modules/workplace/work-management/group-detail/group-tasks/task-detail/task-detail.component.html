@@ -42,15 +42,7 @@
               <!-- Description Editor -->
               <div class="form-control">
                 <app-tiptap-editor
-                  [config]="{
-                    placeholder: 'Task description',
-                    showToolbar: true,
-                    showBubbleMenu: true,
-                    showCharacterCount: true,
-                    autoExpand: true,
-                    minHeight: '120px',
-                    toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
-                  }"
+                  [config]="editorConfig"
                   [ngModel]="liveEditData.description"
                   (ngModelChange)="onDescriptionChange($event)">
                 </app-tiptap-editor>
@@ -172,15 +164,7 @@
               <div class="flex-grow">
                 <app-tiptap-editor
                   [(ngModel)]="newComment"
-                  [config]="{
-                    placeholder: 'Add a comment...',
-                    showToolbar: true,
-                    showBubbleMenu: true,
-                    showCharacterCount: false,
-                    autoExpand: true,
-                    minHeight: '80px',
-                    toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
-                  }">
+                  [config]="editorConfig">
                 </app-tiptap-editor>
                 <div class="flex justify-end mt-2">
                   <button 

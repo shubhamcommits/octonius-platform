@@ -63,16 +63,7 @@
           </div>
           <div class="flex-1">
             <app-tiptap-editor
-              [config]="{
-                placeholder: 'What\'s on your mind, User?',
-                showToolbar: true,
-                showBubbleMenu: true,
-                showCharacterCount: true,
-                maxHeight: '400px',
-                minHeight: '120px',
-                autoExpand: true,
-                toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link', 'image', 'emoji', 'table', 'code']
-              }"
+              [config]="editorConfig"
               [(ngModel)]="newPostContent"
               name="newPostContent">
             </app-tiptap-editor>
@@ -178,15 +169,7 @@
                 </div>
                 <div class="flex-1">
                   <app-tiptap-editor
-                    [config]="{
-                      placeholder: 'What\'s on your mind, User?',
-                      showToolbar: true,
-                      showBubbleMenu: true,
-                      showCharacterCount: true,
-                      maxHeight: '200px',
-                      minHeight: '100px',
-                      toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
-                    }"
+                    [config]="editorConfig"
                     [(ngModel)]="post.newComment"
                     name="post.newComment">
                   </app-tiptap-editor>

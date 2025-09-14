@@ -7,13 +7,11 @@ import { WorkGroupService, WorkGroup } from '../../../../services/work-group.ser
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { ModalService } from '../../../../../../core/services/modal.service';
-import { AssigneeModalComponent, AssigneeData } from './assignee-modal/assignee-modal.component';
-import { TiptapEditorComponent } from '../../../../../../core/components/tiptap-editor/tiptap-editor.component';
+import { AssigneeModalComponent } from './assignee-modal/assignee-modal.component';
 import { CustomFieldModalComponent, CustomFieldData } from './custom-field-modal/custom-field-modal.component';
 import { CustomFieldService, GroupCustomFieldDefinition, TaskCustomField, CreateTaskCustomFieldData } from '../../../../services/custom-field.service';
 import { TimeEntryModalComponent, TimeEntryData } from './time-entry-modal/time-entry-modal.component';
-import { DatePickerModalComponent, DatePickerData } from './date-picker-modal/date-picker-modal.component';
-import { environment } from '../../../../../../../environments/environment';
+import { DatePickerModalComponent } from './date-picker-modal/date-picker-modal.component';
 
 @Component({
   selector: 'app-task-detail',
@@ -50,6 +48,25 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   isEditingEstimatedHours = false;
   estimatedHoursInput = 0;
   estimatedHoursError = '';
+
+  // Tiptap editor configuration
+  editorConfig = {
+    placeholder: 'Add a comment...',
+    showToolbar: true,
+    showBubbleMenu: true,
+    showCharacterCount: false,
+    maxHeight: '200px',
+    minHeight: '100px',
+    readOnly: false,
+    toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link'],
+    enableImageUpload: false,
+    enableEmojiPicker: false,
+    enableTableControls: false,
+    sourceContext: 'task-comment',
+    enableMentions: true,
+    groupId: undefined as string | undefined,
+    workplaceId: undefined as string | undefined
+  };
 
   // Live editing data
   liveEditData = {
@@ -104,6 +121,12 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     this.groupSub = this.workGroupService.getCurrentGroup().subscribe((group: WorkGroup | null) => {
       this.group = group;
       if (group) {
+        // Update editor config with group context for mentions
+        this.editorConfig.groupId = group.uuid;
+        // Get workplace ID from current user context
+        if (this.currentUser?.current_workplace_id) {
+          this.editorConfig.workplaceId = this.currentUser.current_workplace_id;
+        }
         this.loadGroupFieldDefinitions();
         this.loadTaskFromRoute();
       }
