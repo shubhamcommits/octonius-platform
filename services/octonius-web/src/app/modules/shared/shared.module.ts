@@ -125,7 +125,10 @@ import { LucideAngularModule,
   Flag,
   Sun,
   Sunrise,
-  XCircle
+  XCircle,
+  Hash,
+  Asterisk,
+  Icons
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -271,6 +274,8 @@ import { InfiniteScrollListComponent } from './components/infinite-scroll-list/i
       Sun,
       Sunrise,
       XCircle,
+      Hash,
+      Asterisk
     })
   ],
   exports: [

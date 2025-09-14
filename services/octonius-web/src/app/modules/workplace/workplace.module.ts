@@ -30,6 +30,10 @@ import { AdminDangerZoneComponent } from './work-management/group-detail/group-a
 import { CreateTaskModalComponent } from './work-management/group-detail/group-tasks/create-task-modal/create-task-modal.component';
 import { RenameColumnModalComponent } from './work-management/group-detail/group-tasks/rename-column-modal/rename-column-modal.component';
 import { DeleteColumnModalComponent } from './work-management/group-detail/group-tasks/delete-column-modal/delete-column-modal.component';
+import { CustomFieldsSettingsModalComponent } from './work-management/group-detail/group-tasks/custom-fields-settings-modal/custom-fields-settings-modal.component';
+import { CustomFieldService } from './services/custom-field.service';
+import { AvatarComponent } from '../../core/components/avatar/avatar.component';
+import { AvatarService } from '../../core/services/avatar.service';
 
 @NgModule({
   declarations: [
@@ -65,7 +69,13 @@ import { DeleteColumnModalComponent } from './work-management/group-detail/group
     FormsModule,
     CreateTaskModalComponent,
     RenameColumnModalComponent,
-    DeleteColumnModalComponent
+    DeleteColumnModalComponent,
+    CustomFieldsSettingsModalComponent,
+    AvatarComponent
+  ],
+  providers: [
+    CustomFieldService,
+    AvatarService
   ]
 })
 export class WorkplaceModule { }
