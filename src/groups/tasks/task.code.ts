@@ -25,6 +25,7 @@ export enum TaskCode {
     // Error codes
     TASK_NOT_FOUND = 'Task not found',
     COLUMN_NOT_FOUND = 'Column not found',
+    GROUP_NOT_FOUND = 'Group not found',
     INVALID_TASK_DATA = 'Invalid task data provided',
     INVALID_COLUMN_DATA = 'Invalid column data provided',
     TASK_TITLE_REQUIRED = 'Task title is required',

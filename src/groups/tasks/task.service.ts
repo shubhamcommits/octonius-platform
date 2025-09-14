@@ -41,6 +41,11 @@ import { TaskCommentResponse, TaskCommentsResponse, TaskCommentError, TaskCommen
 // Import Codes
 import { TaskCommentCode } from './task-comment.code'
 
+// Import Custom Field Service
+import customFieldService from '../../custom-fields/custom-field.service'
+import { GroupCustomFieldDefinition } from '../../custom-fields/custom-field-definition.model'
+import { TaskCustomField } from '../../custom-fields/task-custom-field.model'
+
 /**
  * Service class for handling all task-related operations.
  * This includes CRUD operations for tasks and columns, board management, and task assignments.
@@ -81,6 +86,17 @@ export class TaskService {
                 }
             }
 
+            // Get group to validate custom fields against definitions
+            const group = await Group.findByPk(groupId, { transaction })
+            if (!group) {
+                throw {
+                    success: false,
+                    message: TaskCode.GROUP_NOT_FOUND,
+                    code: 404,
+                    stack: new Error('Group not found')
+                }
+            }
+
             // Gets the next position for the task in the column
             const maxPosition = await Task.max('position', {
                 where: { column_id: taskData.column_id },
@@ -93,8 +109,22 @@ export class TaskService {
                 group_id: groupId,
                 created_by: userId,
                 position: maxPosition + 1,
-                status: taskData.status || 'todo'
+                status: taskData.status || 'todo',
+                metadata: taskData.metadata || {}
             }, { transaction })
+
+            // Inherit group custom field templates and create task instances
+            await this.inheritGroupCustomFieldTemplates(task.uuid, groupId, userId, transaction)
+
+            // Process any custom fields provided in the task data
+            if (taskData.metadata?.custom_fields) {
+                await this.processTaskCustomFields(
+                    task.uuid, 
+                    taskData.metadata.custom_fields, 
+                    userId, 
+                    transaction
+                )
+            }
 
             // Fetches the created task with associations
             const createdTask = await Task.findByPk(task.uuid, {
@@ -144,23 +174,54 @@ export class TaskService {
      */
     async getBoard(groupId: string, userId: string): Promise<BoardResponse<any>> {
         try {
-                    // Fetches all columns with their tasks
-        const columns = await TaskColumn.findAll({
-            where: { group_id: groupId },
-            include: [{
-                model: Task,
-                as: 'tasks',
-                include: [
-                    { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
-                    { model: User, as: 'assignees', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] }
+            // Fetches all columns with their tasks
+            const columns = await TaskColumn.findAll({
+                where: { group_id: groupId },
+                include: [{
+                    model: Task,
+                    as: 'tasks',
+                    include: [
+                        { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
+                        { model: User, as: 'assignees', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] }
+                    ]
+                }],
+                order: [
+                    ['position', 'ASC'],
+                    [{ model: Task, as: 'tasks' }, 'created_at', 'DESC'],
+                    [{ model: Task, as: 'tasks' }, 'uuid', 'ASC']
                 ]
-            }],
-            order: [
-                ['position', 'ASC'],
-                [{ model: Task, as: 'tasks' }, 'created_at', 'DESC'],
-                [{ model: Task, as: 'tasks' }, 'uuid', 'ASC']
-            ]
-        })
+            })
+
+            // Get custom fields for all tasks
+            const taskIds = columns.flatMap(col => (col.get('tasks') as Task[]).map(task => task.uuid))
+            const customFields = await TaskCustomField.findAll({
+                where: { task_id: { [Op.in]: taskIds } },
+                include: [
+                    {
+                        model: GroupCustomFieldDefinition,
+                        as: 'fieldDefinition',
+                        attributes: ['uuid', 'name', 'type', 'required', 'placeholder', 'description', 'options', 'validation_rules']
+                    }
+                ],
+                order: [['display_order', 'ASC']]
+            })
+
+            // Group custom fields by task_id
+            const customFieldsByTask = customFields.reduce((acc, field) => {
+                if (!acc[field.task_id]) {
+                    acc[field.task_id] = []
+                }
+                acc[field.task_id].push(field)
+                return acc
+            }, {} as Record<string, any[]>)
+
+            // Add custom fields to each task
+            columns.forEach(column => {
+                const tasks = column.get('tasks') as Task[]
+                tasks.forEach(task => {
+                    (task as any).custom_fields = customFieldsByTask[task.uuid] || []
+                })
+            })
 
             // Formats the board data
             const board = {
@@ -220,6 +281,24 @@ export class TaskService {
                     }
                 ]
             })
+
+            // Get custom fields for the task
+            const customFields = await TaskCustomField.findAll({
+                where: { task_id: taskId },
+                include: [
+                    {
+                        model: GroupCustomFieldDefinition,
+                        as: 'fieldDefinition',
+                        attributes: ['uuid', 'name', 'type', 'required', 'placeholder', 'description', 'options', 'validation_rules']
+                    }
+                ],
+                order: [['display_order', 'ASC']]
+            })
+
+            // Add custom fields to task data
+            if (task) {
+                (task as any).custom_fields = customFields
+            }
 
             // Checks if task exists
             if (!task) {
@@ -1279,13 +1358,16 @@ export class TaskService {
         customFields: Record<string, any>,
         userId: string
     ): Promise<TaskResponse<Task>> {
+        const transaction = await db.transaction()
+        
         try {
             // Finds the task
             const task = await Task.findOne({
                 where: {
                     uuid: taskId,
                     group_id: groupId
-                }
+                },
+                transaction
             })
 
             if (!task) {
@@ -1297,19 +1379,10 @@ export class TaskService {
                 }
             }
 
-            // Gets current metadata
-            const currentMetadata = task.metadata || {}
+            // Process the custom fields
+            await this.processTaskCustomFields(taskId, customFields, userId, transaction)
 
-            // Updates metadata with custom fields (replace entire custom_fields object)
-            const updatedMetadata = {
-                ...currentMetadata,
-                custom_fields: customFields  // Replace entire custom_fields object to allow field removal
-            }
-
-            // Updates the task
-            await task.update({ metadata: updatedMetadata })
-
-            // Fetches updated task with associations
+            // Fetches updated task with associations and custom fields
             const updatedTask = await Task.findByPk(task.uuid, {
                 include: [
                     { model: User, as: 'creator', attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'] },
@@ -1320,8 +1393,30 @@ export class TaskService {
                         attributes: ['uuid', 'first_name', 'last_name', 'avatar_url'],
                         through: { attributes: ['assigned_at', 'assigned_by'] }
                     }
-                ]
+                ],
+                transaction
             })
+
+            // Get custom fields for the task
+            const taskCustomFields = await TaskCustomField.findAll({
+                where: { task_id: taskId },
+                include: [
+                    {
+                        model: GroupCustomFieldDefinition,
+                        as: 'fieldDefinition',
+                        attributes: ['uuid', 'name', 'type', 'required', 'placeholder', 'description', 'options', 'validation_rules']
+                    }
+                ],
+                order: [['display_order', 'ASC']],
+                transaction
+            })
+
+            // Add custom fields to task data
+            if (updatedTask) {
+                (updatedTask as any).custom_fields = taskCustomFields
+            }
+
+            await transaction.commit()
 
             // Logs success
             logger.info('Custom fields updated successfully', { taskId, groupId, userId })
@@ -1334,6 +1429,8 @@ export class TaskService {
                 task: updatedTask! as any
             }
         } catch (error) {
+            await transaction.rollback()
+            
             // Logs error
             logger.error('Custom fields update failed', { error, groupId, taskId, customFields, userId })
 
@@ -1465,40 +1562,121 @@ export class TaskService {
     }
 
     /**
-     * Gets group members who can be assigned to tasks.
+     * Gets group members who can be assigned to tasks with search and pagination.
      * 
      * @param groupId - The UUID of the group
-     * @returns A response containing the group members
+     * @param searchQuery - Optional search query for name or email
+     * @param limit - Number of results to return (default: 5)
+     * @param offset - Number of results to skip (default: 0)
+     * @returns A response containing the group members with pagination info
      * @throws TaskError if the retrieval process fails
      */
-    async getGroupMembers(groupId: string): Promise<{ success: true; members: any[] }> {
+    async getGroupMembers(groupId: string, searchQuery?: string, limit: number = 5, offset: number = 0): Promise<{ 
+        success: true; 
+        members: any[]; 
+        totalCount: number;
+        hasMore: boolean;
+    }> {
         try {
-            // Fetches active group members
-            const members = await GroupMembership.findAll({
-                where: {
-                    group_id: groupId,
-                    status: 'active'
-                },
+            // Build where clause for search
+            const whereClause: any = {
+                group_id: groupId,
+                status: 'active'
+            }
+
+            // Add search conditions if searchQuery is provided
+            let userWhereClause: any = {}
+            if (searchQuery && searchQuery.trim()) {
+                const searchTerm = `%${searchQuery.trim()}%`
+                const searchWords = searchQuery.trim().split(/\s+/)
+                const trimmedQuery = searchQuery.trim()
+                
+                // For assignee selection, search in first name, last name, and email
+                userWhereClause = {
+                    [Op.or]: [
+                        { first_name: { [Op.iLike]: searchTerm } },
+                        { last_name: { [Op.iLike]: searchTerm } },
+                        { email: { [Op.iLike]: searchTerm } }
+                    ]
+                }
+                
+                logger.info('Creating search condition', {
+                    searchQuery,
+                    searchTerm,
+                    trimmedQuery,
+                    searchWords
+                })
+                
+                logger.info('Created userWhereClause', {
+                    userWhereClause: JSON.stringify(userWhereClause),
+                    userWhereClauseRaw: userWhereClause,
+                    hasUserWhereClause: Object.keys(userWhereClause).length > 0,
+                    userWhereClauseKeys: Object.keys(userWhereClause),
+                    OpOrValue: userWhereClause[Op.or]
+                })
+            }
+
+            // Get total count for pagination
+            const totalCount = await GroupMembership.count({
+                where: whereClause,
                 include: [
                     { 
                         model: User, 
                         as: 'user', 
-                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url', 'email'] 
+                        where: searchQuery && searchQuery.trim() ? userWhereClause : undefined,
+                        attributes: [],
+                        required: !!(searchQuery && searchQuery.trim())
                     }
                 ]
             })
 
-            // Logs success
-            logger.info('Group members retrieved successfully', { groupId, memberCount: members.length })
+            // Fetches active group members with search and pagination
+            const members = await GroupMembership.findAll({
+                where: whereClause,
+                include: [
+                    { 
+                        model: User, 
+                        as: 'user', 
+                        where: searchQuery && searchQuery.trim() ? userWhereClause : undefined,
+                        attributes: ['uuid', 'first_name', 'last_name', 'avatar_url', 'email'],
+                        required: !!(searchQuery && searchQuery.trim())
+                    }
+                ],
+                limit,
+                offset,
+                order: [['created_at', 'ASC']] // Consistent ordering
+            })
+
+            const hasMore = offset + members.length < (totalCount as number)
+
+            // Logs success with search details
+            logger.info('Group members retrieved successfully', { 
+                groupId, 
+                memberCount: members.length, 
+                totalCount, 
+                searchQuery,
+                searchWords: searchQuery ? searchQuery.trim().split(/\s+/) : [],
+                isEmailDomainSearch: searchQuery ? /[@.]/.test(searchQuery.trim()) || 
+                    /\.(com|org|net|edu|gov|co|io|me|us|uk|ca|au|de|fr|jp|in)$/i.test(searchQuery.trim()) : false,
+                userWhereClause: searchQuery ? JSON.stringify(userWhereClause) : 'none',
+                hasUserWhereClause: Object.keys(userWhereClause).length > 0,
+                limit,
+                offset,
+                hasMore,
+                memberEmails: members.map(m => (m as any).email),
+                memberNames: members.map(m => `${(m as any).first_name} ${(m as any).last_name}`)
+            })
 
             // Returns success response
             return {
                 success: true,
-                members: members.map(member => (member as any).user)
+                members: members.map(member => (member as any).user),
+                totalCount: totalCount as number,
+                hasMore
             }
         } catch (error) {
             // Logs error
-            logger.error('Group members retrieval failed', { error, groupId })
+            logger.error('Group members retrieval failed', { error, groupId, searchQuery, limit, offset })
 
             // Throws formatted error
             throw {
@@ -1734,6 +1912,217 @@ export class TaskService {
                 code: error.code || 500,
                 stack: error.stack
             }
+        }
+    }
+
+    /**
+     * Validates and standardizes custom fields against group definitions
+     * 
+     * @param customFields - The custom field values from the request
+     * @param fieldDefinitions - The custom field definitions from the group
+     * @param transaction - Database transaction
+     * @returns Validated and standardized custom fields
+     */
+    private async validateAndStandardizeCustomFields(
+        customFields: Record<string, string>,
+        fieldDefinitions: any[],
+        transaction: any
+    ): Promise<Record<string, string>> {
+        const validatedFields: Record<string, string> = {}
+
+        // Process each field definition
+        for (const fieldDef of fieldDefinitions) {
+            const fieldId = fieldDef.id
+            const fieldName = fieldDef.name
+            const fieldType = fieldDef.type
+            const isRequired = fieldDef.required
+            const options = fieldDef.options || []
+
+            // Check if field value is provided
+            const fieldValue = customFields[fieldId] || customFields[fieldName] || ''
+
+            // Validate required fields
+            if (isRequired && !fieldValue.trim()) {
+                throw {
+                    success: false,
+                    message: `Custom field '${fieldName}' is required`,
+                    code: 400,
+                    stack: new Error(`Required custom field '${fieldName}' is missing`)
+                }
+            }
+
+            // Validate field type
+            if (fieldValue.trim()) {
+                switch (fieldType) {
+                    case 'number':
+                        if (isNaN(Number(fieldValue))) {
+                            throw {
+                                success: false,
+                                message: `Custom field '${fieldName}' must be a valid number`,
+                                code: 400,
+                                stack: new Error(`Invalid number format for field '${fieldName}'`)
+                            }
+                        }
+                        break
+                    
+                    case 'dropdown':
+                        if (!options.includes(fieldValue)) {
+                            throw {
+                                success: false,
+                                message: `Custom field '${fieldName}' must be one of: ${options.join(', ')}`,
+                                code: 400,
+                                stack: new Error(`Invalid option for dropdown field '${fieldName}'`)
+                            }
+                        }
+                        break
+                    
+                    case 'text':
+                    default:
+                        // Text fields don't need special validation
+                        break
+                }
+            }
+
+            // Store the validated field with standardized field ID
+            if (fieldValue.trim()) {
+                validatedFields[fieldId] = fieldValue.trim()
+            }
+        }
+
+        // Check for unknown fields (fields not defined in group settings)
+        const definedFieldIds = fieldDefinitions.map(f => f.id)
+        const definedFieldNames = fieldDefinitions.map(f => f.name)
+        
+        for (const [key, value] of Object.entries(customFields)) {
+            if (value.trim() && 
+                !definedFieldIds.includes(key) && 
+                !definedFieldNames.includes(key)) {
+                logger.warn(`Unknown custom field '${key}' provided, ignoring`, {
+                    fieldId: key,
+                    fieldValue: value,
+                    definedFields: definedFieldIds
+                })
+            }
+        }
+
+        return validatedFields
+    }
+
+    /**
+     * Inherits group custom field templates and creates task instances
+     * 
+     * @param taskId - The UUID of the task
+     * @param groupId - The UUID of the group
+     * @param userId - The UUID of the user creating the task
+     * @param transaction - Database transaction
+     */
+    private async inheritGroupCustomFieldTemplates(
+        taskId: string,
+        groupId: string,
+        userId: string,
+        transaction: any
+    ): Promise<void> {
+        try {
+            // Get all active group custom field definitions
+            const groupFieldDefinitions = await GroupCustomFieldDefinition.findAll({
+                where: {
+                    group_id: groupId,
+                    is_active: true
+                },
+                order: [['display_order', 'ASC']],
+                transaction
+            })
+
+            // Create task custom field instances for each group template
+            for (const fieldDef of groupFieldDefinitions) {
+                await TaskCustomField.create({
+                    task_id: taskId,
+                    field_definition_id: fieldDef.uuid,
+                    field_name: fieldDef.name,
+                    field_value: '', // Empty value initially
+                    field_type: fieldDef.type,
+                    is_group_field: true,
+                    display_order: fieldDef.display_order,
+                    created_by: userId
+                }, { transaction })
+            }
+
+            logger.info('Group custom field templates inherited for task', {
+                taskId,
+                groupId,
+                userId,
+                inheritedFields: groupFieldDefinitions.length
+            })
+        } catch (error) {
+            logger.error('Error inheriting group custom field templates:', error)
+            throw error
+        }
+    }
+
+    /**
+     * Processes custom fields provided in task data
+     * 
+     * @param taskId - The UUID of the task
+     * @param customFields - The custom field values
+     * @param userId - The UUID of the user
+     * @param transaction - Database transaction
+     */
+    private async processTaskCustomFields(
+        taskId: string,
+        customFields: Record<string, any>,
+        userId: string,
+        transaction: any
+    ): Promise<void> {
+        try {
+            for (const [fieldId, fieldValue] of Object.entries(customFields)) {
+                if (fieldValue !== null && fieldValue !== undefined && fieldValue !== '') {
+                    // Check if this is a group field (has field_definition_id)
+                    const existingGroupField = await TaskCustomField.findOne({
+                        where: {
+                            task_id: taskId,
+                            field_definition_id: fieldId,
+                            is_group_field: true
+                        },
+                        transaction
+                    })
+
+                    if (existingGroupField) {
+                        // Update existing group field
+                        await existingGroupField.update({
+                            field_value: String(fieldValue)
+                        }, { transaction })
+                    } else {
+                        // This is a task-specific custom field
+                        // Get the next display order for task-specific fields
+                        const maxOrder = await TaskCustomField.max('display_order', {
+                            where: { 
+                                task_id: taskId,
+                                is_group_field: false
+                            },
+                            transaction
+                        }) as number || 0
+
+                        await TaskCustomField.create({
+                            task_id: taskId,
+                            field_name: fieldId, // Using fieldId as field_name for task-specific fields
+                            field_value: String(fieldValue),
+                            field_type: 'text', // Default type for task-specific fields
+                            is_group_field: false,
+                            display_order: maxOrder + 1,
+                            created_by: userId
+                        }, { transaction })
+                    }
+                }
+            }
+
+            logger.info('Task custom fields processed', {
+                taskId,
+                userId,
+                processedFields: Object.keys(customFields).length
+            })
+        } catch (error) {
+            logger.error('Error processing task custom fields:', error)
+            throw error
         }
     }
 }
