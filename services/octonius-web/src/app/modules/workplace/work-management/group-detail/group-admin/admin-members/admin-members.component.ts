@@ -5,6 +5,8 @@ import { GroupMember, GroupMemberService } from '../../../../services/group-memb
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { MemberActionsModalService } from '../services/member-actions-modal.service';
+import { AvatarService } from '../../../../../../core/services/avatar.service';
+import { AvatarComponent } from '../../../../../../core/components/avatar/avatar.component';
 import { environment } from '../../../../../../../environments/environment';
 
 @Component({
@@ -39,6 +41,7 @@ export class AdminMembersComponent implements OnInit, OnDestroy {
     private toastService: ToastService,
     private authService: AuthService,
     private memberActionsModalService: MemberActionsModalService,
+    private avatarService: AvatarService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -260,23 +263,18 @@ export class AdminMembersComponent implements OnInit, OnDestroy {
     return emailRegex.test(email);
   }
 
-  getUserAvatarUrl(user: any): string {
-    return user?.avatarUrl || user?.avatar_url || environment.defaultAvatarUrl;
-  }
-
-  getUserDisplayName(user: any): string {
-    if (user.firstName || user.lastName) {
-      return `${user.firstName || ''} ${user.lastName || ''}`.trim();
-    }
-    return user.email;
+  getAvatarUrl(user: any): string | null {
+    return this.avatarService.getAvatarUrl(user);
   }
 
   getUserInitials(user: any): string {
-    if (user.firstName || user.lastName) {
-      return `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`;
-    }
-    return user.email.charAt(0).toUpperCase();
+    return this.avatarService.getUserInitials(user);
   }
+
+  getUserDisplayName(user: any): string {
+    return this.avatarService.getUserDisplayName(user);
+  }
+
 
   isCurrentUserAdmin(): boolean {
     const currentMember = this.members.find(m => m.user.uuid === this.currentUser?.uuid);
