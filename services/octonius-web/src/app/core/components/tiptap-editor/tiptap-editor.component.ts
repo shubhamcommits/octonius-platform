@@ -20,9 +20,172 @@ import TextAlign from '@tiptap/extension-text-align'
 import CharacterCount from '@tiptap/extension-character-count'
 import BubbleMenu from '@tiptap/extension-bubble-menu'
 import TextStyle from '@tiptap/extension-text-style'
+import Mention from '@tiptap/extension-mention'
+import { Suggestion } from '@tiptap/suggestion'
+import { Node as TiptapNode } from '@tiptap/core'
 
 // Services
 import { FileService } from '../../services/file.service'
+import { UserMentionService, UserMentionSuggestion } from '../../services/user-mention.service'
+import { FileMentionService, FileMentionSuggestion } from '../../services/file-mention.service'
+import { AuthService } from '../../services/auth.service'
+
+// Custom mention node definitions
+const UserMentionNode = TiptapNode.create({
+  name: 'userMention',
+  group: 'inline',
+  inline: true,
+  atom: true,
+  addAttributes() {
+    return {
+      id: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-id'),
+        renderHTML: attributes => {
+          if (!attributes['id']) {
+            return {}
+          }
+          return {
+            'data-id': attributes['id'],
+          }
+        },
+      },
+      label: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-label'),
+        renderHTML: attributes => {
+          if (!attributes['label']) {
+            return {}
+          }
+          return {
+            'data-label': attributes['label'],
+          }
+        },
+      },
+      avatar: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-avatar'),
+        renderHTML: attributes => {
+          if (!attributes['avatar']) {
+            return {}
+          }
+          return {
+            'data-avatar': attributes['avatar'],
+          }
+        },
+      },
+      email: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-email'),
+        renderHTML: attributes => {
+          if (!attributes['email']) {
+            return {}
+          }
+          return {
+            'data-email': attributes['email'],
+          }
+        },
+      },
+      type: {
+        default: 'user',
+        parseHTML: element => element.getAttribute('data-type'),
+        renderHTML: attributes => {
+          return {
+            'data-type': attributes['type'],
+          }
+        },
+      },
+    }
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'span[data-type="user"]',
+      },
+    ]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['span', { class: 'userMention mention-user bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium', ...HTMLAttributes }, `@${HTMLAttributes['data-label'] || 'User'}`]
+  },
+})
+
+const FileMentionNode = TiptapNode.create({
+  name: 'fileMention',
+  group: 'inline',
+  inline: true,
+  atom: true,
+  addAttributes() {
+    return {
+      id: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-id'),
+        renderHTML: attributes => {
+          if (!attributes['id']) {
+            return {}
+          }
+          return {
+            'data-id': attributes['id'],
+          }
+        },
+      },
+      label: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-label'),
+        renderHTML: attributes => {
+          if (!attributes['label']) {
+            return {}
+          }
+          return {
+            'data-label': attributes['label'],
+          }
+        },
+      },
+      icon: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-icon'),
+        renderHTML: attributes => {
+          if (!attributes['icon']) {
+            return {}
+          }
+          return {
+            'data-icon': attributes['icon'],
+          }
+        },
+      },
+      type: {
+        default: 'file',
+        parseHTML: element => element.getAttribute('data-type'),
+        renderHTML: attributes => {
+          return {
+            'data-type': attributes['type'],
+          }
+        },
+      },
+      size: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-size'),
+        renderHTML: attributes => {
+          if (!attributes['size']) {
+            return {}
+          }
+          return {
+            'data-size': attributes['size'],
+          }
+        },
+      },
+    }
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'span[data-type="file"]',
+      },
+    ]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['span', { class: 'fileMention mention-file bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm font-medium', ...HTMLAttributes }, `#${HTMLAttributes['data-label'] || 'File'}`]
+  },
+})
 
 export interface TiptapEditorConfig {
   placeholder?: string
@@ -39,6 +202,9 @@ export interface TiptapEditorConfig {
   enableTableControls?: boolean
   sourceContext?: string
   autoExpand?: boolean
+  enableMentions?: boolean
+  groupId?: string
+  workplaceId?: string
 }
 
 @Component({
@@ -71,7 +237,10 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
     enableImageUpload: true,
     enableEmojiPicker: true,
     enableTableControls: true,
-    sourceContext: 'editor'
+    sourceContext: 'editor',
+    enableMentions: false,
+    groupId: undefined,
+    workplaceId: undefined
   }
   
   @Input() value: string = ''
@@ -125,13 +294,41 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
   // Recently used emojis (stored in localStorage)
   recentEmojis: string[] = []
 
-  constructor(private fileService: FileService) {}
+  // Mention-related properties
+  userMentionSuggestions: UserMentionSuggestion[] = []
+  fileMentionSuggestions: FileMentionSuggestion[] = []
+  showUserMentions = false
+  showFileMentions = false
+  currentMentionQuery = ''
+
+  constructor(
+    private fileService: FileService,
+    private userMentionService: UserMentionService,
+    private fileMentionService: FileMentionService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     // Load recently used emojis from localStorage
     const savedRecentEmojis = localStorage.getItem('recentEmojis')
     if (savedRecentEmojis) {
       this.recentEmojis = JSON.parse(savedRecentEmojis)
+    }
+    
+    // Set up mention context if mentions are enabled
+    if (this.config.enableMentions) {
+      console.log('Setting up mention context:', {
+        groupId: this.config.groupId,
+        workplaceId: this.config.workplaceId
+      });
+      // Get current user ID for file mention service
+      const currentUser = this.authService.getCurrentUser()
+      const userId = currentUser?.uuid || undefined
+      
+      this.userMentionService.setContext(this.config.groupId, this.config.workplaceId)
+      this.fileMentionService.setContext(this.config.groupId, this.config.workplaceId, userId)
+    } else {
+      console.log('Mentions are disabled in config');
     }
     
     // Component initialization
@@ -148,6 +345,10 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
     if (this.editor) {
       this.editor.destroy()
     }
+    // Clean up any remaining popups and event handlers
+    this.hideAllMentionPopups()
+    this.removeClickOutsideHandler()
+    this.removeScrollHandler()
   }
 
   private initializeEditor(retryCount = 0): void {
@@ -296,6 +497,9 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
 
   private getExtensions(): any[] {
     const extensions: any[] = [
+      // Add custom mention nodes first
+      UserMentionNode,
+      FileMentionNode,
       StarterKit.configure({
         heading: {
           levels: [1, 2, 3],
@@ -407,6 +611,179 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
         tippyOptions: {
           duration: 100,
           placement: 'top'
+        }
+      }))
+    }
+
+    // Add mention extensions if enabled
+    if (this.config.enableMentions) {
+      console.log('Adding mention extensions to Tiptap editor');
+      // User mentions (@)
+      extensions.push(Mention.configure({
+        HTMLAttributes: {
+          class: 'userMention mention-user bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium',
+        },
+        suggestion: {
+          char: '@',
+          allowSpaces: false,
+          startOfLine: false,
+          command: ({ editor, range, props }: any) => {
+            editor
+              .chain()
+              .focus()
+              .deleteRange(range)
+              .insertContent([
+                {
+                  type: 'userMention',
+                  attrs: {
+                    id: props.id,
+                    label: props.label,
+                    avatar: props.avatar,
+                    email: props.email,
+                    type: 'user'
+                  }
+                },
+                {
+                  type: 'text',
+                  text: ' '
+                }
+              ])
+              .run()
+          },
+          items: ({ query }: any) => {
+            console.log('User mention query:', query);
+            this.currentMentionQuery = query
+            this.showUserMentions = true
+            this.showFileMentions = false
+            
+            return new Promise((resolve) => {
+              this.userMentionService.getUserSuggestions(query).subscribe({
+                next: (suggestions: any) => {
+                  console.log('User suggestions received:', suggestions);
+                  this.userMentionSuggestions = suggestions
+                  resolve(suggestions)
+                },
+                error: (error) => {
+                  console.error('Error fetching user suggestions:', error);
+                  this.userMentionSuggestions = []
+                  resolve([])
+                }
+              })
+            })
+          },
+          render: () => {
+            let component: any
+            let popup: any
+
+            return {
+              onStart: (props: any) => {
+                component = this.createMentionComponent('user', props)
+                popup = this.createMentionPopup(component)
+              },
+              onUpdate: (props: any) => {
+                component = this.createMentionComponent('user', props)
+                popup = this.createMentionPopup(component)
+              },
+              onKeyDown: (props: any) => {
+                if (props.event.key === 'Escape') {
+                  popup?.hide()
+                  return true
+                }
+                return false
+              },
+              onExit: () => {
+                popup?.destroy()
+                this.showUserMentions = false
+              }
+            }
+          }
+        }
+      }))
+
+      // File mentions (#) - using a separate Mention configuration
+      extensions.push(Mention.configure({
+        HTMLAttributes: {
+          class: 'fileMention mention-file bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm font-medium',
+        },
+        suggestion: {
+          char: '#',
+          allowSpaces: false,
+          startOfLine: false,
+          command: ({ editor, range, props }: any) => {
+            editor
+              .chain()
+              .focus()
+              .deleteRange(range)
+              .insertContent([
+                {
+                  type: 'fileMention',
+                  attrs: {
+                    id: props.id,
+                    label: props.label,
+                    icon: props.icon,
+                    type: props.type,
+                    size: props.size
+                  }
+                },
+                {
+                  type: 'text',
+                  text: ' '
+                }
+              ])
+              .run()
+          },
+          items: ({ query }: any) => {
+            console.log('🔍 File mention query triggered:', query);
+            this.currentMentionQuery = query
+            this.showUserMentions = false
+            this.showFileMentions = true
+            
+            return new Promise((resolve) => {
+              console.log('🔍 Calling fileMentionService.getFileSuggestions with query:', query);
+              this.fileMentionService.getFileSuggestions(query).subscribe({
+                next: (suggestions: any) => {
+                  console.log('🔍 File suggestions received:', suggestions);
+                  this.fileMentionSuggestions = suggestions
+                  resolve(suggestions)
+                },
+                error: (error) => {
+                  console.error('🔍 Error fetching file suggestions:', error);
+                  this.fileMentionSuggestions = []
+                  resolve([])
+                }
+              })
+            })
+          },
+          render: () => {
+            let component: any
+            let popup: any
+
+            return {
+              onStart: (props: any) => {
+                console.log('🔍 File mention onStart:', props);
+                component = this.createMentionComponent('file', props)
+                popup = this.createMentionPopup(component)
+              },
+              onUpdate: (props: any) => {
+                console.log('🔍 File mention onUpdate:', props);
+                component = this.createMentionComponent('file', props)
+                popup = this.createMentionPopup(component)
+              },
+              onKeyDown: (props: any) => {
+                console.log('🔍 File mention onKeyDown:', props);
+                if (props.event.key === 'Escape') {
+                  popup?.hide()
+                  return true
+                }
+                return false
+              },
+              onExit: () => {
+                console.log('🔍 File mention onExit');
+                popup?.destroy()
+                this.showFileMentions = false
+              }
+            }
+          }
         }
       }))
     }
@@ -870,6 +1247,31 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
       '[&_hr]:my-3',
       // Selection
       '[&_::selection]:bg-primary/20',
+      // Mentions
+      '[&_.mention-user]:bg-primary/10',
+      '[&_.mention-user]:text-primary',
+      '[&_.mention-user]:px-1',
+      '[&_.mention-user]:py-0.5',
+      '[&_.mention-user]:rounded',
+      '[&_.mention-user]:font-medium',
+      '[&_.userMention]:bg-primary/10',
+      '[&_.userMention]:text-primary',
+      '[&_.userMention]:px-1',
+      '[&_.userMention]:py-0.5',
+      '[&_.userMention]:rounded',
+      '[&_.userMention]:font-medium',
+      '[&_.mention-file]:bg-info/10',
+      '[&_.mention-file]:text-info',
+      '[&_.mention-file]:px-1',
+      '[&_.mention-file]:py-0.5',
+      '[&_.mention-file]:rounded',
+      '[&_.mention-file]:font-medium',
+      '[&_.fileMention]:bg-info/10',
+      '[&_.fileMention]:text-info',
+      '[&_.fileMention]:px-1',
+      '[&_.fileMention]:py-0.5',
+      '[&_.fileMention]:rounded',
+      '[&_.fileMention]:font-medium',
     ]
 
     // Add auto-expand class if configured
@@ -878,5 +1280,276 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
     }
 
     return baseClasses.join(' ')
+  }
+
+  // Mention helper methods
+  private createMentionComponent(type: 'user' | 'file', props: any): HTMLElement {
+    const container = document.createElement('div')
+    container.className = 'mention-suggestions bg-base-100 border border-base-300 rounded-box shadow-xl p-2 max-h-48 overflow-y-auto min-w-64 z-50 absolute'
+    
+    const suggestions = type === 'user' ? this.userMentionSuggestions : this.fileMentionSuggestions
+    
+    if (suggestions.length === 0) {
+      const noResults = document.createElement('div')
+      noResults.className = 'text-base-content/60 text-sm p-2 text-center'
+      noResults.textContent = `No ${type}s found`
+      container.appendChild(noResults)
+      return container
+    }
+
+    suggestions.forEach((suggestion, index) => {
+      const item = document.createElement('div')
+      item.className = `mention-item flex items-center gap-2 px-3 py-2 rounded-btn cursor-pointer transition-colors duration-200 ${index === 0 ? 'bg-base-200' : 'hover:bg-base-200'}`
+      item.setAttribute('data-index', index.toString())
+      
+      if (type === 'user') {
+        const userSuggestion = suggestion as UserMentionSuggestion
+        const displayName = userSuggestion.label || 'Unknown User';
+        const firstLetter = displayName.charAt(0).toUpperCase();
+        
+        item.innerHTML = `
+          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-content text-xs font-medium flex-shrink-0">
+            ${userSuggestion.avatar ? `<img src="${userSuggestion.avatar}" class="w-full h-full rounded-full object-cover" />` : firstLetter}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-sm text-base-content whitespace-nowrap overflow-hidden text-ellipsis">${displayName}</div>
+            <div class="text-xs text-base-content/60 whitespace-nowrap overflow-hidden text-ellipsis">${userSuggestion.email || ''}</div>
+          </div>
+        `
+      } else {
+        const fileSuggestion = suggestion as FileMentionSuggestion
+        item.innerHTML = `
+          <div class="text-lg flex-shrink-0">${fileSuggestion.icon || '📁'}</div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-sm text-base-content whitespace-nowrap overflow-hidden text-ellipsis">${fileSuggestion.label}</div>
+            <div class="text-xs text-base-content/60">${fileSuggestion.type} ${fileSuggestion.size ? `• ${fileSuggestion.size}` : ''}</div>
+          </div>
+        `
+      }
+      
+      item.addEventListener('click', () => {
+        if (type === 'user') {
+          this.insertUserMention(suggestion as UserMentionSuggestion, props)
+        } else {
+          this.insertFileMention(suggestion as FileMentionSuggestion, props)
+        }
+        // Close the dropdown after selection
+        this.hideAllMentionPopups()
+      })
+      
+      container.appendChild(item)
+    })
+    
+    return container
+  }
+
+  private createMentionPopup(component: HTMLElement): any {
+    // This is a simplified popup implementation
+    // In a real implementation, you'd use a proper popup library like Tippy.js
+    const popup = {
+      element: component,
+      isVisible: false,
+      show: () => {
+        // Prevent duplicate popups
+        if (popup.isVisible) {
+          return
+        }
+        
+        // Remove any existing popups first
+        this.hideAllMentionPopups()
+        
+        // Add to document.body for better positioning control
+        document.body.appendChild(component)
+        popup.isVisible = true
+        
+        // Find the text area and position relative to it
+        const editorElement = this.editorElement?.nativeElement || document.body
+        const proseMirror = editorElement.querySelector('.ProseMirror')
+        
+        if (proseMirror) {
+          // Try to find the actual text input element within ProseMirror
+          const textInput = proseMirror.querySelector('p') || proseMirror.querySelector('div') || proseMirror
+          const textInputRect = textInput.getBoundingClientRect()
+          
+          // Position the dropdown right below the text input, but only if it's visible
+          // Check if the text input is actually visible and in the viewport
+          if (textInputRect.top > 0 && textInputRect.bottom > 0) {
+            component.style.position = 'fixed'
+            component.style.top = `${textInputRect.bottom}px`
+            component.style.left = `${textInputRect.left}px`
+            component.style.zIndex = '99999'
+            
+            console.log('🔍 Text input found and visible, positioning dropdown at:', {
+              top: textInputRect.bottom,
+              left: textInputRect.left,
+              textInputRect: textInputRect,
+              proseMirrorRect: proseMirror.getBoundingClientRect()
+            });
+          } else {
+            // If text input is not visible, position it at the top of the editor
+            const editorRect = editorElement.getBoundingClientRect()
+            component.style.position = 'fixed'
+            component.style.top = `${editorRect.top + 2}px`
+            component.style.left = `${editorRect.left}px`
+            component.style.zIndex = '99999'
+            
+            console.log('🔍 Text input not visible, positioning at editor top:', {
+              top: editorRect.top + 2,
+              left: editorRect.left,
+              editorRect: editorRect
+            });
+          }
+        } else {
+          // Fallback positioning - position at the editor container
+          const editorRect = editorElement.getBoundingClientRect()
+          component.style.position = 'fixed'
+          component.style.top = `${editorRect.top + 2}px`
+          component.style.left = `${editorRect.left}px`
+          component.style.zIndex = '99999'
+          
+          console.log('🔍 ProseMirror not found, positioning at editor:', {
+            top: editorRect.top + 2,
+            left: editorRect.left,
+            editorRect: editorRect
+          });
+        }
+        
+        // Add click outside handler to close dropdown
+        this.addClickOutsideHandler(component, () => {
+          popup.hide()
+        })
+        
+        // Add scroll handler to close dropdown
+        this.addScrollHandler(() => {
+          popup.hide()
+        })
+        
+        // Prevent scroll from bubbling up when scrolling within the dropdown
+        component.addEventListener('wheel', (event) => {
+          event.stopPropagation()
+        }, { passive: true })
+        
+        console.log('🔍 Mention popup created and shown:', component);
+      },
+      hide: () => {
+        if (component.parentNode) {
+          component.parentNode.removeChild(component)
+        }
+        popup.isVisible = false
+        this.removeClickOutsideHandler()
+        this.removeScrollHandler()
+      },
+      destroy: () => {
+        popup.hide()
+      }
+    }
+    
+    popup.show()
+    return popup
+  }
+
+  private hideAllMentionPopups(): void {
+    // Remove all existing mention popups
+    const existingPopups = document.querySelectorAll('.mention-suggestions')
+    existingPopups.forEach(popup => {
+      if (popup.parentNode) {
+        popup.parentNode.removeChild(popup)
+      }
+    })
+  }
+
+  private clickOutsideHandler: ((event: MouseEvent) => void) | null = null
+  private scrollHandler: ((event: Event) => void) | null = null
+
+  private addClickOutsideHandler(element: HTMLElement, callback: () => void): void {
+    this.clickOutsideHandler = (event: MouseEvent) => {
+      if (!element.contains(event.target as Node)) {
+        callback()
+      }
+    }
+    document.addEventListener('mousedown', this.clickOutsideHandler)
+  }
+
+  private removeClickOutsideHandler(): void {
+    if (this.clickOutsideHandler) {
+      document.removeEventListener('mousedown', this.clickOutsideHandler)
+      this.clickOutsideHandler = null
+    }
+  }
+
+  private addScrollHandler(callback: () => void): void {
+    this.scrollHandler = (event: Event) => {
+      // Only close dropdown if scrolling outside of the dropdown
+      const target = event.target as Element
+      const dropdown = document.querySelector('.mention-suggestions')
+      
+      if (dropdown && !dropdown.contains(target)) {
+        callback()
+      }
+    }
+    if (this.scrollHandler) {
+      window.addEventListener('scroll', this.scrollHandler, true)
+    }
+  }
+
+  private removeScrollHandler(): void {
+    if (this.scrollHandler) {
+      window.removeEventListener('scroll', this.scrollHandler, true)
+      this.scrollHandler = null
+    }
+  }
+
+  private insertUserMention(user: UserMentionSuggestion, props: any): void {
+    const { editor, range } = props
+    
+    // Insert the mention with proper styling
+    editor
+      .chain()
+      .focus()
+      .deleteRange(range)
+      .insertContent([
+        {
+          type: 'userMention',
+          attrs: {
+            id: user.id,
+            label: user.label,
+            avatar: user.avatar,
+            email: user.email,
+            type: 'user'
+          }
+        },
+        {
+          type: 'text',
+          text: ' '
+        }
+      ])
+      .run()
+  }
+
+  private insertFileMention(file: FileMentionSuggestion, props: any): void {
+    const { editor, range } = props
+    
+    // Insert the file mention with proper styling
+    editor
+      .chain()
+      .focus()
+      .deleteRange(range)
+      .insertContent([
+        {
+          type: 'fileMention',
+          attrs: {
+            id: file.id,
+            label: file.label,
+            icon: file.icon,
+            type: file.type,
+            size: file.size
+          }
+        },
+        {
+          type: 'text',
+          text: ' '
+        }
+      ])
+      .run()
   }
 } 
