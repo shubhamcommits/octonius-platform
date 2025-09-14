@@ -471,13 +471,13 @@
                  class="p-4 border-b border-base-300/30 hover:bg-base-200/30 transition-colors">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                  <div class="avatar">
-                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span class="text-sm font-medium text-primary">
-                        {{ (member.first_name || member.email || '?').charAt(0).toUpperCase() }}
-                      </span>
-                    </div>
-                  </div>
+                  <app-avatar 
+                    [avatarUrl]="getAvatarUrl(member)"
+                    [initials]="getUserInitials(member)"
+                    [altText]="getUserDisplayName(member)"
+                    [showInitials]="false"
+                    size="md">
+                  </app-avatar>
                   <div>
                     <p class="font-medium" *ngIf="member.first_name || member.last_name">
                       {{ member.first_name || '' }} {{ member.last_name || '' }}
@@ -734,13 +734,13 @@
                  class="p-4 border-b border-base-300/30 hover:bg-base-200/30 transition-colors">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                  <div class="avatar">
-                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span class="text-sm font-medium text-primary">
-                        {{ (invitation.inviter?.first_name || invitation.email || '?').charAt(0).toUpperCase() }}
-                      </span>
-                    </div>
-                  </div>
+                  <app-avatar 
+                    [avatarUrl]="getAvatarUrl(invitation.inviter)"
+                    [initials]="getUserInitials(invitation.inviter)"
+                    [altText]="getUserDisplayName(invitation.inviter)"
+                    [showInitials]="false"
+                    size="md">
+                  </app-avatar>
                   <div>
                     <p class="font-medium">{{ invitation.email }}</p>
                     <p *ngIf="invitation.message" class="text-sm text-base-content/60 italic">{{ invitation.message }}</p>

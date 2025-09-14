@@ -3,6 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GroupTaskService, Task, TaskColumn, Board } from '../../../services/group-task.service';
 import { WorkGroupService, WorkGroup } from '../../../services/work-group.service';
+import { CustomFieldService, GroupCustomFieldDefinition } from '../../../services/custom-field.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ModalService } from '../../../../../core/services/modal.service';
@@ -10,6 +11,7 @@ import { environment } from '../../../../../../environments/environment';
 import { CreateTaskModalComponent } from './create-task-modal/create-task-modal.component';
 import { RenameColumnModalComponent } from './rename-column-modal/rename-column-modal.component';
 import { DeleteColumnModalComponent } from './delete-column-modal/delete-column-modal.component';
+import { CustomFieldsSettingsModalComponent, CustomFieldsSettingsData } from './custom-fields-settings-modal/custom-fields-settings-modal.component';
 
 @Component({
   selector: 'app-group-tasks',
@@ -49,12 +51,17 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
   // Column form state
   newColumnName = '';
   newColumnColor = '#757575';
+  
+  // Custom fields settings
+  customFieldDefinitions: GroupCustomFieldDefinition[] = [];
+  isLoadingCustomFields = false;
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private taskService: GroupTaskService,
     private workGroupService: WorkGroupService,
+    private customFieldService: CustomFieldService,
     private toastService: ToastService,
     private authService: AuthService,
     private modalService: ModalService,
@@ -92,6 +99,10 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
         this.board = board;
         this.applyFiltersAndSort();
         this.isLoading = false;
+        
+        // Load custom fields settings from group metadata
+        this.loadCustomFieldsSettings();
+        
         // Update scroll state after board is loaded
         setTimeout(() => {
           this.updateScrollState();
@@ -280,11 +291,19 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
   // Task actions
   openAddTaskModal(column: any): void {
     this.selectedColumn = column;
-    this.modalService.openModal(CreateTaskModalComponent, {
-      columnId: column.id,
-      onClose: () => this.closeAddTaskModal(),
-      onTaskCreated: (taskData: any) => this.onTaskCreated(taskData)
-    });
+    
+    // Ensure custom fields are loaded before opening modal
+    this.loadCustomFieldsSettings();
+    
+    // Use a small delay to ensure the custom fields are loaded
+    setTimeout(() => {
+      this.modalService.openModal(CreateTaskModalComponent, {
+        columnId: column.id,
+        customFieldDefinitions: [...this.customFieldDefinitions], // Create a copy to ensure reactivity
+        onClose: () => this.closeAddTaskModal(),
+        onTaskCreated: (taskData: any) => this.onTaskCreated(taskData)
+      });
+    }, 100);
   }
 
   onTaskCreated(taskData: any): void {
@@ -310,7 +329,10 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
       status: taskData.status,
       color: taskData.color,
       due_date: taskData.due_date ? new Date(taskData.due_date) : undefined,
-      assigned_to: taskData.assigned_to || undefined
+      assigned_to: taskData.assigned_to || undefined,
+      metadata: {
+        custom_fields: taskData.customFields || {}
+      }
     };
 
     this.taskService.createTask(this.group.uuid, taskPayload).subscribe({
@@ -575,5 +597,49 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!target.closest('.column-menu-container')) {
       this.closeAllColumnMenus();
     }
+  }
+
+  // Custom Fields Settings
+  openCustomFieldsSettings(): void {
+    if (!this.group) return;
+
+    this.modalService.openModal(CustomFieldsSettingsModalComponent, {
+      groupId: this.group.uuid,
+      onSave: (data: CustomFieldsSettingsData) => this.handleCustomFieldsSettingsSave(data),
+      onCancel: () => this.modalService.closeModal()
+    });
+  }
+
+  private handleCustomFieldsSettingsSave(data: CustomFieldsSettingsData): void {
+    // The custom fields are already saved via the API in the modal component
+    // Just update the local state
+    this.customFieldDefinitions = data.customFields;
+    this.toastService.success('Custom fields settings saved successfully');
+    this.modalService.closeModal();
+  }
+
+  // Load custom fields settings from group metadata
+  private loadCustomFieldsSettings(): void {
+    if (!this.group) return;
+
+    this.isLoadingCustomFields = true;
+    // Use the new template endpoint for task creation
+    this.customFieldService.getGroupTemplatesForTaskCreation(this.group.uuid).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.customFieldDefinitions = response.data;
+        }
+        this.isLoadingCustomFields = false;
+      },
+      error: (error) => {
+        console.error('Error loading custom field templates:', error);
+        this.isLoadingCustomFields = false;
+      }
+    });
+  }
+
+  // Helper method to get custom field definitions for task creation
+  getCustomFieldDefinitions(): GroupCustomFieldDefinition[] {
+    return this.customFieldDefinitions;
   }
 }

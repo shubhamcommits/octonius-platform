@@ -49,6 +49,9 @@ import { LoungeRoute } from './lounge/lounge.route'
 // Import Group Route
 import { GroupRoute } from './groups/group.route'
 
+// Import Custom Field Route
+import { CustomFieldRoute } from './custom-fields'
+
 // Import Circuit Breaker components
 import { CircuitBreakerRoute, circuitBreakerManager } from './shared/circuit-breakers'
 
@@ -218,6 +221,7 @@ app.use('/v1/files', new FileRoute().router)
 app.use('/v1/workload', new WorkloadRoute().router)
 app.use('/v1/lounges', new LoungeRoute().router)
 app.use('/v1/groups', new GroupRoute().router)
+app.use('/v1/custom-fields', new CustomFieldRoute().router)
 app.use('/v1/circuit-breakers', new CircuitBreakerRoute().router)
 
 // Invalid routes handling middleware

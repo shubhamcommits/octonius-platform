@@ -8,6 +8,7 @@ import { FileService } from '../../../core/services/file.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { RoleService, Role, Permission, PermissionsByCategory, PermissionCategory } from '../../../core/services/role.service';
 import { DialogService } from '../../../core/services/dialog.service';
+import { AvatarService } from '../../../core/services/avatar.service';
 
 @Component({
   selector: 'app-settings',
@@ -142,7 +143,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private roleService: RoleService,
     private dialogService: DialogService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private avatarService: AvatarService
   ) {}
 
   ngOnInit(): void {
@@ -183,6 +185,19 @@ export class SettingsComponent implements OnInit, OnDestroy {
     
     // Remove document click listener
     document.removeEventListener('click', this.onDocumentClick.bind(this));
+  }
+
+  // Avatar helper methods
+  getAvatarUrl(user: any): string | null {
+    return this.avatarService.getAvatarUrl(user);
+  }
+
+  getUserInitials(user: any): string {
+    return this.avatarService.getUserInitials(user);
+  }
+
+  getUserDisplayName(user: any): string {
+    return this.avatarService.getUserDisplayName(user);
   }
 
   private initializeForm(): void {

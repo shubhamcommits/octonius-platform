@@ -333,14 +333,30 @@ export class GroupTaskService {
   }
 
   /**
-   * Get group members who can be assigned to tasks
+   * Get group members who can be assigned to tasks with search and pagination
    * @param groupId The group UUID
-   * @returns Observable of group members
+   * @param searchQuery Optional search query for name or email
+   * @param limit Number of results to return (default: 5)
+   * @param offset Number of results to skip (default: 0)
+   * @returns Observable of group members with pagination info
    */
-  getGroupMembers(groupId: string): Observable<GroupMember[]> {
-    return this.http.get<ApiResponse<GroupMember[]>>(`${this.apiUrl}/${groupId}/tasks/members`)
+  getGroupMembers(groupId: string, searchQuery?: string, limit: number = 5, offset: number = 0): Observable<{
+    members: GroupMember[];
+    totalCount: number;
+    hasMore: boolean;
+  }> {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    params.set('limit', limit.toString());
+    params.set('offset', offset.toString());
+
+    return this.http.get<ApiResponse<GroupMember[]> & { meta: { pagination: any } }>(`${this.apiUrl}/${groupId}/tasks/members?${params.toString()}`)
       .pipe(
-        map(response => response.data),
+        map(response => ({
+          members: response.data,
+          totalCount: response.meta?.pagination?.totalCount || response.data.length,
+          hasMore: response.meta?.pagination?.hasMore || false
+        })),
         catchError(error => {
           console.error('Error fetching group members:', error);
           return throwError(() => new Error('Failed to load group members'));
