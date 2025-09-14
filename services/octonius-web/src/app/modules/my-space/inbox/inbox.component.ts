@@ -8,6 +8,7 @@ import { CapitalizePipe } from '../../../core/pipes/capitalize.pipe'
 import { ThemeService } from '../../../core/services/theme.service'
 import { Subscription } from 'rxjs'
 import { User } from '../../../core/services/auth.service'
+import { AvatarComponent } from '../../../core/components/avatar/avatar.component'
 
 interface Activity {
   user: string
@@ -37,7 +38,7 @@ interface News {
 @Component({
   selector: 'app-inbox',
   standalone: true,
-  imports: [CommonModule, RouterModule, CapitalizePipe],
+  imports: [CommonModule, RouterModule, CapitalizePipe, AvatarComponent],
   templateUrl: './inbox.component.html',
   styleUrls: ['./inbox.component.scss']
 })

@@ -26,13 +26,13 @@
     <div class="card bg-base-100 shadow-sm">
       <div class="card-body">
         <div class="flex items-center gap-4">
-          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-base-300 overflow-hidden">
-            <img *ngIf="userAvatar" 
-                 [src]="userAvatar" 
-                 [alt]="userName"
-                 class="w-full h-full object-cover">
-            <span *ngIf="!userAvatar" class="text-lg font-medium text-base-content/70">{{ userInitials }}</span>
-          </div>
+          <app-avatar 
+            [avatarUrl]="userAvatar"
+            [initials]="userInitials"
+            [altText]="userName"
+            [showInitials]="false"
+            size="lg">
+          </app-avatar>
           <div class="flex-1">
             <p class="text-base-content leading-normal">This is your Mission Control. Check the status of your work, access latest updates from your teams and more.</p>
           </div>
