@@ -1,0 +1,287 @@
+<div class="w-full max-w-2xl">
+  <!-- Header -->
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+      <lucide-icon name="Plus" class="w-5 h-5 text-primary"></lucide-icon>
+    </div>
+    <div>
+      <h3 class="font-bold text-xl text-base-content">Add Custom Field</h3>
+      <p class="text-sm text-base-content/60 mt-1">
+        Add a custom field to this task
+      </p>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <form (ngSubmit)="onSubmit()" class="space-y-6">
+    <!-- Field Type Selection -->
+    <div class="form-control">
+      <label class="label">
+        <span class="label-text font-medium">Field Type</span>
+      </label>
+      <div class="flex gap-2">
+        <button 
+          type="button"
+          (click)="selectFieldType('group')"
+          class="btn flex-1"
+          [class.btn-primary]="fieldType === 'group'"
+          [class.btn-outline]="fieldType !== 'group'">
+          <lucide-icon name="Users" class="w-4 h-4"></lucide-icon>
+          Group Field
+        </button>
+        <button 
+          type="button"
+          (click)="selectFieldType('task')"
+          class="btn flex-1"
+          [class.btn-primary]="fieldType === 'task'"
+          [class.btn-outline]="fieldType !== 'task'">
+          <lucide-icon name="FileText" class="w-4 h-4"></lucide-icon>
+          Task Field
+        </button>
+      </div>
+      <label class="label">
+        <span class="label-text-alt">
+          {{ fieldType === 'group' ? 'Select from predefined group fields' : 'Create a custom field specific to this task' }}
+        </span>
+      </label>
+    </div>
+
+    <!-- Group Field Selection -->
+    <div *ngIf="fieldType === 'group'" class="form-control">
+      <label class="label">
+        <span class="label-text font-medium">Select Group Field *</span>
+      </label>
+      <div class="custom-dropdown relative w-full">
+        <button 
+          type="button"
+          (click)="toggleGroupFieldDropdown()"
+          [ngClass]="{
+            'flex items-center gap-2 p-2 rounded-lg border cursor-pointer w-full justify-between': true,
+            'bg-base-100 border-base-200': !getGroupFieldError(),
+            'bg-error/5 border-error': getGroupFieldError()
+          }">
+          <span>{{ getGroupFieldDisplayValue() || 'Choose a group field...' }}</span>
+          <lucide-icon name="ChevronDown" class="w-4 h-4" [class.rotate-180]="isGroupFieldDropdownOpen"></lucide-icon>
+        </button>
+        
+        <div 
+          *ngIf="isGroupFieldDropdownOpen" 
+          class="absolute top-full left-0 right-0 z-50 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg">
+          <div class="py-1">
+            <button 
+              type="button"
+              (click)="selectGroupField('')"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-md transition-colors duration-150">
+              Choose a group field...
+            </button>
+            <button 
+              *ngFor="let field of groupFieldDefinitions"
+              type="button"
+              (click)="selectGroupField(field.uuid)"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-md transition-colors duration-150"
+              [ngClass]="{'bg-primary bg-opacity-10': formData.field_definition_id === field.uuid}">
+              {{ field.name }} ({{ field.type }})
+              <span *ngIf="isFieldAlreadyUsed(field.uuid)"> - Has value</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <label *ngIf="!formData.field_definition_id" class="label">
+        <span class="label-text-alt text-error">Please select a group field</span>
+      </label>
+    </div>
+
+    <!-- Task Field Name Input -->
+    <div *ngIf="fieldType === 'task'" class="form-control">
+      <label class="label">
+        <span class="label-text font-medium">Field Name *</span>
+      </label>
+      <input 
+        type="text" 
+        [(ngModel)]="formData.field_name" 
+        name="fieldName"
+        placeholder="e.g., Special Notes, Client Reference, etc."
+        class="input input-bordered w-full"
+        [class.input-error]="!formData.field_name.trim()" />
+      <label *ngIf="!formData.field_name.trim()" class="label">
+        <span class="label-text-alt text-error">Field name is required</span>
+      </label>
+    </div>
+
+    <!-- Field Type for Task Fields -->
+    <div *ngIf="fieldType === 'task'" class="form-control">
+      <label class="label">
+        <span class="label-text font-medium">Field Type *</span>
+      </label>
+      <div class="custom-dropdown relative w-full">
+        <button 
+          type="button"
+          (click)="toggleFieldTypeDropdown()"
+          class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer w-full justify-between bg-base-100 border-base-200">
+          <span>{{ getFieldTypeDisplayValue() || 'Select field type...' }}</span>
+          <lucide-icon name="ChevronDown" class="w-4 h-4" [class.rotate-180]="isFieldTypeDropdownOpen"></lucide-icon>
+        </button>
+        
+        <div 
+          *ngIf="isFieldTypeDropdownOpen" 
+          class="absolute top-full left-0 right-0 z-50 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg">
+          <div class="py-1">
+            <button 
+              *ngFor="let type of fieldTypeOptions"
+              type="button"
+              (click)="selectFieldTypeValue(type.value)"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-md transition-colors duration-150"
+              [ngClass]="{'bg-primary bg-opacity-10': formData.field_type === type.value}">
+              <div class="flex items-center gap-2">
+                <lucide-icon [name]="type.icon" class="w-4 h-4"></lucide-icon>
+                {{ type.label }}
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Field Value Input -->
+    <div class="form-control">
+      <label class="label">
+        <span class="label-text font-medium">Field Value *</span>
+      </label>
+      
+      <!-- Text Input -->
+      <input 
+        *ngIf="selectedField?.type === 'text' || (fieldType === 'task' && formData.field_type === 'text')"
+        type="text" 
+        [(ngModel)]="formData.field_value" 
+        name="fieldValue"
+        [placeholder]="selectedField?.placeholder || 'Enter value...'"
+        class="input input-bordered w-full"
+        [class.input-error]="!formData.field_value.trim()" />
+
+      <!-- Number Input -->
+      <input 
+        *ngIf="selectedField?.type === 'number' || (fieldType === 'task' && formData.field_type === 'number')"
+        type="number" 
+        [(ngModel)]="formData.field_value" 
+        name="fieldValue"
+        [placeholder]="selectedField?.placeholder || 'Enter number...'"
+        class="input input-bordered w-full"
+        [class.input-error]="!formData.field_value.trim()" />
+
+      <!-- Date Input -->
+      <input 
+        *ngIf="selectedField?.type === 'date' || (fieldType === 'task' && formData.field_type === 'date')"
+        type="date" 
+        [(ngModel)]="formData.field_value" 
+        name="fieldValue"
+        class="input input-bordered w-full"
+        [class.input-error]="!formData.field_value.trim()" />
+
+      <!-- Boolean Input -->
+      <div *ngIf="selectedField?.type === 'boolean' || (fieldType === 'task' && formData.field_type === 'boolean')" class="custom-dropdown relative w-full">
+        <button 
+          type="button"
+          (click)="toggleBooleanDropdown()"
+          [ngClass]="{
+            'flex items-center gap-2 p-2 rounded-lg border cursor-pointer w-full justify-between': true,
+            'bg-base-100 border-base-200': formData.field_value,
+            'bg-error/5 border-error': !formData.field_value
+          }">
+          <span>{{ getBooleanDisplayValue() || 'Select value...' }}</span>
+          <lucide-icon name="ChevronDown" class="w-4 h-4" [class.rotate-180]="isBooleanDropdownOpen"></lucide-icon>
+        </button>
+        
+        <div 
+          *ngIf="isBooleanDropdownOpen" 
+          class="absolute top-full left-0 right-0 z-50 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg">
+          <div class="py-1">
+            <button 
+              type="button"
+              (click)="selectBooleanValue('')"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-md transition-colors duration-150">
+              Select value...
+            </button>
+            <button 
+              type="button"
+              (click)="selectBooleanValue('true')"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-md transition-colors duration-150"
+              [ngClass]="{'bg-primary bg-opacity-10': formData.field_value === 'true'}">
+              Yes
+            </button>
+            <button 
+              type="button"
+              (click)="selectBooleanValue('false')"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-md transition-colors duration-150"
+              [ngClass]="{'bg-primary bg-opacity-10': formData.field_value === 'false'}">
+              No
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dropdown Input -->
+      <div *ngIf="selectedField?.type === 'dropdown' || (fieldType === 'task' && formData.field_type === 'dropdown')" class="custom-dropdown relative w-full">
+        <button 
+          type="button"
+          (click)="toggleDropdownValueDropdown()"
+          [ngClass]="{
+            'flex items-center gap-2 p-2 rounded-lg border cursor-pointer w-full justify-between': true,
+            'bg-base-100 border-base-200': formData.field_value,
+            'bg-error/5 border-error': !formData.field_value
+          }">
+          <span>{{ formData.field_value || 'Select option...' }}</span>
+          <lucide-icon name="ChevronDown" class="w-4 h-4" [class.rotate-180]="isDropdownValueDropdownOpen"></lucide-icon>
+        </button>
+        
+        <div 
+          *ngIf="isDropdownValueDropdownOpen" 
+          class="absolute top-full left-0 right-0 z-50 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg">
+          <div class="py-1">
+            <button 
+              type="button"
+              (click)="selectDropdownValue('')"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-md transition-colors duration-150">
+              Select option...
+            </button>
+            <button 
+              *ngFor="let option of getDropdownOptions()"
+              type="button"
+              (click)="selectDropdownValue(option)"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-md transition-colors duration-150"
+              [ngClass]="{'bg-primary bg-opacity-10': formData.field_value === option}">
+              {{ option }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <label *ngIf="!formData.field_value.trim()" class="label">
+        <span class="label-text-alt text-error">Field value is required</span>
+      </label>
+    </div>
+
+    <!-- Field Description (for group fields) -->
+    <div *ngIf="fieldType === 'group' && selectedField?.description" class="form-control">
+      <label class="label">
+        <span class="label-text font-medium">Description</span>
+      </label>
+      <p class="text-sm text-base-content/60">{{ selectedField?.description }}</p>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center justify-end gap-3 pt-6 border-t border-base-200">
+      <button 
+        type="button" 
+        (click)="onCancel?.()"
+        class="btn btn-ghost">
+        Cancel
+      </button>
+      <button 
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="!isFormValid()">
+        {{ isFieldAlreadyUsed(formData.field_definition_id || '') ? 'Update Field' : 'Add Field' }}
+      </button>
+    </div>
+  </form>
+</div>
