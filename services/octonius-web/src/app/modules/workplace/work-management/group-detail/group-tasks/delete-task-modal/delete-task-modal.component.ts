@@ -2,17 +2,17 @@ import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SharedModule } from '../../../../../shared/shared.module';
 
-export interface DeleteColumnData {
-  columnId: string;
+export interface DeleteTaskData {
+  taskId: string;
 }
 
 @Component({
-  selector: 'app-delete-column-modal',
+  selector: 'app-delete-task-modal',
   standalone: true,
   imports: [CommonModule, SharedModule],
   template: `
     <div class="w-full">
-      <h2 class="text-xl font-bold text-error mb-4">Delete Section</h2>
+      <h2 class="text-xl font-bold text-error mb-4">Delete Task</h2>
       
       <div class="space-y-4">
         <div class="flex items-start gap-3">
@@ -21,10 +21,10 @@ export interface DeleteColumnData {
           </div>
           <div>
             <p class="text-base-content/80 mb-2">
-              Are you sure you want to delete the section <strong>"{{ columnName }}"</strong>?
+              Are you sure you want to delete the task <strong>"{{ taskTitle }}"</strong>?
             </p>
             <p class="text-error text-sm font-medium">
-              All tasks in this section will be permanently deleted and cannot be recovered.
+              This action cannot be undone and the task will be permanently deleted.
             </p>
           </div>
         </div>
@@ -43,7 +43,7 @@ export interface DeleteColumnData {
             (click)="onConfirm()"
             [disabled]="isDeleting">
             <span *ngIf="isDeleting" class="loading loading-spinner loading-sm"></span>
-            {{ isDeleting ? 'Deleting...' : 'Delete Section' }}
+            {{ isDeleting ? 'Deleting...' : 'Delete Task' }}
           </button>
         </div>
       </div>
@@ -55,11 +55,11 @@ export interface DeleteColumnData {
     }
   `]
 })
-export class DeleteColumnModalComponent implements OnInit {
-  @Input() onDelete?: (data: DeleteColumnData) => void;
+export class DeleteTaskModalComponent implements OnInit {
+  @Input() onDelete?: (data: DeleteTaskData) => void;
   @Input() onCancel?: () => void;
-  @Input() columnName = '';
-  @Input() columnId = '';
+  @Input() taskTitle = '';
+  @Input() taskId = '';
 
   isDeleting = false;
 
@@ -71,7 +71,7 @@ export class DeleteColumnModalComponent implements OnInit {
     this.isDeleting = true;
     if (this.onDelete) {
       this.onDelete({
-        columnId: this.columnId
+        taskId: this.taskId
       });
     }
   }

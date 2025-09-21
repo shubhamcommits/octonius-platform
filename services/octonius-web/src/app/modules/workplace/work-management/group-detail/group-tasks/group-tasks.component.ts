@@ -10,8 +10,10 @@ import { ModalService } from '../../../../../core/services/modal.service';
 import { environment } from '../../../../../../environments/environment';
 import { CreateTaskModalComponent } from './create-task-modal/create-task-modal.component';
 import { RenameColumnModalComponent } from './rename-column-modal/rename-column-modal.component';
-import { DeleteColumnModalComponent } from './delete-column-modal/delete-column-modal.component';
 import { CustomFieldsSettingsModalComponent, CustomFieldsSettingsData } from './custom-fields-settings-modal/custom-fields-settings-modal.component';
+import { CreateSectionModalComponent, CreateSectionData } from './create-section-modal/create-section-modal.component';
+import { DeleteTaskModalComponent, DeleteTaskData } from './delete-task-modal/delete-task-modal.component';
+import { DeleteColumnModalComponent, DeleteColumnData } from './delete-column-modal/delete-column-modal.component';
 
 @Component({
   selector: 'app-group-tasks',
@@ -42,15 +44,9 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
   filterPriority: string = 'all';
   
   // UI state
-  showAddColumnModal = false;
-  showDeleteModal = false;
   selectedColumn: any = null;
   selectedTask: Task | null = null;
   columnMenuOpen: { [key: string]: boolean } = {};
-  
-  // Column form state
-  newColumnName = '';
-  newColumnColor = '#757575';
   
   // Custom fields settings
   customFieldDefinitions: GroupCustomFieldDefinition[] = [];
@@ -235,23 +231,24 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
 
   openDeleteModal(column: any): void {
     this.selectedColumn = column;
-    this.showDeleteModal = true;
     this.closeAllColumnMenus();
+    
+    this.modalService.openModal(DeleteColumnModalComponent, {
+      columnName: column.name,
+      columnId: column.id,
+      onDelete: (data: DeleteColumnData) => this.handleDeleteColumn(data),
+      onCancel: () => this.modalService.closeModal()
+    });
   }
 
-  closeDeleteModal(): void {
-    this.showDeleteModal = false;
-    this.selectedColumn = null;
-  }
-
-  onDeleteColumn(data: { columnId: string }): void {
+  private handleDeleteColumn(data: DeleteColumnData): void {
     if (!this.group) return;
 
     this.taskService.deleteColumn(this.group.uuid, data.columnId).subscribe({
       next: () => {
         this.loadBoard();
+        this.modalService.closeModal();
         this.toastService.success('Column deleted successfully');
-        this.closeDeleteModal();
       },
       error: () => {
         this.toastService.error('Failed to delete column');
@@ -261,25 +258,22 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // Add section (column)
   openAddSectionModal(): void {
-    this.showAddColumnModal = true;
-    this.newColumnName = '';
-    this.newColumnColor = '#757575';
+    this.modalService.openModal(CreateSectionModalComponent, {
+      onSave: (data: CreateSectionData) => this.handleCreateSection(data),
+      onCancel: () => this.modalService.closeModal()
+    });
   }
 
-  closeAddSectionModal(): void {
-    this.showAddColumnModal = false;
-  }
-
-  createColumn(): void {
-    if (!this.group || !this.newColumnName.trim()) return;
+  private handleCreateSection(data: CreateSectionData): void {
+    if (!this.group) return;
 
     this.taskService.createColumn(this.group.uuid, {
-      name: this.newColumnName.trim(),
-      color: this.newColumnColor
+      name: data.name,
+      color: data.color
     }).subscribe({
       next: () => {
         this.loadBoard();
-        this.closeAddSectionModal();
+        this.modalService.closeModal();
         this.toastService.success('Column created successfully');
       },
       error: () => {
@@ -330,9 +324,8 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
       color: taskData.color,
       due_date: taskData.due_date ? new Date(taskData.due_date) : undefined,
       assigned_to: taskData.assigned_to || undefined,
-      metadata: {
-        custom_fields: taskData.customFields || {}
-      }
+      custom_fields: taskData.customFields || {},
+      metadata: {}
     };
 
     this.taskService.createTask(this.group.uuid, taskPayload).subscribe({
@@ -407,17 +400,28 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
     event.stopPropagation();
     if (!this.group) return;
 
-    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
-      this.taskService.deleteTask(this.group.uuid, task.uuid).subscribe({
-        next: () => {
-          this.loadBoard();
-          this.toastService.success('Task deleted successfully');
-        },
-        error: () => {
-          this.toastService.error('Failed to delete task');
-        }
-      });
-    }
+    this.selectedTask = task;
+    this.modalService.openModal(DeleteTaskModalComponent, {
+      taskTitle: task.title,
+      taskId: task.uuid,
+      onDelete: (data: DeleteTaskData) => this.handleDeleteTask(data),
+      onCancel: () => this.modalService.closeModal()
+    });
+  }
+
+  private handleDeleteTask(data: DeleteTaskData): void {
+    if (!this.group) return;
+
+    this.taskService.deleteTask(this.group.uuid, data.taskId).subscribe({
+      next: () => {
+        this.loadBoard();
+        this.modalService.closeModal();
+        this.toastService.success('Task deleted successfully');
+      },
+      error: () => {
+        this.toastService.error('Failed to delete task');
+      }
+    });
   }
 
   // Existing methods

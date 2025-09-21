@@ -12,241 +12,7 @@ export interface CustomFieldsSettingsData {
   selector: 'app-custom-fields-settings-modal',
   standalone: true,
   imports: [CommonModule, FormsModule, SharedModule],
-  template: `
-    <div class="w-full max-w-5xl max-h-[80vh] flex flex-col">
-      <!-- Header -->
-      <div class="flex items-center gap-3 mb-6 flex-shrink-0">
-        <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-          <lucide-icon name="Settings" class="w-5 h-5 text-primary"></lucide-icon>
-        </div>
-        <div>
-          <h3 class="font-bold text-xl text-base-content">Custom Fields Settings</h3>
-          <p class="text-sm text-base-content/60 mt-1">
-            Configure fields that appear in every new task to standardize data collection
-          </p>
-        </div>
-      </div>
-      
-      <!-- Loading State -->
-      <div *ngIf="isLoading" class="flex items-center justify-center py-12">
-        <div class="loading loading-spinner loading-lg"></div>
-        <span class="ml-3 text-base-content/60">Loading custom fields...</span>
-      </div>
-
-      <!-- Custom Fields List -->
-      <div *ngIf="!isLoading" class="space-y-4 mb-6 flex-1 overflow-y-auto pr-2">
-        <div *ngFor="let field of customFields; trackBy: trackByFieldId; let i = index" 
-             class="group bg-base-100 rounded-xl border border-base-200 hover:border-primary/20 transition-all duration-200 hover:shadow-sm">
-          <div class="p-6">
-            <div class="flex items-start justify-between gap-4">
-              <div class="flex-1 space-y-4">
-                <!-- Field Header -->
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <lucide-icon [name]="getFieldIcon(field.type)" class="w-4 h-4 text-primary"></lucide-icon>
-                  </div>
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2">
-                      <h4 class="font-semibold text-base-content">{{ field.name }}</h4>
-                      <span class="badge badge-outline badge-sm">{{ field.type }}</span>
-                      <span *ngIf="field.required" class="badge badge-error badge-sm">Required</span>
-                    </div>
-                    <p *ngIf="field.description" class="text-sm text-base-content/60 mt-1">{{ field.description }}</p>
-                  </div>
-                </div>
-
-                <!-- Field Configuration -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <!-- Field Type -->
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text font-medium">Field Type</span>
-                    </label>
-                    <select 
-                      [(ngModel)]="field.type" 
-                      (change)="onFieldTypeChange(field)"
-                      class="select select-bordered w-full" 
-                      [class.select-error]="getFieldError(field.uuid, 'type')">
-                      <option value="text">Text</option>
-                      <option value="number">Number</option>
-                      <option value="dropdown">Dropdown</option>
-                      <option value="date">Date</option>
-                      <option value="boolean">Boolean</option>
-                    </select>
-                    <label *ngIf="getFieldError(field.uuid, 'type')" class="label">
-                      <span class="label-text-alt text-error">{{ getFieldError(field.uuid, 'type') }}</span>
-                    </label>
-                  </div>
-
-                  <!-- Required -->
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text font-medium">Required Field</span>
-                    </label>
-                    <label class="cursor-pointer label">
-                      <input 
-                        type="checkbox" 
-                        [(ngModel)]="field.required" 
-                        class="checkbox checkbox-primary" />
-                      <span class="label-text">This field is required</span>
-                    </label>
-                  </div>
-                </div>
-
-                <!-- Field Name -->
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Field Name *</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    [(ngModel)]="field.name" 
-                    placeholder="e.g., Department, Priority, etc."
-                    class="input input-bordered w-full" 
-                    [class.input-error]="getFieldError(field.uuid, 'name')" />
-                  <label *ngIf="getFieldError(field.uuid, 'name')" class="label">
-                    <span class="label-text-alt text-error">{{ getFieldError(field.uuid, 'name') }}</span>
-                  </label>
-                </div>
-
-                <!-- Field Description -->
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Description</span>
-                  </label>
-                  <textarea 
-                    [(ngModel)]="field.description" 
-                    placeholder="Optional description for this field"
-                    class="textarea textarea-bordered w-full" 
-                    rows="2"></textarea>
-                </div>
-
-                <!-- Field Placeholder -->
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Placeholder Text</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    [(ngModel)]="field.placeholder" 
-                    placeholder="e.g., Enter department name"
-                    class="input input-bordered w-full" />
-                </div>
-
-                <!-- Dropdown Options -->
-                <div *ngIf="field.type === 'dropdown'" class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Dropdown Options *</span>
-                  </label>
-                  <div class="space-y-2">
-                    <div *ngFor="let option of getFieldOptions(field.uuid); let optionIndex = index" 
-                         class="flex items-center gap-2">
-                      <input 
-                        type="text" 
-                        [(ngModel)]="field.options![optionIndex]" 
-                        placeholder="Option {{ optionIndex + 1 }}"
-                        class="input input-bordered flex-1" 
-                        [class.input-error]="getFieldError(field.uuid, 'options')" />
-                      <button 
-                        type="button" 
-                        (click)="removeFieldOption(field.uuid, optionIndex)"
-                        class="btn btn-ghost btn-sm text-error hover:bg-error/10"
-                        [disabled]="field.options!.length <= 1">
-                        <lucide-icon name="X" class="w-4 h-4"></lucide-icon>
-                      </button>
-                    </div>
-                    <button 
-                      type="button" 
-                      (click)="addFieldOption(field.uuid)"
-                      class="btn btn-outline btn-sm w-full">
-                      <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon>
-                      Add Option
-                    </button>
-                  </div>
-                  <label *ngIf="getFieldError(field.uuid, 'options')" class="label">
-                    <span class="label-text-alt text-error">{{ getFieldError(field.uuid, 'options') }}</span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Field Actions -->
-              <div class="flex flex-col gap-2">
-                <button 
-                  type="button" 
-                  (click)="moveFieldUp(i)"
-                  [disabled]="i === 0"
-                  class="btn btn-ghost btn-sm"
-                  title="Move up">
-                  <lucide-icon name="ChevronUp" class="w-4 h-4"></lucide-icon>
-                </button>
-                <button 
-                  type="button" 
-                  (click)="moveFieldDown(i)"
-                  [disabled]="i === customFields.length - 1"
-                  class="btn btn-ghost btn-sm"
-                  title="Move down">
-                  <lucide-icon name="ChevronDown" class="w-4 h-4"></lucide-icon>
-                </button>
-                <button 
-                  type="button" 
-                  (click)="removeField(field.uuid)"
-                  class="btn btn-ghost btn-sm text-error hover:bg-error/10"
-                  title="Remove field">
-                  <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Empty State -->
-        <div *ngIf="customFields.length === 0" class="text-center py-12">
-          <div class="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mx-auto mb-4">
-            <lucide-icon name="Settings" class="w-8 h-8 text-base-content/40"></lucide-icon>
-          </div>
-          <h3 class="font-semibold text-base-content mb-2">No custom fields yet</h3>
-          <p class="text-sm text-base-content/60 mb-4">Add fields to standardize data collection across tasks</p>
-          <button 
-            type="button" 
-            (click)="addField()"
-            class="btn btn-primary">
-            <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon>
-            Add First Field
-          </button>
-        </div>
-      </div>
-
-      <!-- Add Field Button -->
-      <div *ngIf="!isLoading && customFields.length > 0" class="flex-shrink-0">
-        <button 
-          type="button" 
-          (click)="addField()"
-          class="btn btn-outline btn-primary flex items-center gap-2 w-full">
-          <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon>
-          Add Custom Field
-        </button>
-      </div>
-
-      <!-- Actions -->
-      <div class="flex items-center justify-end gap-3 pt-6 border-t border-base-200 flex-shrink-0">
-        <button 
-          type="button" 
-            (click)="onCancel?.()"
-          class="btn btn-ghost"
-          [disabled]="isSubmitting">
-          Cancel
-        </button>
-        <button 
-          type="button" 
-          (click)="onSubmit()"
-          class="btn btn-primary"
-          [disabled]="!isFormValid() || isSubmitting">
-          <span *ngIf="isSubmitting" class="loading loading-spinner loading-sm"></span>
-          {{ isSubmitting ? 'Saving...' : 'Save Settings' }}
-        </button>
-      </div>
-    </div>
-  `,
+  templateUrl: './custom-fields-settings-modal.component.html',
   styles: [`
     :host {
       display: block;
@@ -262,6 +28,15 @@ export class CustomFieldsSettingsModalComponent implements OnInit {
   fieldErrors: { [fieldId: string]: { [key: string]: string } } = {};
   isSubmitting = false;
   isLoading = false;
+  openFieldTypeDropdowns: { [fieldId: string]: boolean } = {};
+  
+  fieldTypeOptions = [
+    { value: 'text', label: 'Text', icon: 'Type' },
+    { value: 'number', label: 'Number', icon: 'Hash' },
+    { value: 'dropdown', label: 'Dropdown', icon: 'List' },
+    { value: 'date', label: 'Date', icon: 'Calendar' },
+    { value: 'boolean', label: 'Boolean', icon: 'ToggleLeft' }
+  ];
 
   constructor(
     private customFieldService: CustomFieldService
@@ -506,4 +281,25 @@ export class CustomFieldsSettingsModalComponent implements OnInit {
   trackByFieldId(index: number, field: GroupCustomFieldDefinition): string {
     return field.uuid;
   }
+
+  // Field Type dropdown methods
+  toggleFieldTypeDropdown(fieldId: string): void {
+    this.openFieldTypeDropdowns[fieldId] = !this.openFieldTypeDropdowns[fieldId];
+  }
+
+  isFieldTypeDropdownOpen(fieldId: string): boolean {
+    return !!this.openFieldTypeDropdowns[fieldId];
+  }
+
+  selectFieldType(field: GroupCustomFieldDefinition, type: string): void {
+    field.type = type as 'text' | 'number' | 'dropdown' | 'date' | 'boolean';
+    this.openFieldTypeDropdowns[field.uuid] = false;
+    this.onFieldTypeChange(field);
+  }
+
+  getFieldTypeDisplayValue(type: string): string {
+    const option = this.fieldTypeOptions.find(opt => opt.value === type);
+    return option ? option.label : '';
+  }
+
 }

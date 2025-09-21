@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, catchError, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { TaskCustomField } from './custom-field.service';
 
 // Task interfaces
 export interface Task {
@@ -40,6 +41,7 @@ export interface Task {
     }>;
     custom_fields?: Record<string, string>; // Simplified to key-value pairs
   };
+  custom_fields?: TaskCustomField[]; // Custom fields from task_custom_fields table
   created_at: string;
   updated_at: string;
   creator?: {

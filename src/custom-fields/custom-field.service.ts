@@ -317,11 +317,17 @@ export class CustomFieldService {
                 order: [['display_order', 'ASC']]
             })
 
+            // Clean up placeholder values for display
+            const cleanedCustomFields = customFields.map(field => ({
+                ...field.toJSON(),
+                field_value: field.field_value === '[EMPTY]' || field.field_value === ' ' ? '' : field.field_value
+            }))
+
             return {
                 success: true,
                 message: 'Task custom fields retrieved successfully',
                 code: 200,
-                data: customFields
+                data: cleanedCustomFields as any
             }
         } catch (error) {
             logger.error('Error getting task custom fields:', error)

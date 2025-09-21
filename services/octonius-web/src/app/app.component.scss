@@ -1,1 +1,12 @@
 // App component styles
+
+// Modal content styling to ensure proper input focus display
+.modal-content {
+  // Ensure the modal content itself has overflow visible
+  overflow: visible;
+  
+  // Add extra padding to prevent focus borders from being cut off
+  .form-control {
+    margin-bottom: 1rem;
+  }
+}
