@@ -113,18 +113,14 @@ export class TaskService {
                 metadata: taskData.metadata || {}
             }, { transaction })
 
-            // Inherit group custom field templates and create task instances
-            await this.inheritGroupCustomFieldTemplates(task.uuid, groupId, userId, transaction)
-
-            // Process any custom fields provided in the task data
-            if (taskData.metadata?.custom_fields) {
-                await this.processTaskCustomFields(
-                    task.uuid, 
-                    taskData.metadata.custom_fields, 
-                    userId, 
-                    transaction
-                )
-            }
+            // Process custom fields and inherit group templates
+            await this.processTaskCustomFieldsAndInheritance(
+                task.uuid, 
+                groupId, 
+                taskData.custom_fields || {}, 
+                userId, 
+                transaction
+            )
 
             // Fetches the created task with associations
             const createdTask = await Task.findByPk(task.uuid, {
@@ -295,9 +291,15 @@ export class TaskService {
                 order: [['display_order', 'ASC']]
             })
 
+            // Clean up placeholder values for display
+            const cleanedCustomFields = customFields.map(field => ({
+                ...field.toJSON(),
+                field_value: field.field_value === '[EMPTY]' || field.field_value === ' ' ? '' : field.field_value
+            }))
+
             // Add custom fields to task data
             if (task) {
-                (task as any).custom_fields = customFields
+                (task as any).custom_fields = cleanedCustomFields
             }
 
             // Checks if task exists
@@ -2009,16 +2011,18 @@ export class TaskService {
     }
 
     /**
-     * Inherits group custom field templates and creates task instances
+     * Processes custom fields and inherits group templates
      * 
      * @param taskId - The UUID of the task
      * @param groupId - The UUID of the group
+     * @param customFields - Custom field values from frontend
      * @param userId - The UUID of the user creating the task
      * @param transaction - Database transaction
      */
-    private async inheritGroupCustomFieldTemplates(
+    private async processTaskCustomFieldsAndInheritance(
         taskId: string,
         groupId: string,
+        customFields: Record<string, any>,
         userId: string,
         transaction: any
     ): Promise<void> {
@@ -2033,13 +2037,21 @@ export class TaskService {
                 transaction
             })
 
-            // Create task custom field instances for each group template
+            // Create a map of field definition UUIDs to their definitions
+            const fieldDefinitionMap = new Map(
+                groupFieldDefinitions.map(def => [def.uuid, def])
+            )
+
+            // Process each group field definition
             for (const fieldDef of groupFieldDefinitions) {
+                const fieldValue = customFields[fieldDef.uuid] || ''
+                
+                // Create the field with the provided value or empty space if no value
                 await TaskCustomField.create({
                     task_id: taskId,
                     field_definition_id: fieldDef.uuid,
                     field_name: fieldDef.name,
-                    field_value: '', // Empty value initially
+                    field_value: fieldValue || ' ', // Use space if no value to pass validation
                     field_type: fieldDef.type,
                     is_group_field: true,
                     display_order: fieldDef.display_order,
@@ -2047,14 +2059,39 @@ export class TaskService {
                 }, { transaction })
             }
 
-            logger.info('Group custom field templates inherited for task', {
+            // Process any additional custom fields that are not group fields
+            for (const [fieldId, fieldValue] of Object.entries(customFields)) {
+                if (fieldValue && !fieldDefinitionMap.has(fieldId)) {
+                    // This is a task-specific custom field
+                    const maxOrder = await TaskCustomField.max('display_order', {
+                        where: { 
+                            task_id: taskId,
+                            is_group_field: false
+                        },
+                        transaction
+                    }) as number || 0
+
+                    await TaskCustomField.create({
+                        task_id: taskId,
+                        field_name: fieldId, // Using fieldId as field_name for task-specific fields
+                        field_value: String(fieldValue),
+                        field_type: 'text', // Default type for task-specific fields
+                        is_group_field: false,
+                        display_order: maxOrder + 1,
+                        created_by: userId
+                    }, { transaction })
+                }
+            }
+
+            logger.info('Task custom fields processed and group templates inherited', {
                 taskId,
                 groupId,
                 userId,
+                processedFields: Object.keys(customFields).length,
                 inheritedFields: groupFieldDefinitions.length
             })
         } catch (error) {
-            logger.error('Error inheriting group custom field templates:', error)
+            logger.error('Error processing task custom fields and inheritance:', error)
             throw error
         }
     }
@@ -2074,23 +2111,51 @@ export class TaskService {
         transaction: any
     ): Promise<void> {
         try {
+            // Get all group field definitions to map field UUIDs to their definitions
+            const groupFieldDefinitions = await GroupCustomFieldDefinition.findAll({
+                where: { is_active: true },
+                transaction
+            })
+
+            // Create a map of field definition UUIDs to their definitions
+            const fieldDefinitionMap = new Map(
+                groupFieldDefinitions.map(def => [def.uuid, def])
+            )
+
             for (const [fieldId, fieldValue] of Object.entries(customFields)) {
                 if (fieldValue !== null && fieldValue !== undefined && fieldValue !== '') {
-                    // Check if this is a group field (has field_definition_id)
-                    const existingGroupField = await TaskCustomField.findOne({
-                        where: {
-                            task_id: taskId,
-                            field_definition_id: fieldId,
-                            is_group_field: true
-                        },
-                        transaction
-                    })
+                    // Check if this is a group field by looking up the field definition
+                    const fieldDefinition = fieldDefinitionMap.get(fieldId)
+                    
+                    if (fieldDefinition) {
+                        // This is a group field - update the existing inherited field
+                        const existingGroupField = await TaskCustomField.findOne({
+                            where: {
+                                task_id: taskId,
+                                field_definition_id: fieldId,
+                                is_group_field: true
+                            },
+                            transaction
+                        })
 
-                    if (existingGroupField) {
-                        // Update existing group field
-                        await existingGroupField.update({
-                            field_value: String(fieldValue)
-                        }, { transaction })
+                        if (existingGroupField) {
+                            // Update existing group field
+                            await existingGroupField.update({
+                                field_value: String(fieldValue)
+                            }, { transaction })
+                        } else {
+                            // Create new group field instance (shouldn't happen if inheritance worked correctly)
+                            await TaskCustomField.create({
+                                task_id: taskId,
+                                field_definition_id: fieldId,
+                                field_name: fieldDefinition.name,
+                                field_value: String(fieldValue),
+                                field_type: fieldDefinition.type,
+                                is_group_field: true,
+                                display_order: fieldDefinition.display_order,
+                                created_by: userId
+                            }, { transaction })
+                        }
                     } else {
                         // This is a task-specific custom field
                         // Get the next display order for task-specific fields

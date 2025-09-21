@@ -77,6 +77,7 @@ export interface TaskCreationData {
         text: string
         color: string
     }>
+    custom_fields?: Record<string, string>
     metadata?: {
         estimated_hours?: number
         time_entries?: Array<{
@@ -85,7 +86,6 @@ export interface TaskCreationData {
             description?: string
             date: Date
         }>
-        custom_fields?: Record<string, string>
     }
 }
 
