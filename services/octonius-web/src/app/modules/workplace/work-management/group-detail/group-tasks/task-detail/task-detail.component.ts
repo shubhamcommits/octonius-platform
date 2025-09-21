@@ -163,7 +163,12 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
         this.task = task;
         this.populateEditForm();
         this.loadComments();
-        this.loadTaskCustomFields();
+        // Use custom fields from task object instead of separate API call
+        if (task.custom_fields) {
+          this.taskCustomFields = task.custom_fields;
+        } else {
+          this.loadTaskCustomFields();
+        }
         this.isLoading = false;
       },
       error: (error: any) => {
@@ -545,8 +550,8 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     // Process all task custom fields (both group fields and task-specific fields)
     this.taskCustomFields.forEach(taskField => {
       if (taskField.is_group_field && taskField.field_definition_id) {
-        // This is a group field - find the definition
-        const fieldDef = this.groupFieldDefinitions.find(fd => fd.uuid === taskField.field_definition_id);
+        // This is a group field - use the field definition that comes with the task field
+        const fieldDef = (taskField as any).fieldDefinition;
         if (fieldDef) {
           allFields.push({
             key: taskField.uuid, // Use task field UUID as key to avoid duplicates
@@ -557,6 +562,20 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
             fieldType: fieldDef.type,
             fieldDefinitionId: fieldDef.uuid
           });
+        } else {
+          // Fallback: try to find in group field definitions
+          const fieldDef = this.groupFieldDefinitions.find(fd => fd.uuid === taskField.field_definition_id);
+          if (fieldDef) {
+            allFields.push({
+              key: taskField.uuid,
+              value: taskField.field_value,
+              displayName: fieldDef.name,
+              isGroupField: true,
+              isTaskField: true,
+              fieldType: fieldDef.type,
+              fieldDefinitionId: fieldDef.uuid
+            });
+          }
         }
       } else if (!taskField.is_group_field) {
         // This is a task-specific field
