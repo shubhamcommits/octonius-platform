@@ -7,6 +7,7 @@ import { WorkGroupService, WorkGroup } from '../../../../services/work-group.ser
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { ModalService } from '../../../../../../core/services/modal.service';
+import { DialogService } from '../../../../../../core/services/dialog.service';
 import { AssigneeModalComponent } from './assignee-modal/assignee-modal.component';
 import { CustomFieldModalComponent, CustomFieldData } from './custom-field-modal/custom-field-modal.component';
 import { CustomFieldService, GroupCustomFieldDefinition, TaskCustomField, CreateTaskCustomFieldData } from '../../../../services/custom-field.service';
@@ -101,6 +102,7 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     private toastService: ToastService,
     private authService: AuthService,
     private modalService: ModalService,
+    private dialogService: DialogService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -962,6 +964,26 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     return 'exact';
   }
 
+  // Utility functions for time formatting
+  formatTimeDisplay(hours: number): string {
+    if (hours === 0) return '0h';
+    
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    
+    if (minutes === 0) {
+      return `${wholeHours}h`;
+    } else if (wholeHours === 0) {
+      return `${minutes}m`;
+    } else {
+      return `${wholeHours}h ${minutes}m`;
+    }
+  }
+
+  formatTimeEntryHours(hours: number): string {
+    return this.formatTimeDisplay(hours);
+  }
+
   getUserById(userId: string): any {
     // First check if it's the current user
     if (this.currentUser && this.currentUser.uuid === userId) {
@@ -1100,19 +1122,28 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Show confirmation dialog
-    if (confirm('Are you sure you want to delete this time entry?')) {
-      this.taskService.deleteTimeEntry(this.group.uuid, this.task.uuid, timeEntryIndex).subscribe({
-        next: (updatedTask: Task) => {
-          this.task = updatedTask;
-          this.toastService.success('Time entry deleted successfully');
-        },
-        error: (error: any) => {
-          console.error('Error deleting time entry:', error);
-          this.toastService.error('Failed to delete time entry');
-        }
-      });
-    }
+    // Show confirmation dialog using platform's dialog service
+    this.dialogService.confirm({
+      title: 'Delete Time Entry',
+      message: 'Are you sure you want to delete this time entry? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'warning',
+      icon: 'AlertTriangle'
+    }).subscribe(confirmed => {
+      if (confirmed) {
+        this.taskService.deleteTimeEntry(this.group!.uuid, this.task!.uuid, timeEntryIndex).subscribe({
+          next: (updatedTask: Task) => {
+            this.task = updatedTask;
+            this.toastService.success('Time entry deleted successfully');
+          },
+          error: (error: any) => {
+            console.error('Error deleting time entry:', error);
+            this.toastService.error('Failed to delete time entry');
+          }
+        });
+      }
+    });
   }
 
   private handleTimeEntryUpdate(timeEntryIndex: number, data: TimeEntryData): void {

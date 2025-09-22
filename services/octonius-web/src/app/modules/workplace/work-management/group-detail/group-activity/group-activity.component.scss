@@ -1,0 +1,28 @@
+// Group Activity Component Styles
+
+// Ensure the TiptapEditor has no scrollbars
+app-tiptap-editor {
+  .tiptap-editor-wrapper {
+    overflow: hidden;
+  }
+  
+  .tiptap-content-area {
+    overflow: hidden;
+  }
+  
+  .tiptap-editor {
+    overflow: hidden !important;
+    max-height: none !important;
+  }
+  
+  // Hide all scrollbars
+  * {
+    overflow: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  
+  *::-webkit-scrollbar {
+    display: none !important;
+  }
+}
