@@ -28,7 +28,7 @@ export class GroupActivityComponent implements OnInit, OnDestroy, AfterViewInit 
     showToolbar: true,
     showBubbleMenu: true,
     showCharacterCount: true,
-    maxHeight: '200px',
+    autoExpand: true,
     minHeight: '120px',
     readOnly: false,
     toolbarItems: ['bold', 'italic', 'underline', 'link', 'bulletList', 'orderedList', 'table', 'emoji'],
