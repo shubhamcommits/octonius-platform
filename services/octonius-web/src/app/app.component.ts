@@ -5,12 +5,14 @@ import { CommonModule } from '@angular/common'
 import { environment } from '../environments/environment'
 
 import { ModalService, ModalData } from './core/services/modal.service'
+import { DialogService } from './core/services/dialog.service'
+import { DialogComponent } from './core/components/dialog/dialog.component'
 import { Subscription } from 'rxjs'
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommonModule],
+  imports: [RouterOutlet, CommonModule, DialogComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
