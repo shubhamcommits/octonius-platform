@@ -28,6 +28,12 @@ variable "ecs_security_group_id" {
   type        = string
 }
 
+variable "bastion_security_group_id" {
+  description = "Security group ID of the bastion host that will access RDS"
+  type        = string
+  default     = null
+}
+
 variable "instance_class" {
   description = "RDS instance class"
   type        = string
