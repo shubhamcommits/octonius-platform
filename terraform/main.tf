@@ -152,6 +152,7 @@ module "rds" {
   vpc_id                = module.vpc.vpc_id
   subnet_ids            = module.vpc.private_subnet_ids
   ecs_security_group_id = aws_security_group.app_runner.id
+  bastion_security_group_id = module.bastion.bastion_security_group_id
 
   instance_class          = var.environment == "prod" ? "db.t4g.small" : "db.t4g.micro"
   allocated_storage       = var.environment == "prod" ? 100 : 20
@@ -169,17 +170,6 @@ module "rds" {
   deletion_protection                   = var.environment == "prod"
 
   tags = local.common_tags
-}
-
-# Add bastion access to RDS security group after both modules are created
-resource "aws_security_group_rule" "rds_from_bastion" {
-  type                     = "ingress"
-  from_port                = 5432
-  to_port                  = 5432
-  protocol                 = "tcp"
-  source_security_group_id = module.bastion.bastion_security_group_id
-  security_group_id        = module.rds.security_group_id
-  description              = "PostgreSQL access from bastion host"
 }
 
 module "elasticache" {
