@@ -284,13 +284,16 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // Task actions
   openAddTaskModal(column: any): void {
+    console.log('Opening add task modal for column:', column);
     this.selectedColumn = column;
+    console.log('Selected column set to:', this.selectedColumn);
     
     // Ensure custom fields are loaded before opening modal
     this.loadCustomFieldsSettings();
     
     // Use a small delay to ensure the custom fields are loaded
     setTimeout(() => {
+      console.log('Opening modal with selectedColumn:', this.selectedColumn);
       this.modalService.openModal(CreateTaskModalComponent, {
         columnId: column.id,
         customFieldDefinitions: [...this.customFieldDefinitions], // Create a copy to ensure reactivity
@@ -301,10 +304,13 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onTaskCreated(taskData: any): void {
+    console.log('Task created callback called with data:', taskData);
+    console.log('Selected column at task creation:', this.selectedColumn);
     this.createTask(taskData);
   }
 
   closeAddTaskModal(): void {
+    console.log('Closing add task modal, resetting selectedColumn to null');
     this.selectedColumn = null;
   }
 
@@ -313,7 +319,24 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   createTask(taskData: any): void {
-    if (!this.group || !this.selectedColumn) return;
+    if (!this.group) {
+      console.error('Cannot create task: No group selected');
+      this.toastService.error('No group selected');
+      return;
+    }
+    
+    if (!this.selectedColumn) {
+      console.error('Cannot create task: No column selected', { taskData, selectedColumn: this.selectedColumn });
+      this.toastService.error('No column selected for task creation');
+      return;
+    }
+
+    // Double-check selectedColumn still has an id property
+    if (!this.selectedColumn.id) {
+      console.error('Cannot create task: Selected column has no id', { selectedColumn: this.selectedColumn });
+      this.toastService.error('Invalid column selected for task creation');
+      return;
+    }
 
     const taskPayload = {
       title: taskData.title.trim(),
