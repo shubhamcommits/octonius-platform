@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, Input, Output, EventEmitter, forwardRef, HostListener } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms'
+import { Router } from '@angular/router'
 
 // Tiptap imports
 import { Editor } from '@tiptap/core'
@@ -105,7 +106,14 @@ const UserMentionNode = TiptapNode.create({
     ]
   },
   renderHTML({ HTMLAttributes }) {
-    return ['span', { class: 'userMention mention-user bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium', ...HTMLAttributes }, `@${HTMLAttributes['data-label'] || 'User'}`]
+    return [
+      'span',
+      {
+        ...HTMLAttributes,
+        class: 'userMention mention-user bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium',
+      },
+      `@${HTMLAttributes['data-label'] || 'User'}`,
+    ]
   },
 })
 
@@ -183,7 +191,15 @@ const FileMentionNode = TiptapNode.create({
     ]
   },
   renderHTML({ HTMLAttributes }) {
-    return ['span', { class: 'fileMention mention-file bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm font-medium', ...HTMLAttributes }, `#${HTMLAttributes['data-label'] || 'File'}`]
+    return [
+      'span',
+      {
+        ...HTMLAttributes,
+        class: 'fileMention mention-file bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm font-medium cursor-pointer hover:bg-secondary/20 transition-colors',
+        style: 'cursor: pointer;',
+      },
+      `#${HTMLAttributes['data-label'] || 'File'}`,
+    ]
   },
 })
 
@@ -305,7 +321,8 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
     private fileService: FileService,
     private userMentionService: UserMentionService,
     private fileMentionService: FileMentionService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -338,6 +355,7 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
   ngAfterViewInit(): void {
     setTimeout(() => {
       this.initializeEditor()
+      this.setupFileMentionClickListeners()
     }, 100)
   }
 
@@ -1318,13 +1336,26 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
         `
       } else {
         const fileSuggestion = suggestion as FileMentionSuggestion
-        item.innerHTML = `
-          <div class="text-lg flex-shrink-0">${fileSuggestion.icon || '📁'}</div>
-          <div class="flex-1 min-w-0">
-            <div class="font-medium text-sm text-base-content whitespace-nowrap overflow-hidden text-ellipsis">${fileSuggestion.label}</div>
-            <div class="text-xs text-base-content/60">${fileSuggestion.type} ${fileSuggestion.size ? `• ${fileSuggestion.size}` : ''}</div>
-          </div>
-        `
+        
+        // Create the icon container with SVG icon
+        const iconContainer = document.createElement('div');
+        iconContainer.className = 'w-8 h-8 flex items-center justify-center flex-shrink-0';
+        
+        // Create SVG icon based on the suggestion icon
+        const iconSvg = this.createFileIconSVG(fileSuggestion.icon || 'file');
+        iconContainer.appendChild(iconSvg);
+        
+        // Create the text container
+        const textContainer = document.createElement('div');
+        textContainer.className = 'flex-1 min-w-0';
+        textContainer.innerHTML = `
+          <div class="font-medium text-sm text-base-content whitespace-nowrap overflow-hidden text-ellipsis">${fileSuggestion.label}</div>
+          <div class="text-xs text-base-content/60">${fileSuggestion.type} ${fileSuggestion.size ? `• ${fileSuggestion.size}` : ''}</div>
+        `;
+        
+        // Append both containers to the item
+        item.appendChild(iconContainer);
+        item.appendChild(textContainer);
       }
       
       item.addEventListener('click', () => {
@@ -1551,5 +1582,158 @@ export class TiptapEditorComponent implements OnInit, OnDestroy, AfterViewInit, 
         }
       ])
       .run()
+  }
+
+  private setupFileMentionClickListeners(): void {
+    // Set up click listeners for file mentions
+    setTimeout(() => {
+      console.log('🔍 Setting up file mention click listeners...');
+      this.attachClickListenersToFileMentions();
+      
+      // Set up MutationObserver to handle dynamically added file mentions
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach((node) => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                const element = node as Element;
+                // Check if the added node is a file mention or contains file mentions
+                if (element.classList?.contains('fileMention') && element.getAttribute('data-type') === 'file') {
+                  console.log('🔍 Found new file mention node:', element);
+                  this.attachClickListenerToFileMention(element as HTMLElement);
+                } else {
+                  // Check for file mentions within the added node
+                  const fileMentions = element.querySelectorAll?.('.fileMention[data-type="file"]');
+                  fileMentions?.forEach(mention => {
+                    console.log('🔍 Found file mention in added node:', mention);
+                    this.attachClickListenerToFileMention(mention as HTMLElement);
+                  });
+                }
+              }
+            });
+          }
+        });
+      });
+      
+      // Start observing the editor element for changes
+      if (this.editorElement?.nativeElement) {
+        console.log('🔍 Starting MutationObserver on editor element');
+        observer.observe(this.editorElement.nativeElement, {
+          childList: true,
+          subtree: true
+        });
+      } else {
+        console.warn('🔍 Editor element not found for MutationObserver');
+      }
+    }, 200);
+  }
+
+  private attachClickListenersToFileMentions(): void {
+    const fileMentions = document.querySelectorAll('.fileMention[data-type="file"]');
+    console.log('🔍 Found file mentions to attach listeners to:', fileMentions.length);
+    fileMentions.forEach((mention, index) => {
+      console.log(`🔍 Attaching listener to file mention ${index}:`, mention);
+      this.attachClickListenerToFileMention(mention as HTMLElement);
+    });
+  }
+
+  private attachClickListenerToFileMention(mention: HTMLElement): void {
+    console.log('🔍 Attaching click listener to mention:', mention);
+    
+    // Remove existing listeners to avoid duplicates
+    mention.removeEventListener('click', this.handleFileMentionClick);
+    
+    // Add click listener
+    mention.addEventListener('click', this.handleFileMentionClick);
+    
+    // Add cursor pointer styling
+    mention.style.cursor = 'pointer';
+    
+    console.log('🔍 Click listener attached successfully');
+  }
+
+  private handleFileMentionClick = (event: Event): void => {
+    console.log('🔍 File mention clicked!', event);
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const mention = event.target as HTMLElement;
+    const fileId = mention.getAttribute('data-id');
+    const fileLabel = mention.getAttribute('data-label');
+    
+    console.log('🔍 File mention data:', { fileId, fileLabel });
+    
+    if (fileId) {
+      this.navigateToFile(fileId, fileLabel || undefined);
+    } else {
+      console.warn('🔍 No file ID found in mention');
+    }
+  }
+
+  private navigateToFile(fileId: string, fileLabel?: string): void {
+    console.log('🔍 Navigating to file:', { fileId, fileLabel });
+    
+    // Determine the current context to decide which route to use
+    const currentUrl = this.router.url;
+    console.log('🔍 Current URL:', currentUrl);
+    console.log('🔍 Config groupId:', this.config.groupId);
+    console.log('🔍 Config workplaceId:', this.config.workplaceId);
+    
+    if (currentUrl.startsWith('/workplace')) {
+      // We're in workplace context, navigate to workplace files
+      if (this.config.groupId) {
+        const route = ['/workplace/files', this.config.groupId];
+        console.log('🔍 Navigating to workplace files with group:', route);
+        this.router.navigate(route, { 
+          queryParams: { fileId: fileId }
+        });
+      } else {
+        const route = ['/workplace/files'];
+        console.log('🔍 Navigating to workplace files without group:', route);
+        this.router.navigate(route, { 
+          queryParams: { fileId: fileId }
+        });
+      }
+    } else {
+      // We're in myspace context, navigate to myspace files
+      const route = ['/myspace/files'];
+      console.log('🔍 Navigating to myspace files:', route);
+      this.router.navigate(route, { 
+        queryParams: { fileId: fileId }
+      });
+    }
+  }
+
+  private createFileIconSVG(iconName: string): SVGElement {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '20');
+    svg.setAttribute('height', '20');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('class', 'w-5 h-5 text-base-content/70');
+
+    // Icon paths based on Lucide icons
+    const iconPaths: { [key: string]: string } = {
+      'file': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z',
+      'file-pen-line': 'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z',
+      'file-image': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M18 13a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM6 20l4-8 3 3 4-6 3 4',
+      'file-video': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M10 11l5 3-5 3v-6z',
+      'file-audio': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M9 18v-6a3 3 0 1 1 6 0v6M9 12h6',
+      'file-text': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M16 13H8M16 17H8M10 9H8',
+      'file-keynote': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M8 13h8M8 17h8M8 9h8',
+      'file-archive': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M4 7h16M10 11h4M10 15h4M10 19h4',
+      'file-code': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M10 9l-2 2 2 2M14 9l2 2-2 2',
+      'folder': 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'
+    };
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', iconPaths[iconName] || iconPaths['file']);
+    svg.appendChild(path);
+
+    return svg;
   }
 } 

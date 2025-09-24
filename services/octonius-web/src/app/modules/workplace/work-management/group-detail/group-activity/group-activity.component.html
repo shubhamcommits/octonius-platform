@@ -97,7 +97,11 @@
           </div>
           <!-- Post Content -->
           <div class="py-4">
-            <p class="text-base-content/90" style="white-space: pre-wrap;" [appRichHtml]="post.content"></p>
+            <p class="text-base-content/90" style="white-space: pre-wrap;" 
+               [appRichHtml]="post.content" 
+               [groupId]="group?.uuid" 
+               [workplaceId]="currentUser?.current_workplace_id || undefined">
+            </p>
           </div>
           <!-- Post Actions: Likes and Comments -->
           <div class="flex items-center justify-between mt-2">
@@ -154,7 +158,11 @@
                       <p class="text-sm font-medium text-base-content/90">{{ comment.user?.first_name }} {{ comment.user?.last_name }}</p>
                       <span class="text-xs text-base-content/50">{{ comment.created_at | date:'short' }}</span>
                     </div>
-                    <div class="text-sm text-base-content/80 whitespace-pre-wrap" [appRichHtml]="comment.content"></div>
+                    <div class="text-sm text-base-content/80 whitespace-pre-wrap" 
+                         [appRichHtml]="comment.content" 
+                         [groupId]="group?.uuid" 
+                         [workplaceId]="currentUser?.current_workplace_id || undefined">
+                    </div>
                   </div>
                 </div>
               </div>

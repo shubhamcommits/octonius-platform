@@ -95,13 +95,18 @@ export class FileMentionService {
         .pipe(
           map(response => {
             console.log('🔍 Group files response:', response);
-            if (response.success && response.files) {
-              return response.files.map((file: any) => ({
-                id: file.uuid,
-                label: file.name,
-                icon: this.getFileIcon(file.type, file.name),
+            if (response.success && response.data) {
+              return response.data.map((file: any) => ({
+                id: file.id,
+                name: file.name,
+                title: file.title || file.name,
                 type: file.type,
-                size: file.size
+                size: file.size || 0,
+                url: file.cdn_url,
+                download_url: file.cdn_url,
+                owner: file.owner,
+                created_at: file.last_modified,
+                updated_at: file.last_modified
               }));
             }
             return [];
@@ -124,13 +129,18 @@ export class FileMentionService {
         .pipe(
           map(response => {
             console.log('🔍 Workplace files response:', response);
-            if (response.success && response.files) {
-              return response.files.map((file: any) => ({
-                id: file.uuid,
-                label: file.name,
-                icon: this.getFileIcon(file.type, file.name),
+            if (response.success && response.data) {
+              return response.data.map((file: any) => ({
+                id: file.id,
+                name: file.name,
+                title: file.title || file.name,
                 type: file.type,
-                size: file.size
+                size: file.size || 0,
+                url: file.cdn_url,
+                download_url: file.cdn_url,
+                owner: file.owner,
+                created_at: file.last_modified,
+                updated_at: file.last_modified
               }));
             }
             return [];
@@ -147,13 +157,18 @@ export class FileMentionService {
       .pipe(
         map(response => {
           console.log('🔍 My-space files response:', response);
-          if (response.success && response.files) {
-            return response.files.map((file: any) => ({
-              id: file.uuid,
-              label: file.name,
-              icon: this.getFileIcon(file.type),
+          if (response.success && response.data) {
+            return response.data.map((file: any) => ({
+              id: file.id,
+              name: file.name,
+              title: file.title || file.name,
               type: file.type,
-              size: file.size
+              size: file.size || 0,
+              url: file.cdn_url,
+              download_url: file.cdn_url,
+              owner: file.owner,
+              created_at: file.last_modified,
+              updated_at: file.last_modified
             }));
           }
           return [];
@@ -220,13 +235,18 @@ export class FileMentionService {
         .pipe(
           map(response => {
             console.log('🔍 Group files search response:', response);
-            if (response.success && response.files) {
-              return response.files.map((file: any) => ({
-                id: file.uuid,
+            if (response.success && response.data) {
+              return response.data.map((file: any) => ({
+                id: file.id,
                 name: file.name,
-                title: file.name,
+                title: file.title || file.name,
                 type: file.type,
-                size: file.size
+                size: file.size || 0,
+                url: file.cdn_url,
+                download_url: file.cdn_url,
+                owner: file.owner,
+                created_at: file.last_modified,
+                updated_at: file.last_modified
               }));
             }
             return [];
@@ -250,13 +270,18 @@ export class FileMentionService {
         .pipe(
           map(response => {
             console.log('🔍 Workplace files search response:', response);
-            if (response.success && response.files) {
-              return response.files.map((file: any) => ({
-                id: file.uuid,
+            if (response.success && response.data) {
+              return response.data.map((file: any) => ({
+                id: file.id,
                 name: file.name,
-                title: file.name,
+                title: file.title || file.name,
                 type: file.type,
-                size: file.size
+                size: file.size || 0,
+                url: file.cdn_url,
+                download_url: file.cdn_url,
+                owner: file.owner,
+                created_at: file.last_modified,
+                updated_at: file.last_modified
               }));
             }
             return [];

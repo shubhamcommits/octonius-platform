@@ -201,7 +201,8 @@ const FileMentionNode = TiptapNode.create({
       'span',
       {
         ...HTMLAttributes,
-        class: 'fileMention mention-file bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm font-medium',
+        class: 'fileMention mention-file bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm font-medium cursor-pointer hover:bg-secondary/20 transition-colors',
+        style: 'cursor: pointer;',
       },
       `#${HTMLAttributes['data-label'] || 'File'}`,
     ]
@@ -347,9 +348,21 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.workplaceId = user.current_workplace_id || ''
         
         // Set context for mention services
-        // For "my space", use a special context that only shows the current user
-        this.userMentionService.setContext('myspace', undefined)
-        this.fileMentionService.setContext('myspace', undefined, this.userId)
+        // Check if we're in a workplace context with a group ID
+        const groupId = this.route.snapshot.queryParamMap.get('groupId')
+        const currentUrl = this.router.url
+        
+        if (currentUrl.startsWith('/workplace/note-editor') && groupId) {
+          // We're in a workplace note editor with a group context
+          console.log('Setting workplace group context for mentions:', { groupId, workplaceId: this.workplaceId, userId: this.userId })
+          this.userMentionService.setContext(groupId, this.workplaceId)
+          this.fileMentionService.setContext(groupId, this.workplaceId, this.userId)
+        } else {
+          // Default to "my space" context
+          console.log('Setting myspace context for mentions')
+          this.userMentionService.setContext('myspace', undefined)
+          this.fileMentionService.setContext('myspace', undefined, this.userId)
+        }
         
         console.log('User properties set:', {
           userId: this.userId,
@@ -421,6 +434,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     // Small delay to ensure DOM is ready
     setTimeout(() => {
       this.initializeEditor()
+      this.setupFileMentionClickListeners()
     }, 100)
   }
 
@@ -1338,7 +1352,23 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     // Clean up orphaned images before navigating away
     this.cleanupOrphanedImages()
     
-    this.router.navigate(['/myspace/files'])
+    // Determine the correct back navigation based on current route
+    const currentUrl = this.router.url
+    if (currentUrl.startsWith('/workplace/note-editor')) {
+      // If we're in workplace note editor, try to get the group ID from query parameters
+      const groupId = this.route.snapshot.queryParamMap.get('groupId')
+      
+      if (groupId) {
+        // Navigate back to the specific group's files page
+        this.router.navigate(['/workplace/files', groupId])
+      } else {
+        // Fallback to general workplace files if no group ID available
+        this.router.navigate(['/workplace/files'])
+      }
+    } else {
+      // Default to my-space files for backward compatibility
+      this.router.navigate(['/myspace/files'])
+    }
   }
 
   // Tiptap specific methods
@@ -2386,6 +2416,97 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     svg.appendChild(path);
 
     return svg;
+  }
+
+  private setupFileMentionClickListeners(): void {
+    // Set up click listeners for file mentions
+    setTimeout(() => {
+      this.attachClickListenersToFileMentions();
+      
+      // Set up MutationObserver to handle dynamically added file mentions
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach((node) => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                const element = node as Element;
+                // Check if the added node is a file mention or contains file mentions
+                if (element.classList?.contains('fileMention') && element.getAttribute('data-type') === 'file') {
+                  this.attachClickListenerToFileMention(element as HTMLElement);
+                } else {
+                  // Check for file mentions within the added node
+                  const fileMentions = element.querySelectorAll?.('.fileMention[data-type="file"]');
+                  fileMentions?.forEach(mention => this.attachClickListenerToFileMention(mention as HTMLElement));
+                }
+              }
+            });
+          }
+        });
+      });
+      
+      // Start observing the editor element for changes
+      if (this.editorElement?.nativeElement) {
+        observer.observe(this.editorElement.nativeElement, {
+          childList: true,
+          subtree: true
+        });
+      }
+    }, 200);
+  }
+
+  private attachClickListenersToFileMentions(): void {
+    const fileMentions = document.querySelectorAll('.fileMention[data-type="file"]');
+    fileMentions.forEach(mention => this.attachClickListenerToFileMention(mention as HTMLElement));
+  }
+
+  private attachClickListenerToFileMention(mention: HTMLElement): void {
+    // Remove existing listeners to avoid duplicates
+    mention.removeEventListener('click', this.handleFileMentionClick);
+    
+    // Add click listener
+    mention.addEventListener('click', this.handleFileMentionClick);
+    
+    // Add cursor pointer styling
+    mention.style.cursor = 'pointer';
+  }
+
+  private handleFileMentionClick = (event: Event): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const mention = event.target as HTMLElement;
+    const fileId = mention.getAttribute('data-id');
+    const fileLabel = mention.getAttribute('data-label');
+    
+    if (fileId) {
+      this.navigateToFile(fileId, fileLabel || undefined);
+    }
+  }
+
+  private navigateToFile(fileId: string, fileLabel?: string): void {
+    console.log('Navigating to file:', { fileId, fileLabel });
+    
+    // Determine the current context to decide which route to use
+    const currentUrl = this.router.url;
+    
+    if (currentUrl.startsWith('/workplace')) {
+      // We're in workplace context, navigate to workplace files
+      const groupId = this.route.snapshot.queryParamMap.get('groupId');
+      if (groupId) {
+        this.router.navigate(['/workplace/files', groupId], { 
+          queryParams: { fileId: fileId }
+        });
+      } else {
+        this.router.navigate(['/workplace/files'], { 
+          queryParams: { fileId: fileId }
+        });
+      }
+    } else {
+      // We're in myspace context, navigate to myspace files
+      this.router.navigate(['/myspace/files'], { 
+        queryParams: { fileId: fileId }
+      });
+    }
   }
 
 } 
