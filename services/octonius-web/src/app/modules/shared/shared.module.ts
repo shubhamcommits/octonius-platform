@@ -289,7 +289,7 @@ import { InfiniteScrollListComponent } from './components/infinite-scroll-list/i
     TiptapEditorComponent,
     RichHtmlDirective,
     LocationPickerComponent,
-    InfiniteScrollListComponent // Export it for use in other modules
+    InfiniteScrollListComponent, // Export it for use in other modules
   ],
   providers: [AuthGuard, NonAuthGuard]
 })
