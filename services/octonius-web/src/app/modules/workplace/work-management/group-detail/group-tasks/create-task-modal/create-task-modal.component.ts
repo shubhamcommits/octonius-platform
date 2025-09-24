@@ -153,12 +153,13 @@ export class CreateTaskModalComponent implements OnInit, OnDestroy {
       this.onTaskCreated(this.taskData as any);
     }
     
-    // Reset form after successful submission
+    // Reset form after calling the callback
     setTimeout(() => {
       this.resetForm();
       this.onCancel();
     }, 100);
   }
+
 
   onCancel(): void {
     this.resetForm();
@@ -166,6 +167,10 @@ export class CreateTaskModalComponent implements OnInit, OnDestroy {
       this.onClose();
     }
     this.modalService.closeModal();
+  }
+
+  resetSubmittingState(): void {
+    this.isSubmitting = false;
   }
 
   onBackdropClick(event: Event): void {

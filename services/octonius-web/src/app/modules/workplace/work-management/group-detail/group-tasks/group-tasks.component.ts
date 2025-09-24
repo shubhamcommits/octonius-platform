@@ -314,6 +314,7 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
     this.selectedColumn = null;
   }
 
+
   resetTaskForm(): void {
     this.selectedColumn = null;
   }
@@ -325,23 +326,19 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     
-    if (!this.selectedColumn) {
-      console.error('Cannot create task: No column selected', { taskData, selectedColumn: this.selectedColumn });
+    // Use the column ID from the task data (passed from modal) instead of selectedColumn
+    const columnId = taskData.column_id || (this.selectedColumn?.id);
+    
+    if (!columnId) {
+      console.error('Cannot create task: No column ID available', { taskData, selectedColumn: this.selectedColumn });
       this.toastService.error('No column selected for task creation');
-      return;
-    }
-
-    // Double-check selectedColumn still has an id property
-    if (!this.selectedColumn.id) {
-      console.error('Cannot create task: Selected column has no id', { selectedColumn: this.selectedColumn });
-      this.toastService.error('Invalid column selected for task creation');
       return;
     }
 
     const taskPayload = {
       title: taskData.title.trim(),
       description: taskData.description?.trim() || undefined,
-      column_id: this.selectedColumn.id,
+      column_id: columnId,
       priority: taskData.priority,
       status: taskData.status,
       color: taskData.color,
@@ -355,8 +352,8 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
       next: (task) => {
         // Find the column in the board and add the task
         if (this.board && this.board.columns) {
-          const columnId = String(this.selectedColumn.id);
-          const column = this.board.columns.find(col => String(col.id) === columnId);
+          const columnIdStr = String(columnId);
+          const column = this.board.columns.find(col => String(col.id) === columnIdStr);
           
           if (column) {
             // Ensure task has required arrays initialized
