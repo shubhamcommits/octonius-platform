@@ -38,6 +38,8 @@ export class TopbarComponent {
 
   // Filter state
   showFilterDropdown = false;
+  showSearchDropdown = false;
+  searchTerm = '';
   activeFilters: FilterOptions = {
     groupType: [],
     visibility: [],
@@ -101,6 +103,31 @@ export class TopbarComponent {
 
   onSearchClick() {
     this.search.emit('');
+  }
+
+  // Search functionality
+  toggleSearchDropdown() {
+    this.showSearchDropdown = !this.showSearchDropdown;
+  }
+
+  closeSearchDropdown() {
+    this.showSearchDropdown = false;
+  }
+
+  onSearchInput(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.searchTerm = target.value;
+  }
+
+  applySearch() {
+    this.search.emit(this.searchTerm);
+    this.closeSearchDropdown();
+  }
+
+  clearSearch() {
+    this.searchTerm = '';
+    this.search.emit('');
+    this.closeSearchDropdown();
   }
 
   // Filter methods
@@ -180,6 +207,11 @@ export class TopbarComponent {
     this.filter.emit(this.activeFilters);
   }
 
+  clearAll() {
+    this.clearFilters();
+    this.clearSearch();
+  }
+
   getActiveFilterCount(): number {
     let count = 0;
     count += this.activeFilters.groupType.length;
@@ -194,6 +226,10 @@ export class TopbarComponent {
 
   isFilterActive(): boolean {
     return this.getActiveFilterCount() > 0;
+  }
+
+  isSearchActive(): boolean {
+    return !!(this.searchTerm && this.searchTerm.trim().length > 0);
   }
 
   // Label getters for filter pills
@@ -270,12 +306,15 @@ export class TopbarComponent {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event): void {
-    if (this.showFilterDropdown) {
-      const target = event.target as HTMLElement
-      const filterContainer = target.closest('.relative')
-      if (!filterContainer) {
-        this.closeFilterDropdown()
-      }
+    const target = event.target as HTMLElement
+    const container = target.closest('.relative')
+    
+    if (this.showFilterDropdown && !container) {
+      this.closeFilterDropdown()
+    }
+    
+    if (this.showSearchDropdown && !container) {
+      this.closeSearchDropdown()
     }
   }
 } 

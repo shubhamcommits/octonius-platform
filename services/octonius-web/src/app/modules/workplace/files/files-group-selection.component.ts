@@ -11,7 +11,7 @@ import { GroupSelectionComponent } from '../../shared/components/group-selection
       [title]="'Workplace Files'"
       [description]="'Select a group to view and manage their files and notes'"
       [showCreateButton]="false"
-      [showSearch]="false"
+      [showSearch]="true"
       [showFilter]="true"
       [showSort]="true"
       [searchPlaceholder]="'Search groups...'"
