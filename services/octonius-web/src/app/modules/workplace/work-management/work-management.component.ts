@@ -1,32 +1,26 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { WorkGroupService, WorkGroup } from '../services/work-group.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
-import { Subscription } from 'rxjs';
-import { CreateGroupData } from './create-group-modal/create-group-modal.component';
+import { CreateGroupData, CreateGroupModalComponent } from './create-group-modal/create-group-modal.component';
+import { GroupSelectionComponent } from '../../shared/components/group-selection/group-selection.component';
 
 @Component({
   selector: 'app-work-management',
-  standalone: false,
+  standalone: true,
   templateUrl: './work-management.component.html',
-  styleUrls: ['./work-management.component.scss']
+  styleUrls: ['./work-management.component.scss'],
+  imports: [GroupSelectionComponent, CreateGroupModalComponent]
 })
 export class WorkManagementComponent implements OnInit, OnDestroy {
-  groups: WorkGroup[] = [];
-  filteredGroups: WorkGroup[] = [];
-  searchTerm: string = '';
-  isLoading: boolean = false;
-  currentWorkplaceId: string | null = null;
-  currentTheme: string = 'light';
   showCreateModal = false;
   isSubmitting = false;
-  private themeSubscription: Subscription;
+  private themeSubscription!: Subscription;
   
   private destroy$ = new Subject<void>();
-  private searchSubject$ = new Subject<string>();
 
   constructor(
     private workGroupService: WorkGroupService,
@@ -35,23 +29,13 @@ export class WorkManagementComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private themeService: ThemeService
   ) {
-    this.currentTheme = this.themeService.getCurrentTheme();
-    this.themeSubscription = this.themeService.currentTheme$.subscribe(theme => {
-      this.currentTheme = theme;
-    });
+    // Set up search with debounce
   }
 
   ngOnInit(): void {
-    this.getCurrentWorkplace();
-    this.loadGroups();
-    
-    // Set up search with debounce
-    this.searchSubject$.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(searchTerm => {
-      this.performSearch(searchTerm);
+    // Subscribe to theme changes
+    this.themeSubscription = this.themeService.currentTheme$.subscribe(theme => {
+      // Handle theme changes if needed
     });
   }
 
@@ -67,52 +51,22 @@ export class WorkManagementComponent implements OnInit, OnDestroy {
    * Get empty state image based on current theme
    */
   getWorkGroupsEmptyStateImage(): string {
-    return this.currentTheme === 'night' 
-      ? 'https://media.octonius.com/assets/no-lounge-light.svg'
-      : 'https://media.octonius.com/assets/no-lounge-dark.svg'
+    return 'https://media.octonius.com/assets/no-lounge-light.svg';
   }
 
   /**
    * Get empty state image for search results
    */
   getSearchEmptyStateImage(): string {
-    return this.currentTheme === 'night' 
-      ? 'https://media.octonius.com/assets/no-lounge-light.svg'
-      : 'https://media.octonius.com/assets/no-lounge-dark.svg'
+    return 'https://media.octonius.com/assets/no-lounge-light.svg';
   }
 
-  private getCurrentWorkplace(): void {
-    const currentUser = this.authService.getCurrentUser();
-    this.currentWorkplaceId = currentUser?.current_workplace_id || null;
-    
-    if (!this.currentWorkplaceId) {
-      this.toastService.error('No workplace selected. Please select a workplace to continue.');
-      // Optionally redirect to workplace selection
-      // this.router.navigate(['/workplace/select']);
-    }
+  getEmptyStateImage(): string {
+    return this.getWorkGroupsEmptyStateImage();
   }
 
-  loadGroups(): void {
-    if (!this.currentWorkplaceId) {
-      this.toastService.error('No workplace selected');
-      return;
-    }
-
-    this.isLoading = true;
-    this.workGroupService.getGroups(this.currentWorkplaceId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (groups) => {
-        this.groups = groups;
-        this.filteredGroups = groups;
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error loading groups:', error);
-        this.toastService.error('Failed to load work groups');
-        this.isLoading = false;
-      }
-    });
+  getEmptyStateMessage(): string {
+    return 'You don\'t have access to any groups yet. Contact your administrator to get added to a group.';
   }
 
   onAddGroup(): void {
@@ -124,119 +78,53 @@ export class WorkManagementComponent implements OnInit, OnDestroy {
   }
 
   onSearch(event: any): void {
-    const target = event.target as HTMLInputElement;
-    this.searchTerm = target.value;
-    this.searchSubject$.next(this.searchTerm);
+    // Search is now handled by the reusable component
+    console.log('Search event:', event);
   }
 
-  performSearch(searchTerm: string): void {
-    if (!this.currentWorkplaceId) {
-      this.toastService.error('No workplace selected');
-      return;
-    }
-
-    if (!searchTerm.trim()) {
-      this.filteredGroups = this.groups;
-      return;
-    }
-
-    this.workGroupService.searchGroups(this.currentWorkplaceId, searchTerm).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (groups) => {
-        this.filteredGroups = groups;
-      },
-      error: (error) => {
-        console.error('Error searching groups:', error);
-        this.toastService.error('Search failed');
-      }
-    });
-  }
-
-  onFilter() {
-    // Implement filter functionality
-    console.log('Filter groups');
-    // Could open a filter modal or dropdown
+  onFilter(): void {
+    // Filter is now handled by the reusable component
+    console.log('Filter clicked');
   }
 
   onSort(): void {
-    // Implement sort functionality
-    console.log('Sort groups');
-    // Simple example: sort by name
-    this.filteredGroups.sort((a, b) => a.name.localeCompare(b.name));
+    // Sort is now handled by the reusable component
+    console.log('Sort clicked');
   }
 
-  get displayGroups(): WorkGroup[] {
-    return this.filteredGroups;
-  }
-
-  /**
-   * Check if we're showing search results
-   */
-  get isShowingSearchResults(): boolean {
-    return this.searchTerm.trim().length > 0;
-  }
-
-  /**
-   * Get the appropriate empty state image based on context
-   */
-  getEmptyStateImage(): string {
-    if (this.isShowingSearchResults) {
-      return this.getSearchEmptyStateImage();
-    }
-    return this.getWorkGroupsEmptyStateImage();
-  }
-
-  /**
-   * Get the appropriate empty state message based on context
-   */
-  getEmptyStateMessage(): string {
-    if (this.isShowingSearchResults) {
-      return `No groups found matching "${this.searchTerm}". Try adjusting your search terms.`;
-    }
-    return 'No work groups found. Create your first group to get started.';
-  }
-
-  onAdd() {
-    this.showCreateModal = true;
-  }
-
-  handleModalClose() {
+  handleModalClose(): void {
     this.showCreateModal = false;
   }
 
-  handleGroupCreated(data: CreateGroupData) {
+  handleGroupCreated(data: CreateGroupData): void {
     this.isSubmitting = true;
     
-    if (!this.currentWorkplaceId) {
-      this.toastService.error('No workplace selected.');
+    // Get current user to get workplace ID
+    const user = this.authService.getCurrentUser();
+    if (!user || !user.current_workplace_id) {
+      this.toastService.error('No workplace selected. Please select a workplace to continue.');
       this.isSubmitting = false;
       return;
     }
     
+    // Add workplace ID to the data
     const groupData = {
       ...data,
-      workplaceId: this.currentWorkplaceId
+      workplaceId: user.current_workplace_id
     };
     
-    // Show loading toast
-    this.toastService.info('Creating group...', 0);
-    
-    this.workGroupService.createGroup(groupData).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: () => {
-        this.isSubmitting = false;
-        this.showCreateModal = false;
-        this.toastService.clear();
+    this.workGroupService.createGroup(groupData).subscribe({
+      next: (group) => {
         this.toastService.success('Group created successfully!');
-        this.loadGroups(); // Reload groups to show the new one
+        this.showCreateModal = false;
+        this.isSubmitting = false;
+        // Optionally refresh the group list or navigate to the new group
+        this.router.navigate(['/workplace/work-management', group.uuid]);
       },
       error: (error) => {
-        console.error('Error creating group:', error);
-        this.isSubmitting = false;
-        this.toastService.clear();
         this.toastService.error('Failed to create group. Please try again.');
+        this.isSubmitting = false;
+        console.error('Error creating group:', error);
       }
     });
   }

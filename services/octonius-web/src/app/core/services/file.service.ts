@@ -64,8 +64,12 @@ export class FileService {
   }
 
   // Get files for a specific group
-  getGroupFiles(group_id: string): Observable<File[]> {
-    const params = new HttpParams().set('group_id', group_id);
+  getGroupFiles(group_id: string, searchQuery?: string): Observable<File[]> {
+    let params = new HttpParams().set('group_id', group_id);
+    
+    if (searchQuery) {
+      params = params.set('search', searchQuery);
+    }
     
     return this.http.get<any>(`${this.apiUrl}`, { params }).pipe(
       map(response => {

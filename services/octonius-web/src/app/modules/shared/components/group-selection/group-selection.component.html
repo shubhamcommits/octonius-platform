@@ -1,0 +1,220 @@
+<div class="min-h-screen bg-base-100 p-6 animate-fadeIn">
+  <div class="max-w-6xl mx-auto">
+    <!-- Skeleton Loader -->
+    <ng-container *ngIf="isLoading">
+      <div class="animate-pulse space-y-8">
+        <!-- Header skeleton -->
+        <div class="flex flex-col items-center py-8" *ngIf="showHeader">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-12 h-12 bg-base-300 rounded"></div>
+            <div class="h-8 w-24 bg-base-300 rounded"></div>
+          </div>
+          <div class="bg-base-200 border border-base-300 rounded-lg px-8 py-4 w-full max-w-xl">
+            <div class="h-4 bg-base-300 rounded w-3/4 mx-auto"></div>
+          </div>
+        </div>
+
+        <!-- Top bar skeleton -->
+        <div class="mt-4 mb-8 mx-auto max-w-6xl" *ngIf="showSearch || showFilter">
+          <div class="h-12 bg-base-200 rounded-lg"></div>
+        </div>
+
+        <!-- Group cards skeleton -->
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]" class="bg-base-200 border border-base-300 rounded-lg flex flex-col overflow-hidden">
+            <div class="h-40 bg-base-300 w-full"></div>
+            <div class="p-4">
+              <div class="h-6 w-3/4 bg-base-300 rounded mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Header -->
+    <div class="flex flex-col items-center py-8" *ngIf="!isLoading && showHeader">
+      <div class="flex items-center gap-3 mb-2">
+        <img src="https://media.octonius.com/assets/icon_workmanagement.svg" alt="{{title}}" class="w-12 h-12" />
+        <h1 class="text-3xl font-bold">{{title}}</h1>
+      </div>
+      <div class="bg-base-200 border border-base-300 rounded-lg px-8 py-4 text-center max-w-xl">
+        {{description}}
+      </div>
+    </div>
+
+    <!-- Top Bar -->
+    <div class="mt-4 mb-8" *ngIf="!isLoading && (showSearch || showFilter)">
+      <app-topbar 
+        [showFilter]="showFilter" 
+        [showAdd]="showCreateButton" 
+        [showSearch]="showSearch" 
+        [searchPlaceholder]="searchPlaceholder"
+        [availableCategories]="getAvailableCategories()"
+        [availableDepartments]="getAvailableDepartments()"
+        [availableTags]="getAvailableTags()"
+        (filter)="onFilter($event)" 
+        (add)="onCreateGroup()" 
+        (search)="onSearch($event)">
+      </app-topbar>
+    </div>
+
+    <!-- Content -->
+    <div *ngIf="!isLoading">
+      <!-- Empty State -->
+      <div *ngIf="isEmpty" class="flex flex-col items-center py-12">
+        <img [src]="emptyStateImage" alt="No groups" class="w-64 mb-6">
+        <div class="text-base-content/60 text-center max-w-md">
+          {{ isShowingSearchResults ? 'No groups match your search.' : emptyStateMessage }}
+        </div>
+        <button 
+          *ngIf="!isShowingSearchResults && showCreateButton"
+          (click)="onCreateGroup()" 
+          class="btn btn-primary mt-6">
+          <lucide-icon name="Plus" class="w-4 h-4 mr-2"></lucide-icon>
+          {{ createButtonText }}
+        </button>
+      </div>
+
+      <!-- Groups List -->
+      <div *ngIf="!isEmpty">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold">
+            {{ isShowingSearchResults ? 'Search Results' : 'Work Groups' }}
+            <span class="text-base-content/60 text-sm font-normal ml-2">
+              ({{ displayGroups.length }} {{ displayGroups.length === 1 ? 'group' : 'groups' }})
+            </span>
+          </h2>
+          <div *ngIf="showSort" class="relative" (click)="$event.stopPropagation()">
+            <button 
+              (click)="toggleSortDropdown()" 
+              class="btn btn-outline btn-sm transition-all duration-150 hover:btn-primary"
+              [class.btn-active]="showSortDropdown">
+              <lucide-icon name="ArrowUpDown" class="w-4 h-4 mr-2"></lucide-icon>
+              Sort
+              <lucide-icon 
+                [name]="showSortDropdown ? 'ChevronUp' : 'ChevronDown'" 
+                class="w-3 h-3 ml-1 transition-transform duration-150">
+              </lucide-icon>
+            </button>
+            
+            <!-- Sort Dropdown -->
+            <div 
+              *ngIf="showSortDropdown" 
+              class="absolute top-full right-0 mt-1 w-56 bg-base-100 border border-base-300 rounded-lg shadow-xl z-50 animate-in slide-in-from-top-2 duration-200">
+              
+              <div class="p-3">
+                <!-- Sort by section -->
+                <div class="mb-3">
+                  <div class="text-xs font-semibold text-base-content/70 mb-2 px-1 uppercase tracking-wide">Sort by</div>
+                  <div class="space-y-1">
+                    <button 
+                      *ngFor="let option of sortOptions" 
+                      (click)="onSortByChange(option.value)"
+                      class="w-full text-left px-3 py-2 text-sm rounded-md transition-all duration-150 flex items-center justify-between group"
+                      [class]="currentSortBy === option.value ? 'bg-primary text-primary-content shadow-sm' : 'hover:bg-base-200 text-base-content'">
+                      <span class="font-medium">{{ option.label }}</span>
+                      <lucide-icon 
+                        *ngIf="currentSortBy === option.value" 
+                        name="Check" 
+                        class="w-4 h-4 opacity-90">
+                      </lucide-icon>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Divider -->
+                <div class="border-t border-base-300 my-3"></div>
+                
+                <!-- Order section -->
+                <div class="mb-1">
+                  <div class="text-xs font-semibold text-base-content/70 mb-2 px-1 uppercase tracking-wide">Order</div>
+                  <div class="space-y-1">
+                    <button 
+                      (click)="onSortOrderChange('asc')"
+                      class="w-full text-left px-3 py-2 text-sm rounded-md transition-all duration-150 flex items-center justify-between group"
+                      [class]="currentSortOrder === 'asc' ? 'bg-primary text-primary-content shadow-sm' : 'hover:bg-base-200 text-base-content'">
+                      <span class="font-medium">Ascending</span>
+                      <lucide-icon 
+                        *ngIf="currentSortOrder === 'asc'" 
+                        name="Check" 
+                        class="w-4 h-4 opacity-90">
+                      </lucide-icon>
+                    </button>
+                    <button 
+                      (click)="onSortOrderChange('desc')"
+                      class="w-full text-left px-3 py-2 text-sm rounded-md transition-all duration-150 flex items-center justify-between group"
+                      [class]="currentSortOrder === 'desc' ? 'bg-primary text-primary-content shadow-sm' : 'hover:bg-base-200 text-base-content'">
+                      <span class="font-medium">Descending</span>
+                      <lucide-icon 
+                        *ngIf="currentSortOrder === 'desc'" 
+                        name="Check" 
+                        class="w-4 h-4 opacity-90">
+                      </lucide-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div 
+            *ngFor="let group of displayGroups" 
+            (click)="onGroupSelect(group)"
+            class="bg-base-100 border border-base-300 rounded-xl overflow-hidden cursor-pointer flex flex-col group hover:shadow-lg transition-all duration-200">
+            <div class="h-48 w-full bg-base-200 flex items-center justify-center relative overflow-hidden">
+              <!-- Group Image -->
+              <img 
+                *ngIf="group.imageUrl" 
+                [src]="group.imageUrl" 
+                [alt]="group.name"
+                class="w-full h-full object-cover"
+                (error)="onImageError($event, group)">
+              
+              <!-- Default Icon (fallback) -->
+              <div *ngIf="!group.imageUrl" class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <lucide-icon [name]="getGroupIcon(group)" 
+                            [class]="getGroupColor(group)" 
+                            class="w-8 h-8"></lucide-icon>
+              </div>
+              
+              <!-- Member count badge -->
+              <div class="absolute top-3 right-3 bg-primary text-primary-content text-xs px-2 py-1 rounded-full">
+                {{ group.memberCount }} members
+              </div>
+            </div>
+            <div class="p-4 flex-1 flex flex-col justify-center">
+              <div class="text-lg font-medium text-center group-hover:text-primary transition-colors truncate w-full mb-1">
+                {{ group.name }}
+              </div>
+              <div class="text-sm text-base-content/60 text-center mb-2">
+                {{ getGroupDescription(group) }}
+              </div>
+              <div class="flex items-center justify-center gap-2 text-xs text-base-content/60">
+                <lucide-icon name="Users" class="w-3 h-3"></lucide-icon>
+                <span>{{ group.type | titlecase }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Error State -->
+<div *ngIf="error" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+  <div class="bg-base-100 rounded-lg p-8 max-w-md mx-4">
+    <div class="flex flex-col items-center text-center">
+      <div class="w-16 h-16 mb-4 rounded-full bg-error/10 flex items-center justify-center">
+        <lucide-icon name="AlertCircle" class="w-8 h-8 text-error"></lucide-icon>
+      </div>
+      <h3 class="text-lg font-medium text-base-content/80 mb-2">Error loading groups</h3>
+      <p class="text-base-content/60 mb-6">{{ error }}</p>
+      <button class="btn btn-primary" (click)="loadGroups()">
+        <lucide-icon name="RefreshCw" class="w-4 h-4 mr-2"></lucide-icon>
+        Try Again
+      </button>
+    </div>
+  </div>
+</div>

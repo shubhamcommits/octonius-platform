@@ -1,7 +1,10 @@
 import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { FileService } from '../../../../core/services/file.service';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { CommonModule } from '@angular/common';
+import { LucideAngularModule } from 'lucide-angular';
+import { TiptapEditorComponent } from '../../../../core/components/tiptap-editor/tiptap-editor.component';
 
 export interface CreateGroupData {
   name: string;
@@ -23,9 +26,10 @@ export interface CreateGroupData {
 
 @Component({
   selector: 'app-create-group-modal',
-  standalone: false,
+  standalone: true,
   templateUrl: './create-group-modal.component.html',
-  styleUrls: ['./create-group-modal.component.scss']
+  styleUrls: ['./create-group-modal.component.scss'],
+  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule, TiptapEditorComponent]
 })
 export class CreateGroupModalComponent implements OnInit {
   @Input() open = false;
