@@ -101,14 +101,20 @@ export class FilesComponent implements OnInit, OnDestroy {
   }
 
   private async loadGroupFiles(): Promise<void> {
-    if (!this.group) return;
+    if (!this.group || !this.user) return;
 
     try {
       this.isLoading = true
       this.error = null
 
-      // Load group files
-      const files = await firstValueFrom(this.fileService.getGroupFiles(this.group.uuid))
+      // Load group files with required parameters
+      const files = await firstValueFrom(
+        this.fileService.getGroupFiles(
+          this.group.uuid, 
+          this.user.uuid, 
+          this.user.current_workplace_id || ''
+        )
+      )
       
       // Files are already transformed by the backend
       this.files = files
@@ -292,10 +298,17 @@ export class FilesComponent implements OnInit, OnDestroy {
     // Step 2: If local results are limited or query is substantial, perform backend search
     const shouldSearchBackend = this.shouldPerformBackendSearch(query, localResults.length)
     
-    if (shouldSearchBackend && this.group) {
+    if (shouldSearchBackend && this.group && this.user) {
       try {
         this.lastBackendSearch = query
-        const backendResults = await firstValueFrom(this.fileService.getGroupFiles(this.group.uuid, query))
+        const backendResults = await firstValueFrom(
+          this.fileService.getGroupFiles(
+            this.group.uuid, 
+            this.user.uuid, 
+            this.user.current_workplace_id || '', 
+            query
+          )
+        )
         
         // Merge and deduplicate results (backend results take priority)
         const mergedResults = this.mergeSearchResults(backendResults, localResults)
@@ -393,8 +406,10 @@ export class FilesComponent implements OnInit, OnDestroy {
       
       this.toastService.success('Note created successfully!');
       
-      // Navigate to note editor
-      this.router.navigate(['/workplace/note-editor', newNote.id]);
+      // Navigate to note editor with group ID as query parameter
+      this.router.navigate(['/workplace/note-editor', newNote.id], {
+        queryParams: { groupId: this.group.uuid }
+      });
     } catch (error) {
       this.toastService.error('Failed to create note. Please try again.');
       console.error('Error creating note:', error);
@@ -447,7 +462,9 @@ export class FilesComponent implements OnInit, OnDestroy {
 
   onFileClick(file: File): void {
     if (file.type === 'note') {
-      this.router.navigate(['/workplace/note-editor', file.id])
+      this.router.navigate(['/workplace/note-editor', file.id], {
+        queryParams: { groupId: this.group?.uuid }
+      })
     } else {
       this.downloadFile(file)
     }
