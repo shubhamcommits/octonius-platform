@@ -133,6 +133,7 @@ module "bastion" {
   public_subnet_id = module.vpc.public_subnet_ids[0]
   whitelisted_ips  = var.whitelisted_ips
   key_name         = var.bastion_key_name
+  instance_type    = var.bastion_instance_type
 
   # Database connection info
   rds_endpoint      = module.rds.endpoint
