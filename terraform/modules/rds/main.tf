@@ -44,7 +44,36 @@ resource "aws_security_group" "rds" {
   name        = "${var.environment}-${var.project_name}-db-${var.region}"
   description = "Security group for RDS PostgreSQL"
   vpc_id      = var.vpc_id
-  revoke_rules_on_delete = false
+
+  # Allow PostgreSQL traffic from the App Runner security group
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [var.ecs_security_group_id]
+    description     = "Allow PostgreSQL traffic from ECS/App Runner"
+  }
+
+  # Allow PostgreSQL traffic from the bastion security group (if provided)
+  dynamic "ingress" {
+    for_each = var.bastion_security_group_id != null ? [1] : []
+    content {
+      from_port       = 5432
+      to_port         = 5432
+      protocol        = "tcp"
+      security_groups = [var.bastion_security_group_id]
+      description     = "Allow PostgreSQL traffic from bastion host"
+    }
+  }
+
+  # Allow all outbound traffic
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
 
   tags = merge(
     var.tags,
@@ -55,42 +84,7 @@ resource "aws_security_group" "rds" {
 
   lifecycle {
     create_before_destroy = true
-    ignore_changes = [ingress, egress]
   }
-}
-
-# Separate security group rules for better management
-resource "aws_security_group_rule" "rds_ingress_ecs" {
-  type                     = "ingress"
-  from_port                = 5432
-  to_port                  = 5432
-  protocol                 = "tcp"
-  source_security_group_id = var.ecs_security_group_id
-  security_group_id        = aws_security_group.rds.id
-  description              = "Allow PostgreSQL traffic from ECS/App Runner"
-}
-
-# Allow PostgreSQL traffic from the bastion security group (if provided)
-resource "aws_security_group_rule" "rds_ingress_bastion" {
-  count                    = var.bastion_security_group_id != null ? 1 : 0
-  type                     = "ingress"
-  from_port                = 5432
-  to_port                  = 5432
-  protocol                 = "tcp"
-  source_security_group_id = var.bastion_security_group_id
-  security_group_id        = aws_security_group.rds.id
-  description              = "Allow PostgreSQL traffic from bastion host"
-}
-
-# Allow all outbound traffic
-resource "aws_security_group_rule" "rds_egress_all" {
-  type              = "egress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.rds.id
-  description       = "Allow all outbound traffic"
 }
 
 # RDS PostgreSQL Instance
