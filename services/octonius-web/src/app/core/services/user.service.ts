@@ -35,4 +35,18 @@ export class UserService {
       })
     ) as Observable<User>
   }
+
+  /**
+   * Remove a user from a workplace
+   */
+  removeUserFromWorkplace(userId: string, workplaceId: string): Observable<{ success: boolean; message: string }> {
+    return this.http.delete<{ success: boolean; message: string }>(
+      `${this.apiUrl}/${userId}/workplaces/${workplaceId}`
+    ).pipe(
+      catchError(error => {
+        console.error('Error removing user from workplace:', error);
+        return throwError(() => error)
+      })
+    )
+  }
 } 

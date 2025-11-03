@@ -6,6 +6,7 @@ import { WorkloadService } from '../../shared/services/workload.service'
 import { ToastService } from '../../../core/services/toast.service'
 import { CapitalizePipe } from '../../../core/pipes/capitalize.pipe'
 import { ThemeService } from '../../../core/services/theme.service'
+import { AvatarComponent } from '../../../core/components/avatar/avatar.component'
 import { Subscription } from 'rxjs'
 import { User } from '../../../core/services/auth.service'
 
@@ -20,7 +21,7 @@ interface Task {
 @Component({
   selector: 'app-workload',
   standalone: true,
-  imports: [CommonModule, CapitalizePipe],
+  imports: [CommonModule, CapitalizePipe, AvatarComponent],
   templateUrl: './workload.component.html',
   styleUrls: ['./workload.component.scss']
 })

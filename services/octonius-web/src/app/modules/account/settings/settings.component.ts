@@ -9,6 +9,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { RoleService, Role, Permission, PermissionsByCategory, PermissionCategory } from '../../../core/services/role.service';
 import { DialogService } from '../../../core/services/dialog.service';
 import { AvatarService } from '../../../core/services/avatar.service';
+import { UserService } from '../../../core/services/user.service';
 
 @Component({
   selector: 'app-settings',
@@ -105,6 +106,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
   canManageInvitations = false;
   canManageWorkplace = false;
 
+  // Member role change modal
+  showMemberRoleModal = false;
+  selectedMemberForRoleChange: WorkplaceMember | null = null;
+  selectedNewRoleId = '';
+
   // Industries and sizes
   industries = [
     'Technology', 'Healthcare', 'Finance', 'Education', 'Manufacturing',
@@ -144,7 +150,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private dialogService: DialogService,
     private router: Router,
     private route: ActivatedRoute,
-    private avatarService: AvatarService
+    private avatarService: AvatarService,
+    private userService: UserService
   ) {}
 
   ngOnInit(): void {
@@ -544,8 +551,36 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   removeMember(member: WorkplaceMember): void {
-    // TODO: Implement remove member functionality
-    this.toastService.info(`Remove member ${member.first_name} ${member.last_name} functionality coming soon`);
+    if (!this.workplace) return;
+
+    const displayName = `${member.first_name || ''} ${member.last_name || ''}`.trim() || member.email;
+    
+    this.dialogService.confirm({
+      title: 'Remove Member',
+      message: `Are you sure you want to remove ${displayName} from this workplace? This action cannot be undone.`,
+      confirmText: 'Remove Member',
+      cancelText: 'Cancel',
+      type: 'error'
+    }).subscribe(result => {
+      if (result && this.workplace) {
+        this.userService.removeUserFromWorkplace(member.uuid, this.workplace.uuid)
+          .subscribe({
+            next: (response) => {
+              if (response.success) {
+                this.toastService.success(`${displayName} has been removed from the workplace`);
+                // Reload the members list
+                this.loadWorkplaceMembers(this.workplace!.uuid);
+              } else {
+                this.toastService.error(response.message || 'Failed to remove member');
+              }
+            },
+            error: (error) => {
+              console.error('Error removing member:', error);
+              this.toastService.error(error.error?.message || 'Failed to remove member. Please try again.');
+            }
+          });
+      }
+    });
   }
 
   getDisplayDate(date: string | Date | undefined): string {
@@ -1215,8 +1250,60 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   updateMemberRole(member: WorkplaceMember): void {
-    // TODO: Implement role update functionality
-    this.toastService.info('Role update functionality coming soon');
+    if (!this.workplace) return;
+
+    // Load roles if not already loaded
+    if (this.roles.length === 0) {
+      this.loadRoles();
+    }
+
+    this.selectedMemberForRoleChange = member;
+    this.selectedNewRoleId = '';
+    this.showMemberRoleModal = true;
+  }
+
+  closeMemberRoleModal(): void {
+    this.showMemberRoleModal = false;
+    this.selectedMemberForRoleChange = null;
+    this.selectedNewRoleId = '';
+  }
+
+  get selectedMemberRole(): Role | undefined {
+    return this.roles.find(r => r.uuid === this.selectedNewRoleId);
+  }
+
+  confirmRoleChange(): void {
+    if (!this.workplace || !this.selectedMemberForRoleChange || !this.selectedNewRoleId) {
+      this.toastService.error('Please select a role');
+      return;
+    }
+
+    const member = this.selectedMemberForRoleChange;
+    const displayName = `${member.first_name || ''} ${member.last_name || ''}`.trim() || member.email;
+    const newRole = this.roles.find(r => r.uuid === this.selectedNewRoleId);
+    
+    if (!newRole) {
+      this.toastService.error('Invalid role selected');
+      return;
+    }
+
+    this.roleService.assignRole(this.workplace.uuid, member.uuid, this.selectedNewRoleId)
+      .subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.toastService.success(`${displayName}'s role has been updated to ${newRole.name}`);
+            this.closeMemberRoleModal();
+            // Reload the members list
+            this.loadWorkplaceMembers(this.workplace!.uuid);
+          } else {
+            this.toastService.error(response.message || 'Failed to update role');
+          }
+        },
+        error: (error) => {
+          console.error('Error updating member role:', error);
+          this.toastService.error(error.error?.message || 'Failed to update member role. Please try again.');
+        }
+      });
   }
 
   // Add missing methods for template
