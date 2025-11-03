@@ -35,7 +35,7 @@ variable "whitelisted_ips" {
 variable "instance_type" {
   description = "EC2 instance type for bastion host"
   type        = string
-  default     = "t2.nano"
+  default     = "t2.micro"  # 1 vCPU, suitable for most bastion use cases
 }
 
 variable "key_name" {

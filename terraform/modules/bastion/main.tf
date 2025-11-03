@@ -80,8 +80,7 @@ resource "aws_instance" "bastion" {
 
 # Elastic IP for Bastion Host (optional but recommended)
 resource "aws_eip" "bastion" {
-  count = var.enable_elastic_ip ? 1 : 0
-
+  count    = var.enable_elastic_ip ? 1 : 0
   instance = aws_instance.bastion.id
   domain   = "vpc"
 
