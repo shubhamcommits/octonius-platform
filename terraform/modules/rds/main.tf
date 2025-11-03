@@ -44,6 +44,7 @@ resource "aws_security_group" "rds" {
   name        = "${var.environment}-${var.project_name}-db-${var.region}"
   description = "Security group for RDS PostgreSQL"
   vpc_id      = var.vpc_id
+  revoke_rules_on_delete = false
 
   tags = merge(
     var.tags,
@@ -54,6 +55,7 @@ resource "aws_security_group" "rds" {
 
   lifecycle {
     create_before_destroy = true
+    ignore_changes = [ingress, egress]
   }
 }
 
