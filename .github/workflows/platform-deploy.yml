@@ -408,9 +408,13 @@ jobs:
             local attempt=1
             local wait_time=60
             
+            # Enable pipefail to capture exit code from terraform, not tee
+            set -o pipefail
+            
             while [ $attempt -le $max_attempts ]; do
               echo "🔄 Terraform apply attempt $attempt of $max_attempts"
               
+              exit_code=0
               if [[ -f "tfplan-${{ needs.determine-action.outputs.environment }}" ]]; then
                 echo "🚀 Applying saved plan..."
                 terraform apply tfplan-${{ needs.determine-action.outputs.environment }} 2>&1 | tee apply.log || exit_code=$?
@@ -434,12 +438,12 @@ jobs:
                   echo "❌ Max retries reached. App Runner is still in OPERATION_IN_PROGRESS state."
                   exit 1
                 fi
-              elif [ "${exit_code:-0}" -eq 0 ]; then
+              elif [ "${exit_code}" -eq 0 ]; then
                 echo "✅ Terraform apply successful!"
                 break
               else
-                echo "❌ Terraform apply failed with exit code: ${exit_code:-1}"
-                exit ${exit_code:-1}
+                echo "❌ Terraform apply failed with exit code: ${exit_code}"
+                exit ${exit_code}
               fi
             done
           }
