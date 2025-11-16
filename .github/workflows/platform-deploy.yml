@@ -540,7 +540,11 @@ jobs:
           empty_versioned_bucket "$WEB_BUCKET"
           empty_ecr_repository "$ECR_REPOSITORY"
 
-          terraform destroy -var-file=config/terraform.tfvars -var-file=config/ip_whitelist.tfvars -auto-approve
+          terraform destroy \
+            -var-file=config/terraform.tfvars \
+            -var-file=config/ip_whitelist.tfvars \
+            -var force_destroy_skip_final_snapshot=true \
+            -auto-approve
       - name: 📊 Extract Outputs
         if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: extract
