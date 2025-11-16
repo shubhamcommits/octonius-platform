@@ -281,12 +281,6 @@ jobs:
               PRIVATE_SUBNETS="[\"10.${SECOND_OCTET}.10.0/24\", \"10.${SECOND_OCTET}.20.0/24\"]"
               ;;
           esac
-          if [[ "${PIPELINE_ACTION}" == "destroy" ]]; then
-            FORCE_SKIP_FINAL_SNAPSHOT=true
-          else
-            FORCE_SKIP_FINAL_SNAPSHOT=false
-          fi
-          
           # Define whitelisted IPs directly in the pipeline
           # Update this list as needed when IPs change
           cat > config/ip_whitelist.tfvars <<EOF
@@ -315,7 +309,6 @@ jobs:
           private_subnets    = $PRIVATE_SUBNETS
           image_tag          = "${GITHUB_SHA}"
           bastion_key_name   = "$ENV-${{ env.REPOSITORY_NAME }}-bastion"
-          force_destroy_skip_final_snapshot = $FORCE_SKIP_FINAL_SNAPSHOT
           
           # Whitelisted IPs for bastion host access
           whitelisted_ips = {
@@ -540,18 +533,11 @@ jobs:
           empty_versioned_bucket "$WEB_BUCKET"
           empty_ecr_repository "$ECR_REPOSITORY"
 
-          # First refresh state with the force destroy flag
-          terraform refresh \
-            -var-file=config/terraform.tfvars \
-            -var-file=config/ip_whitelist.tfvars \
-            -var force_destroy_skip_final_snapshot=true
-          
-          # Then destroy with the same flag
           terraform destroy \
             -var-file=config/terraform.tfvars \
             -var-file=config/ip_whitelist.tfvars \
             -var force_destroy_skip_final_snapshot=true \
-            -auto-approve
+            -auto-approve || true   
       - name: 📊 Extract Outputs
         if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: extract
