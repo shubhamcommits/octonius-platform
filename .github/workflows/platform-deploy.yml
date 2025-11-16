@@ -533,13 +533,6 @@ jobs:
           empty_versioned_bucket "$WEB_BUCKET"
           empty_ecr_repository "$ECR_REPOSITORY"
 
-          echo "🔄 Applying RDS configuration to ensure skip_final_snapshot is enabled..."
-          terraform apply \
-            -target=module.rds \
-            -var-file=config/terraform.tfvars \
-            -var-file=config/ip_whitelist.tfvars \
-            -auto-approve || true
-
           terraform destroy \
             -var-file=config/terraform.tfvars \
             -var-file=config/ip_whitelist.tfvars \
