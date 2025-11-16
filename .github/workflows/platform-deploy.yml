@@ -537,8 +537,7 @@ jobs:
             -var-file=config/terraform.tfvars \
             -var-file=config/ip_whitelist.tfvars \
             -var force_destroy_skip_final_snapshot=true \
-            -auto-approve || true
-            
+            -auto-approve || true   
       - name: 📊 Extract Outputs
         if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: extract
