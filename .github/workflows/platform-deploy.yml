@@ -103,6 +103,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.env.outputs.environment }}
+      action: ${{ steps.action.outputs.pipeline_action }}
     steps:
       - name: 🎯 Determine Environment
         id: env
@@ -131,24 +132,43 @@ jobs:
           echo "Branch: $BRANCH"
           echo "Environment: $ENV"
           echo "environment=$ENV" >> $GITHUB_OUTPUT
+      - name: ⚖️ Determine Pipeline Action
+        id: action
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.action }}" ]]; then
+            ACTION="${{ github.event.inputs.action }}"
+          else
+            ACTION="deploy"
+          fi
+          echo "Pipeline action: $ACTION"
+          echo "pipeline_action=$ACTION" >> $GITHUB_OUTPUT
 
   docker-image-build:
     name: 🐳 Docker Image Build
     needs: [validate-env, determine-action]
     runs-on: ubuntu-latest
+    env:
+      PIPELINE_ACTION: ${{ needs.determine-action.outputs.action }}
     steps:
+      - name: ℹ️ Skip Docker build for destroy
+        if: ${{ env.PIPELINE_ACTION == 'destroy' }}
+        run: echo "Destroy action detected; skipping Docker image build."
       - name: 📥 Checkout Code
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/checkout@v4
       - name: 🔐 Configure AWS Credentials
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
       - name: 🔑 Login to Amazon ECR
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
       - name: 🏗️ Build and Push Web Image
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: web-image
         run: |
           IMAGE_TAG="${GITHUB_SHA}"
@@ -169,6 +189,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       web_cloudfront_distribution_id: ${{ steps.extract.outputs.WEB_CLOUDFRONT_DISTRIBUTION_ID }}
+    env:
+      PIPELINE_ACTION: ${{ needs.determine-action.outputs.action }}
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
@@ -335,6 +357,7 @@ jobs:
         working-directory: terraform
         run: terraform validate
       - name: 📋 Plan Terraform Changes
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         working-directory: terraform
         run: |
           terraform plan \
@@ -353,7 +376,7 @@ jobs:
             echo "has-changes=false" >> $GITHUB_ENV
           fi
       - name: 🔍 Check App Runner Status
-        if: env.has-changes == 'true'
+        if: ${{ env.PIPELINE_ACTION != 'destroy' && env.has-changes == 'true' }}
         working-directory: terraform
         run: |
           # Try to get the App Runner service ARN from Terraform state
@@ -400,6 +423,7 @@ jobs:
             echo "ℹ️  No existing App Runner service found or unable to retrieve ARN"
           fi
       - name: 🚀 Apply Infrastructure
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         working-directory: terraform
         run: |
           # Function to apply Terraform with retries for App Runner
@@ -451,10 +475,11 @@ jobs:
           # Execute the apply with retry logic
           apply_with_retry
       - name: 🗑️ Destroy Infrastructure
-        if: ${{ github.event.inputs.action == 'destroy' }}
+        if: ${{ env.PIPELINE_ACTION == 'destroy' }}
         working-directory: terraform
         run: terraform destroy -var-file=config/terraform.tfvars -var-file=config/ip_whitelist.tfvars -auto-approve
       - name: 📊 Extract Outputs
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: extract
         working-directory: terraform
         run: |
@@ -464,17 +489,26 @@ jobs:
     name: 🏗️ Angular Build
     needs: [validate-env, determine-action]
     runs-on: ubuntu-latest
+    env:
+      PIPELINE_ACTION: ${{ needs.determine-action.outputs.action }}
     steps:
+      - name: ℹ️ Skip Angular build for destroy
+        if: ${{ env.PIPELINE_ACTION == 'destroy' }}
+        run: echo "Destroy action detected; skipping Angular build."
       - name: 📥 Checkout Code
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/checkout@v4
       - name: ⚙️ Setup Node.js
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: 📦 Install Dependencies
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         working-directory: services/octonius-web
         run: npm install
       - name: 🏗️ Build Angular App
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: build
         working-directory: services/octonius-web
         run: |
@@ -489,6 +523,7 @@ jobs:
           fi
           echo "dist_path=services/octonius-web/dist/octonius-web" >> $GITHUB_OUTPUT
       - name: 📦 Upload Build Artifact
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/upload-artifact@v4
         with:
           name: angular-build-${{ needs.determine-action.outputs.environment }}
@@ -499,21 +534,30 @@ jobs:
     name: 🚀 Deploy Web Assets
     needs: [validate-env, infra, determine-action, angular-build]
     runs-on: ubuntu-latest
+    env:
+      PIPELINE_ACTION: ${{ needs.determine-action.outputs.action }}
     steps:
+      - name: ℹ️ Skip web deployment for destroy
+        if: ${{ env.PIPELINE_ACTION == 'destroy' }}
+        run: echo "Destroy action detected; skipping web deployment."
       - name: 📥 Checkout Code
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/checkout@v4
       - name: 🔐 Configure AWS Credentials
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
       - name: 📦 Download Build Artifacts
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/download-artifact@v4
         with:
           name: angular-build-${{ needs.determine-action.outputs.environment }}
           path: dist
       - name: 🚀 Deploy to S3 (Versioned)
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         run: |
           BUILD_VERSION="$(date +'%Y%m%d%H%M%S')-${GITHUB_SHA:0:7}"
           echo "Build version: $BUILD_VERSION"
@@ -550,9 +594,11 @@ jobs:
           fi
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: 📢 Output Build Version
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         run: |
           echo "## Build Version: $BUILD_VERSION" >> $GITHUB_STEP_SUMMARY
       - name: 🔄 Invalidate CloudFront Cache
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ needs.infra.outputs.web_cloudfront_distribution_id }} \
@@ -569,7 +615,7 @@ jobs:
           echo "## 🚀 Deployment Summary for ${{ needs.determine-action.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔄 Action Performed" >> $GITHUB_STEP_SUMMARY
-          echo "- ${{ github.event.inputs.action || 'deploy' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ needs.determine-action.outputs.action }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📅 Deployment Time" >> $GITHUB_STEP_SUMMARY
           echo "- $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
@@ -586,7 +632,8 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔄 Next Steps" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ github.event.inputs.action }}" == "apply" ]] || [[ -z "${{ github.event.inputs.action }}" ]]; then
+          ACTION="${{ needs.determine-action.outputs.action }}"
+          if [[ "$ACTION" == "deploy" ]]; then
             echo "1. Verify the deployment in the AWS Console" >> $GITHUB_STEP_SUMMARY
             echo "2. Test the application endpoints" >> $GITHUB_STEP_SUMMARY
             echo "3. Monitor CloudWatch metrics for any issues" >> $GITHUB_STEP_SUMMARY
