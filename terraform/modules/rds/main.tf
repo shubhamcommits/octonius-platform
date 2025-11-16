@@ -110,8 +110,8 @@ resource "aws_db_instance" "main" {
   # High availability configuration
   multi_az            = var.multi_az
   publicly_accessible = false
-  skip_final_snapshot = true
-  # final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.environment}-${var.project_name}-db-final"
+  skip_final_snapshot = var.skip_final_snapshot
+  final_snapshot_identifier = "${var.environment}-${var.project_name}-db-final"
 
   # Backup configuration
   backup_retention_period = var.backup_retention_period
