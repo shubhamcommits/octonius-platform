@@ -169,7 +169,7 @@ module "rds" {
   performance_insights_enabled          = true
   performance_insights_retention_period = var.environment == "prod" ? 7 : 7
   deletion_protection                   = var.environment == "prod"
-  skip_final_snapshot                   = var.environment != "prod"
+  skip_final_snapshot                   = var.environment != "prod" || var.force_destroy_skip_final_snapshot
 
   tags = local.common_tags
 }
