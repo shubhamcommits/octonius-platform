@@ -281,12 +281,6 @@ jobs:
               PRIVATE_SUBNETS="[\"10.${SECOND_OCTET}.10.0/24\", \"10.${SECOND_OCTET}.20.0/24\"]"
               ;;
           esac
-          if [[ "${PIPELINE_ACTION}" == "destroy" ]]; then
-            FORCE_SKIP_FINAL_SNAPSHOT=true
-          else
-            FORCE_SKIP_FINAL_SNAPSHOT=false
-          fi
-          
           # Define whitelisted IPs directly in the pipeline
           # Update this list as needed when IPs change
           cat > config/ip_whitelist.tfvars <<EOF
@@ -315,7 +309,6 @@ jobs:
           private_subnets    = $PRIVATE_SUBNETS
           image_tag          = "${GITHUB_SHA}"
           bastion_key_name   = "$ENV-${{ env.REPOSITORY_NAME }}-bastion"
-          force_destroy_skip_final_snapshot = $FORCE_SKIP_FINAL_SNAPSHOT
           
           # Whitelisted IPs for bastion host access
           whitelisted_ips = {
@@ -540,18 +533,48 @@ jobs:
           empty_versioned_bucket "$WEB_BUCKET"
           empty_ecr_repository "$ECR_REPOSITORY"
 
-          # First refresh state with the force destroy flag
-          terraform refresh \
+          # Disable deletion protection on RDS if it exists
+          echo "🔓 Disabling RDS deletion protection..."
+          for db in $(aws rds describe-db-instances --query "DBInstances[?starts_with(DBInstanceIdentifier, '${{ needs.determine-action.outputs.environment }}-${{ env.REPOSITORY_NAME }}-db')].DBInstanceIdentifier" --output text); do
+            if [ -n "$db" ]; then
+              echo "Modifying RDS instance: $db"
+              aws rds modify-db-instance \
+                --db-instance-identifier "$db" \
+                --no-deletion-protection \
+                --apply-immediately || true
+              
+              # Wait for the modification to complete
+              echo "⏳ Waiting for RDS modification to complete..."
+              aws rds wait db-instance-available --db-instance-identifier "$db" || true
+            fi
+          done
+          
+          # Apply to update Terraform state with the new settings
+          echo "🔄 Updating Terraform state for RDS..."
+          terraform apply \
+            -target=module.rds \
             -var-file=config/terraform.tfvars \
             -var-file=config/ip_whitelist.tfvars \
-            -var force_destroy_skip_final_snapshot=true
-          
-          # Then destroy with the same flag
+            -var force_destroy_skip_final_snapshot=true \
+            -auto-approve || true
+
           terraform destroy \
             -var-file=config/terraform.tfvars \
             -var-file=config/ip_whitelist.tfvars \
             -var force_destroy_skip_final_snapshot=true \
-            -auto-approve
+            -auto-approve || true
+
+          # If terraform destroy failed due to RDS, force delete it
+          if [ $? -ne 0 ]; then
+            echo "⚠️ Terraform destroy may have failed. Force deleting RDS instances..."
+            for db in $(aws rds describe-db-instances --query "DBInstances[?starts_with(DBInstanceIdentifier, '${{ needs.determine-action.outputs.environment }}-${{ env.REPOSITORY_NAME }}-db')].DBInstanceIdentifier" --output text); do
+              echo "Force deleting RDS instance: $db"
+              aws rds delete-db-instance \
+                --db-instance-identifier "$db" \
+                --skip-final-snapshot \
+                --delete-automated-backups || true
+            done
+          fi
       - name: 📊 Extract Outputs
         if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: extract

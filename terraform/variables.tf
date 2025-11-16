@@ -109,9 +109,3 @@ variable "domain_name" {
   type        = string
   default     = "octonius.com"
 }
-
-variable "force_destroy_skip_final_snapshot" {
-  description = "Set to true to skip creating final RDS snapshots even in production (used by destroy pipeline)"
-  type        = bool
-  default     = true
-}
