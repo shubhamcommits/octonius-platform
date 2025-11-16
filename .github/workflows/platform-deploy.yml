@@ -540,6 +540,13 @@ jobs:
           empty_versioned_bucket "$WEB_BUCKET"
           empty_ecr_repository "$ECR_REPOSITORY"
 
+          # First refresh state with the force destroy flag
+          terraform refresh \
+            -var-file=config/terraform.tfvars \
+            -var-file=config/ip_whitelist.tfvars \
+            -var force_destroy_skip_final_snapshot=true
+          
+          # Then destroy with the same flag
           terraform destroy \
             -var-file=config/terraform.tfvars \
             -var-file=config/ip_whitelist.tfvars \
