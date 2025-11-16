@@ -113,5 +113,5 @@ variable "domain_name" {
 variable "force_destroy_skip_final_snapshot" {
   description = "Set to true to skip creating final RDS snapshots even in production (used by destroy pipeline)"
   type        = bool
-  default     = false
+  default     = true
 }
