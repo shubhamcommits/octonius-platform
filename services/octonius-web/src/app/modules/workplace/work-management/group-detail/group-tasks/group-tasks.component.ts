@@ -3,11 +3,17 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GroupTaskService, Task, TaskColumn, Board } from '../../../services/group-task.service';
 import { WorkGroupService, WorkGroup } from '../../../services/work-group.service';
+import { CustomFieldService, GroupCustomFieldDefinition } from '../../../services/custom-field.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ModalService } from '../../../../../core/services/modal.service';
 import { environment } from '../../../../../../environments/environment';
 import { CreateTaskModalComponent } from './create-task-modal/create-task-modal.component';
+import { RenameColumnModalComponent } from './rename-column-modal/rename-column-modal.component';
+import { CustomFieldsSettingsModalComponent, CustomFieldsSettingsData } from './custom-fields-settings-modal/custom-fields-settings-modal.component';
+import { CreateSectionModalComponent, CreateSectionData } from './create-section-modal/create-section-modal.component';
+import { DeleteTaskModalComponent, DeleteTaskData } from './delete-task-modal/delete-task-modal.component';
+import { DeleteColumnModalComponent, DeleteColumnData } from './delete-column-modal/delete-column-modal.component';
 
 @Component({
   selector: 'app-group-tasks',
@@ -38,20 +44,20 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
   filterPriority: string = 'all';
   
   // UI state
-  showAddColumnModal = false;
   selectedColumn: any = null;
   selectedTask: Task | null = null;
   columnMenuOpen: { [key: string]: boolean } = {};
   
-  // Column form state
-  newColumnName = '';
-  newColumnColor = '#757575';
+  // Custom fields settings
+  customFieldDefinitions: GroupCustomFieldDefinition[] = [];
+  isLoadingCustomFields = false;
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private taskService: GroupTaskService,
     private workGroupService: WorkGroupService,
+    private customFieldService: CustomFieldService,
     private toastService: ToastService,
     private authService: AuthService,
     private modalService: ModalService,
@@ -89,6 +95,10 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
         this.board = board;
         this.applyFiltersAndSort();
         this.isLoading = false;
+        
+        // Load custom fields settings from group metadata
+        this.loadCustomFieldsSettings();
+        
         // Update scroll state after board is loaded
         setTimeout(() => {
           this.updateScrollState();
@@ -152,28 +162,17 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
         tasks = tasks.filter(task => task.priority === this.filterPriority);
       }
 
-      // Apply sorting
+      // Apply sorting - always sort by creation date (newest first), then by UUID for consistency
       tasks.sort((a, b) => {
-        let compareValue = 0;
-        switch (this.sortBy) {
-          case 'dueDate':
-            compareValue = (a.due_date ? new Date(a.due_date).getTime() : Infinity) - 
-                          (b.due_date ? new Date(b.due_date).getTime() : Infinity);
-            break;
-          case 'priority':
-            const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-            compareValue = priorityOrder[a.priority] - priorityOrder[b.priority];
-            break;
-          case 'assignee':
-            const getFirstAssigneeName = (task: Task) => 
-              task.assignees && task.assignees.length > 0 ? task.assignees[0].first_name : '';
-            compareValue = getFirstAssigneeName(a).localeCompare(getFirstAssigneeName(b));
-            break;
-          case 'created':
-            compareValue = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-            break;
+        // First sort by creation date (newest first)
+        const dateCompare = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (dateCompare !== 0) {
+          return dateCompare;
         }
-        return this.sortOrder === 'asc' ? compareValue : -compareValue;
+        
+        // If creation dates are the same, sort by UUID for consistent ordering
+        const uuidCompare = a.uuid.localeCompare(b.uuid);
+        return uuidCompare;
       });
 
       column.tasks = tasks;
@@ -181,62 +180,100 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // Column actions
-  toggleColumnMenu(columnId: string): void {
+  toggleColumnMenu(columnId: string, event: Event): void {
+    event.stopPropagation();
+    
+    // Close all other menus first
+    this.closeAllColumnMenus();
+    
+    // Toggle the clicked menu
     this.columnMenuOpen[columnId] = !this.columnMenuOpen[columnId];
   }
 
-  editColumn(column: any): void {
-    const newName = prompt('Edit column name:', column.name);
-    if (newName && newName.trim() && this.group) {
-      this.taskService.updateColumn(this.group.uuid, column.id, { name: newName.trim() }).subscribe({
-        next: () => {
-          column.name = newName.trim();
-          this.toastService.success('Column updated successfully');
-        },
-        error: () => {
-          this.toastService.error('Failed to update column');
-        }
-      });
-    }
+  closeAllColumnMenus(): void {
+    this.columnMenuOpen = {};
   }
 
-  deleteColumn(column: any): void {
+  openRenameModal(column: any): void {
+    this.selectedColumn = column;
+    this.modalService.openModal(RenameColumnModalComponent, {
+      currentName: column.name,
+      columnId: column.id,
+      onCloseCallback: () => this.closeRenameModal(),
+      onRenameCallback: (data: any) => this.onRenameColumn(data)
+    });
+    this.closeAllColumnMenus();
+  }
+
+  closeRenameModal(): void {
+    this.modalService.closeModal();
+    this.selectedColumn = null;
+  }
+
+  onRenameColumn(data: { columnId: string; newName: string }): void {
     if (!this.group) return;
-    
-    if (confirm(`Are you sure you want to delete the column "${column.name}"? All tasks will be deleted.`)) {
-      this.taskService.deleteColumn(this.group.uuid, column.id).subscribe({
-        next: () => {
-          this.loadBoard();
-          this.toastService.success('Column deleted successfully');
-        },
-        error: () => {
-          this.toastService.error('Failed to delete column');
+
+    this.taskService.updateColumn(this.group.uuid, data.columnId, { 
+      name: data.newName 
+    }).subscribe({
+      next: () => {
+        if (this.selectedColumn) {
+          this.selectedColumn.name = data.newName;
         }
-      });
-    }
+        this.toastService.success('Column renamed successfully');
+        this.closeRenameModal();
+      },
+      error: () => {
+        this.toastService.error('Failed to rename column');
+      }
+    });
+  }
+
+  openDeleteModal(column: any): void {
+    this.selectedColumn = column;
+    this.closeAllColumnMenus();
+    
+    this.modalService.openModal(DeleteColumnModalComponent, {
+      columnName: column.name,
+      columnId: column.id,
+      onDelete: (data: DeleteColumnData) => this.handleDeleteColumn(data),
+      onCancel: () => this.modalService.closeModal()
+    });
+  }
+
+  private handleDeleteColumn(data: DeleteColumnData): void {
+    if (!this.group) return;
+
+    this.taskService.deleteColumn(this.group.uuid, data.columnId).subscribe({
+      next: () => {
+        this.loadBoard();
+        this.modalService.closeModal();
+        this.toastService.success('Column deleted successfully');
+      },
+      error: () => {
+        this.toastService.error('Failed to delete column');
+      }
+    });
   }
 
   // Add section (column)
   openAddSectionModal(): void {
-    this.showAddColumnModal = true;
-    this.newColumnName = '';
-    this.newColumnColor = '#757575';
+    this.modalService.openModal(CreateSectionModalComponent, {
+      onSave: (data: CreateSectionData) => this.handleCreateSection(data),
+      onCancel: () => this.modalService.closeModal()
+    });
   }
 
-  closeAddSectionModal(): void {
-    this.showAddColumnModal = false;
-  }
-
-  createColumn(): void {
-    if (!this.group || !this.newColumnName.trim()) return;
+  private handleCreateSection(data: CreateSectionData): void {
+    if (!this.group) return;
 
     this.taskService.createColumn(this.group.uuid, {
-      name: this.newColumnName.trim(),
-      color: this.newColumnColor
+      name: data.name,
+      color: data.color
     }).subscribe({
       next: () => {
         this.loadBoard();
-        this.closeAddSectionModal();
+        this.modalService.closeModal();
         this.toastService.success('Column created successfully');
       },
       error: () => {
@@ -247,46 +284,76 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // Task actions
   openAddTaskModal(column: any): void {
+    console.log('Opening add task modal for column:', column);
     this.selectedColumn = column;
-    this.modalService.openModal(CreateTaskModalComponent, {
-      columnId: column.id,
-      onClose: () => this.closeAddTaskModal(),
-      onTaskCreated: (taskData: any) => this.onTaskCreated(taskData)
-    });
+    console.log('Selected column set to:', this.selectedColumn);
+    
+    // Ensure custom fields are loaded before opening modal
+    this.loadCustomFieldsSettings();
+    
+    // Use a small delay to ensure the custom fields are loaded
+    setTimeout(() => {
+      console.log('Opening modal with selectedColumn:', this.selectedColumn);
+      this.modalService.openModal(CreateTaskModalComponent, {
+        columnId: column.id,
+        customFieldDefinitions: [...this.customFieldDefinitions], // Create a copy to ensure reactivity
+        onClose: () => this.closeAddTaskModal(),
+        onTaskCreated: (taskData: any) => this.onTaskCreated(taskData)
+      });
+    }, 100);
   }
 
   onTaskCreated(taskData: any): void {
+    console.log('Task created callback called with data:', taskData);
+    console.log('Selected column at task creation:', this.selectedColumn);
     this.createTask(taskData);
   }
 
   closeAddTaskModal(): void {
+    console.log('Closing add task modal, resetting selectedColumn to null');
     this.selectedColumn = null;
   }
+
 
   resetTaskForm(): void {
     this.selectedColumn = null;
   }
 
   createTask(taskData: any): void {
-    if (!this.group || !this.selectedColumn) return;
+    if (!this.group) {
+      console.error('Cannot create task: No group selected');
+      this.toastService.error('No group selected');
+      return;
+    }
+    
+    // Use the column ID from the task data (passed from modal) instead of selectedColumn
+    const columnId = taskData.column_id || (this.selectedColumn?.id);
+    
+    if (!columnId) {
+      console.error('Cannot create task: No column ID available', { taskData, selectedColumn: this.selectedColumn });
+      this.toastService.error('No column selected for task creation');
+      return;
+    }
 
     const taskPayload = {
       title: taskData.title.trim(),
       description: taskData.description?.trim() || undefined,
-      column_id: this.selectedColumn.id,
+      column_id: columnId,
       priority: taskData.priority,
       status: taskData.status,
       color: taskData.color,
       due_date: taskData.due_date ? new Date(taskData.due_date) : undefined,
-      assigned_to: taskData.assigned_to || undefined
+      assigned_to: taskData.assigned_to || undefined,
+      custom_fields: taskData.customFields || {},
+      metadata: {}
     };
 
     this.taskService.createTask(this.group.uuid, taskPayload).subscribe({
       next: (task) => {
         // Find the column in the board and add the task
         if (this.board && this.board.columns) {
-          const columnId = String(this.selectedColumn.id);
-          const column = this.board.columns.find(col => String(col.id) === columnId);
+          const columnIdStr = String(columnId);
+          const column = this.board.columns.find(col => String(col.id) === columnIdStr);
           
           if (column) {
             // Ensure task has required arrays initialized
@@ -300,8 +367,8 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
               task.attachments = [];
             }
             
-            // Add task and create new array reference to trigger change detection
-            column.tasks = [...column.tasks, task];
+            // Add task to the top and create new array reference to trigger change detection
+            column.tasks = [task, ...column.tasks];
             
             // Force change detection
             this.cdr.detectChanges();
@@ -353,17 +420,28 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
     event.stopPropagation();
     if (!this.group) return;
 
-    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
-      this.taskService.deleteTask(this.group.uuid, task.uuid).subscribe({
-        next: () => {
-          this.loadBoard();
-          this.toastService.success('Task deleted successfully');
-        },
-        error: () => {
-          this.toastService.error('Failed to delete task');
-        }
-      });
-    }
+    this.selectedTask = task;
+    this.modalService.openModal(DeleteTaskModalComponent, {
+      taskTitle: task.title,
+      taskId: task.uuid,
+      onDelete: (data: DeleteTaskData) => this.handleDeleteTask(data),
+      onCancel: () => this.modalService.closeModal()
+    });
+  }
+
+  private handleDeleteTask(data: DeleteTaskData): void {
+    if (!this.group) return;
+
+    this.taskService.deleteTask(this.group.uuid, data.taskId).subscribe({
+      next: () => {
+        this.loadBoard();
+        this.modalService.closeModal();
+        this.toastService.success('Task deleted successfully');
+      },
+      error: () => {
+        this.toastService.error('Failed to delete task');
+      }
+    });
   }
 
   // Existing methods
@@ -534,5 +612,58 @@ export class GroupTasksComponent implements OnInit, OnDestroy, AfterViewInit {
     setTimeout(() => {
       this.updateScrollState();
     }, 100);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    // Close all column menus when clicking outside
+    const target = event.target as HTMLElement;
+    if (!target.closest('.column-menu-container')) {
+      this.closeAllColumnMenus();
+    }
+  }
+
+  // Custom Fields Settings
+  openCustomFieldsSettings(): void {
+    if (!this.group) return;
+
+    this.modalService.openModal(CustomFieldsSettingsModalComponent, {
+      groupId: this.group.uuid,
+      onSave: (data: CustomFieldsSettingsData) => this.handleCustomFieldsSettingsSave(data),
+      onCancel: () => this.modalService.closeModal()
+    });
+  }
+
+  private handleCustomFieldsSettingsSave(data: CustomFieldsSettingsData): void {
+    // The custom fields are already saved via the API in the modal component
+    // Just update the local state
+    this.customFieldDefinitions = data.customFields;
+    this.toastService.success('Custom fields settings saved successfully');
+    this.modalService.closeModal();
+  }
+
+  // Load custom fields settings from group metadata
+  private loadCustomFieldsSettings(): void {
+    if (!this.group) return;
+
+    this.isLoadingCustomFields = true;
+    // Use the new template endpoint for task creation
+    this.customFieldService.getGroupTemplatesForTaskCreation(this.group.uuid).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.customFieldDefinitions = response.data;
+        }
+        this.isLoadingCustomFields = false;
+      },
+      error: (error) => {
+        console.error('Error loading custom field templates:', error);
+        this.isLoadingCustomFields = false;
+      }
+    });
+  }
+
+  // Helper method to get custom field definitions for task creation
+  getCustomFieldDefinitions(): GroupCustomFieldDefinition[] {
+    return this.customFieldDefinitions;
   }
 }

@@ -1,7 +1,7 @@
-<div class="w-full">
-  <h3 class="font-bold text-lg mb-4">Create New Task</h3>
+<div class="w-full max-h-[80vh] flex flex-col">
+  <h3 class="font-bold text-lg mb-4 flex-shrink-0">Create New Task</h3>
   
-  <form (ngSubmit)="onSubmit()" class="space-y-4">
+  <form (ngSubmit)="onSubmit()" class="space-y-4 flex-1 overflow-y-auto px-2 pr-8">
     <!-- Task Title -->
     <div class="form-control">
       <label class="label">
@@ -53,11 +53,11 @@
             <span class="text-sm font-medium flex-grow">{{ getPriorityLabel(taskData.priority) }}</span>
             <lucide-icon name="ChevronDown" class="w-3 h-3 text-base-content/40"></lucide-icon>
           </label>
-          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-200">
-            <li><a (click)="taskData.priority = 'low'" [class.active]="taskData.priority === 'low'">Low</a></li>
-            <li><a (click)="taskData.priority = 'medium'" [class.active]="taskData.priority === 'medium'">Medium</a></li>
-            <li><a (click)="taskData.priority = 'high'" [class.active]="taskData.priority === 'high'">High</a></li>
-            <li><a (click)="taskData.priority = 'urgent'" [class.active]="taskData.priority === 'urgent'">Urgent</a></li>
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-300">
+            <li><a (click)="taskData.priority = 'low'" [class.active]="taskData.priority === 'low'" class="hover:bg-base-200 rounded-md transition-colors duration-150">Low</a></li>
+            <li><a (click)="taskData.priority = 'medium'" [class.active]="taskData.priority === 'medium'" class="hover:bg-base-200 rounded-md transition-colors duration-150">Medium</a></li>
+            <li><a (click)="taskData.priority = 'high'" [class.active]="taskData.priority === 'high'" class="hover:bg-base-200 rounded-md transition-colors duration-150">High</a></li>
+            <li><a (click)="taskData.priority = 'urgent'" [class.active]="taskData.priority === 'urgent'" class="hover:bg-base-200 rounded-md transition-colors duration-150">Urgent</a></li>
           </ul>
         </div>
       </div>
@@ -80,11 +80,11 @@
             <span class="text-sm font-medium flex-grow">{{ getStatusLabel(taskData.status) }}</span>
             <lucide-icon name="ChevronDown" class="w-3 h-3 text-base-content/40"></lucide-icon>
           </label>
-          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-200">
-            <li><a (click)="taskData.status = 'todo'" [class.active]="taskData.status === 'todo'">To Do</a></li>
-            <li><a (click)="taskData.status = 'in_progress'" [class.active]="taskData.status === 'in_progress'">In Progress</a></li>
-            <li><a (click)="taskData.status = 'review'" [class.active]="taskData.status === 'review'">Review</a></li>
-            <li><a (click)="taskData.status = 'done'" [class.active]="taskData.status === 'done'">Done</a></li>
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-300">
+            <li><a (click)="taskData.status = 'todo'" [class.active]="taskData.status === 'todo'" class="hover:bg-base-200 rounded-md transition-colors duration-150">To Do</a></li>
+            <li><a (click)="taskData.status = 'in_progress'" [class.active]="taskData.status === 'in_progress'" class="hover:bg-base-200 rounded-md transition-colors duration-150">In Progress</a></li>
+            <li><a (click)="taskData.status = 'review'" [class.active]="taskData.status === 'review'" class="hover:bg-base-200 rounded-md transition-colors duration-150">Review</a></li>
+            <li><a (click)="taskData.status = 'done'" [class.active]="taskData.status === 'done'" class="hover:bg-base-200 rounded-md transition-colors duration-150">Done</a></li>
           </ul>
         </div>
       </div>
@@ -122,22 +122,116 @@
       </div>
     </div>
 
-    <!-- Actions -->
-    <div class="modal-action">
-      <button 
-        type="button" 
-        class="btn btn-ghost"
-        (click)="onCancel()"
-        [disabled]="isSubmitting">
-        Cancel
-      </button>
-      <button 
-        type="submit" 
-        class="btn btn-primary"
-        [disabled]="!taskData.title.trim() || isSubmitting">
-        <span *ngIf="isSubmitting" class="loading loading-spinner loading-sm"></span>
-        {{ isSubmitting ? 'Creating...' : 'Create Task' }}
-      </button>
+    <!-- Custom Fields -->
+    <div *ngIf="hasCustomFields()" class="space-y-4">
+      <div class="flex items-center gap-2 py-2">
+        <div class="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+          <lucide-icon name="Settings" class="w-3 h-3 text-primary"></lucide-icon>
+        </div>
+        <span class="text-sm font-semibold text-base-content">Custom Fields</span>
+      </div>
+      
+      <div class="space-y-3">
+        <div *ngFor="let field of customFieldDefinitions; trackBy: trackByFieldId" 
+             class="p-4 bg-base-100 rounded-lg border border-base-200 hover:border-primary/20 transition-colors">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-medium flex items-center gap-2">
+                <lucide-icon name="Hash" class="w-3 h-3 text-base-content/60"></lucide-icon>
+                {{ field.name }}
+                <span *ngIf="field.required" class="text-error text-xs">*</span>
+              </span>
+              <span *ngIf="field.description" class="label-text-alt text-base-content/60">
+                {{ field.description }}
+              </span>
+            </label>
+            
+            <!-- Text Field -->
+            <input 
+              *ngIf="field.type === 'text'"
+              type="text" 
+              [(ngModel)]="customFieldsData[field.uuid]"
+              [name]="'customField_' + field.uuid"
+              [placeholder]="field.placeholder || 'Enter ' + field.name"
+              class="input input-bordered w-full" 
+              [class.input-error]="getCustomFieldError(field.uuid)"
+              (blur)="validateCustomField(field)" />
+            
+            <!-- Number Field -->
+            <input 
+              *ngIf="field.type === 'number'"
+              type="number" 
+              [(ngModel)]="customFieldsData[field.uuid]"
+              [name]="'customField_' + field.uuid"
+              [placeholder]="field.placeholder || 'Enter ' + field.name"
+              class="input input-bordered w-full" 
+              [class.input-error]="getCustomFieldError(field.uuid)"
+              (blur)="validateCustomField(field)" />
+            
+            <!-- Dropdown Field -->
+            <div *ngIf="field.type === 'dropdown'" class="custom-dropdown relative w-full">
+              <button 
+                type="button"
+                (click)="toggleDropdown(field.uuid)"
+                [ngClass]="{
+                  'flex items-center gap-2 p-2 rounded-lg border cursor-pointer w-full justify-between': true,
+                  'bg-base-100 border-base-200': !getCustomFieldError(field.uuid),
+                  'bg-error/5 border-error': getCustomFieldError(field.uuid)
+                }">
+                <span>{{ getCustomFieldValue(field.uuid) || (field.placeholder || 'Select ' + field.name) }}</span>
+                <lucide-icon name="ChevronDown" class="w-4 h-4" [class.rotate-180]="isDropdownOpen(field.uuid)"></lucide-icon>
+              </button>
+              
+              <!-- Dropdown Menu -->
+              <div 
+                *ngIf="isDropdownOpen(field.uuid)" 
+                class="absolute top-full left-0 right-0 z-50 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg">
+                <div class="py-1">
+                  <button 
+                    type="button"
+                    (click)="setCustomFieldValue(field.uuid, ''); validateCustomField(field); $event.stopPropagation()"
+                    class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-md transition-colors duration-150"
+                    [class.active]="!getCustomFieldValue(field.uuid)">
+                    {{ field.placeholder || 'Select ' + field.name }}
+                  </button>
+                  <button 
+                    *ngFor="let option of field.options"
+                    type="button"
+                    (click)="setCustomFieldValue(field.uuid, option); validateCustomField(field); $event.stopPropagation()"
+                    class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-md transition-colors duration-150"
+                    [class.active]="getCustomFieldValue(field.uuid) === option">
+                    {{ option }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <label *ngIf="getCustomFieldError(field.uuid)" class="label">
+              <span class="label-text-alt text-error">{{ getCustomFieldError(field.uuid) }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
+
   </form>
+
+  <!-- Actions -->
+  <div class="modal-action flex-shrink-0">
+    <button 
+      type="button" 
+      class="btn btn-ghost"
+      (click)="onCancel()"
+      [disabled]="isSubmitting">
+      Cancel
+    </button>
+    <button 
+      type="submit" 
+      class="btn btn-primary"
+      [disabled]="!taskData.title.trim() || isSubmitting"
+      (click)="onSubmit()">
+      <span *ngIf="isSubmitting" class="loading loading-spinner loading-sm"></span>
+      {{ isSubmitting ? 'Creating...' : 'Create Task' }}
+    </button>
+  </div>
 </div> 

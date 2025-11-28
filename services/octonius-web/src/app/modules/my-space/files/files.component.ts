@@ -10,12 +10,13 @@ import { ToastService } from '../../../core/services/toast.service'
 import { CapitalizePipe } from '../../../core/pipes/capitalize.pipe'
 import { firstValueFrom } from 'rxjs'
 import { SharedModule } from '../../shared/shared.module'
-import { environment } from '../../../../environments/environment'
+import { AvatarComponent } from '../../../core/components/avatar/avatar.component'
+import { AvatarService } from '../../../core/services/avatar.service'
 
 @Component({
   selector: 'app-files',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, CapitalizePipe, SharedModule],
+  imports: [CommonModule, RouterModule, FormsModule, CapitalizePipe, SharedModule, AvatarComponent],
   templateUrl: './files.component.html',
   styleUrls: ['./files.component.scss']
 })
@@ -37,7 +38,8 @@ export class FilesComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private fileService: FileService,
     private userService: UserService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private avatarService: AvatarService
   ) {}
 
   ngOnInit(): void {
@@ -141,41 +143,21 @@ export class FilesComponent implements OnInit, OnDestroy {
     return typeMap[extension] || 'default';
   }
 
-  hasAvatarImage(file: File): boolean {
-    // Check if we have a custom avatar URL
-    if (file.owner_avatar && this.isValidUrl(file.owner_avatar)) {
-      return true;
-    }
-    // If no custom avatar but we have a default avatar URL, use it
-    if ((!file.owner_avatar || !this.isValidUrl(file.owner_avatar)) && environment.defaultAvatarUrl) {
-      return true;
-    }
-    return false;
-  }
-
-  private isValidUrl(url: string | undefined | null): boolean {
-    return !!(url && (url.startsWith('http') || url.startsWith('/') || url.includes('.')));
-  }
-
-  getAvatarUrl(file: File): string {
-    // Return custom avatar if it's a valid URL, otherwise use default
-    if (file.owner_avatar && this.isValidUrl(file.owner_avatar)) {
+  getAvatarUrl(file: File): string | null {
+    // Return custom avatar if it's a valid URL, otherwise return null for initials
+    if (file.owner_avatar && this.avatarService.isValidUrl(file.owner_avatar)) {
       return file.owner_avatar;
     }
-    return environment.defaultAvatarUrl;
+    return null;
   }
 
   getAvatarInitials(file: File): string {
-    // Only show initials if we don't have any image to show
-    if (this.hasAvatarImage(file)) {
-      return '';
-    }
     // If owner_avatar exists but is not a URL (like initials), use it
-    if (file.owner_avatar && !this.isValidUrl(file.owner_avatar)) {
+    if (file.owner_avatar && !this.avatarService.isValidUrl(file.owner_avatar)) {
       return file.owner_avatar;
     }
     // Otherwise generate initials from owner name
-    return this.getInitials(file.owner || 'Unknown User');
+    return this.avatarService.getInitialsFromName(file.owner || 'Unknown User');
   }
 
   getFileTypeIcon(type: string): string {

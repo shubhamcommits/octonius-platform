@@ -125,7 +125,11 @@ import { LucideAngularModule,
   Flag,
   Sun,
   Sunrise,
-  XCircle
+  XCircle,
+  Hash,
+  Asterisk,
+  ToggleLeft,
+  Type
 } from 'lucide-angular'
 import { AuthGuard } from './services/auth.guard'
 import { NonAuthGuard } from './services/non-auth.guard'
@@ -271,6 +275,10 @@ import { InfiniteScrollListComponent } from './components/infinite-scroll-list/i
       Sun,
       Sunrise,
       XCircle,
+      Hash,
+      Asterisk,
+      Type,
+      ToggleLeft
     })
   ],
   exports: [
@@ -281,7 +289,7 @@ import { InfiniteScrollListComponent } from './components/infinite-scroll-list/i
     TiptapEditorComponent,
     RichHtmlDirective,
     LocationPickerComponent,
-    InfiniteScrollListComponent // Export it for use in other modules
+    InfiniteScrollListComponent, // Export it for use in other modules
   ],
   providers: [AuthGuard, NonAuthGuard]
 })

@@ -103,6 +103,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.env.outputs.environment }}
+      action: ${{ steps.action.outputs.pipeline_action }}
     steps:
       - name: 🎯 Determine Environment
         id: env
@@ -131,24 +132,43 @@ jobs:
           echo "Branch: $BRANCH"
           echo "Environment: $ENV"
           echo "environment=$ENV" >> $GITHUB_OUTPUT
+      - name: ⚖️ Determine Pipeline Action
+        id: action
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.action }}" ]]; then
+            ACTION="${{ github.event.inputs.action }}"
+          else
+            ACTION="deploy"
+          fi
+          echo "Pipeline action: $ACTION"
+          echo "pipeline_action=$ACTION" >> $GITHUB_OUTPUT
 
   docker-image-build:
     name: 🐳 Docker Image Build
     needs: [validate-env, determine-action]
     runs-on: ubuntu-latest
+    env:
+      PIPELINE_ACTION: ${{ needs.determine-action.outputs.action }}
     steps:
+      - name: ℹ️ Skip Docker build for destroy
+        if: ${{ env.PIPELINE_ACTION == 'destroy' }}
+        run: echo "Destroy action detected; skipping Docker image build."
       - name: 📥 Checkout Code
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/checkout@v4
       - name: 🔐 Configure AWS Credentials
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
       - name: 🔑 Login to Amazon ECR
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
       - name: 🏗️ Build and Push Web Image
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: web-image
         run: |
           IMAGE_TAG="${GITHUB_SHA}"
@@ -169,6 +189,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       web_cloudfront_distribution_id: ${{ steps.extract.outputs.WEB_CLOUDFRONT_DISTRIBUTION_ID }}
+    env:
+      PIPELINE_ACTION: ${{ needs.determine-action.outputs.action }}
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
@@ -259,7 +281,6 @@ jobs:
               PRIVATE_SUBNETS="[\"10.${SECOND_OCTET}.10.0/24\", \"10.${SECOND_OCTET}.20.0/24\"]"
               ;;
           esac
-          
           # Define whitelisted IPs directly in the pipeline
           # Update this list as needed when IPs change
           cat > config/ip_whitelist.tfvars <<EOF
@@ -271,6 +292,10 @@ jobs:
             "shubham-macbook-vpn" = {
               cidr        = "165.225.0.0/16"
               description = "Shubham Macbook VPN IP"
+            },
+            "shubham-macbook-new-vpn" = {
+              cidr        = "49.205.0.0/16"
+              description = "Shubham Macbook New VPN IP"
             }
           }
           EOF
@@ -294,6 +319,10 @@ jobs:
             "shubham-macbook-vpn" = {
               cidr        = "165.225.0.0/16"
               description = "Shubham Macbook VPN IP"
+            },
+            "shubham-macbook-new-vpn" = {
+              cidr        = "49.205.0.0/16"
+              description = "Shubham Macbook New VPN IP"
             }
           }
           EOF
@@ -327,6 +356,7 @@ jobs:
         working-directory: terraform
         run: terraform validate
       - name: 📋 Plan Terraform Changes
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         working-directory: terraform
         run: |
           terraform plan \
@@ -345,7 +375,7 @@ jobs:
             echo "has-changes=false" >> $GITHUB_ENV
           fi
       - name: 🔍 Check App Runner Status
-        if: env.has-changes == 'true'
+        if: ${{ env.PIPELINE_ACTION != 'destroy' && env.has-changes == 'true' }}
         working-directory: terraform
         run: |
           # Try to get the App Runner service ARN from Terraform state
@@ -392,6 +422,7 @@ jobs:
             echo "ℹ️  No existing App Runner service found or unable to retrieve ARN"
           fi
       - name: 🚀 Apply Infrastructure
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         working-directory: terraform
         run: |
           # Function to apply Terraform with retries for App Runner
@@ -400,9 +431,13 @@ jobs:
             local attempt=1
             local wait_time=60
             
+            # Enable pipefail to capture exit code from terraform, not tee
+            set -o pipefail
+            
             while [ $attempt -le $max_attempts ]; do
               echo "🔄 Terraform apply attempt $attempt of $max_attempts"
               
+              exit_code=0
               if [[ -f "tfplan-${{ needs.determine-action.outputs.environment }}" ]]; then
                 echo "🚀 Applying saved plan..."
                 terraform apply tfplan-${{ needs.determine-action.outputs.environment }} 2>&1 | tee apply.log || exit_code=$?
@@ -426,12 +461,12 @@ jobs:
                   echo "❌ Max retries reached. App Runner is still in OPERATION_IN_PROGRESS state."
                   exit 1
                 fi
-              elif [ "${exit_code:-0}" -eq 0 ]; then
+              elif [ "${exit_code}" -eq 0 ]; then
                 echo "✅ Terraform apply successful!"
                 break
               else
-                echo "❌ Terraform apply failed with exit code: ${exit_code:-1}"
-                exit ${exit_code:-1}
+                echo "❌ Terraform apply failed with exit code: ${exit_code}"
+                exit ${exit_code}
               fi
             done
           }
@@ -439,10 +474,71 @@ jobs:
           # Execute the apply with retry logic
           apply_with_retry
       - name: 🗑️ Destroy Infrastructure
-        if: ${{ github.event.inputs.action == 'destroy' }}
+        if: ${{ env.PIPELINE_ACTION == 'destroy' }}
+        env:
+          WEB_BUCKET: ${{ needs.determine-action.outputs.environment }}-${{ env.REPOSITORY_NAME }}-web-deployment-bucket-${{ env.AWS_REGION }}
+          ECR_REPOSITORY: ${{ needs.determine-action.outputs.environment }}/${{ env.REPOSITORY_NAME }}
         working-directory: terraform
-        run: terraform destroy -var-file=config/terraform.tfvars -var-file=config/ip_whitelist.tfvars -auto-approve
+        run: |
+          set -euo pipefail
+
+          empty_versioned_bucket() {
+            local bucket="$1"
+            if ! aws s3api head-bucket --bucket "$bucket" >/dev/null 2>&1; then
+              echo "Bucket $bucket does not exist, skipping cleanup."
+              return
+            fi
+
+            echo "🧹 Emptying bucket: $bucket"
+            local tmp_file
+            tmp_file=$(mktemp)
+            while true; do
+              aws s3api list-object-versions --bucket "$bucket" > "$tmp_file"
+              local count
+              count=$(jq '[.Versions[]?, .DeleteMarkers[]?] | length' "$tmp_file")
+              if [ "$count" -eq 0 ]; then
+                echo "Bucket $bucket is empty."
+                break
+              fi
+              jq '{Objects: ((.Versions // []) + (.DeleteMarkers // [])) | map({Key, VersionId})}' "$tmp_file" > delete.json
+              aws s3api delete-objects --bucket "$bucket" --delete file://delete.json >/dev/null
+              rm -f delete.json
+            done
+            rm -f "$tmp_file"
+          }
+
+          empty_ecr_repository() {
+            local repository="$1"
+            if ! aws ecr describe-repositories --repository-names "$repository" >/dev/null 2>&1; then
+              echo "Repository $repository does not exist, skipping cleanup."
+              return
+            fi
+
+            echo "🗑️ Removing images from ECR repository: $repository"
+            while true; do
+              local images_json
+              images_json=$(aws ecr list-images --repository-name "$repository" --filter tagStatus=ANY --max-items 1000)
+              local image_count
+              image_count=$(echo "$images_json" | jq '.imageIds | length')
+              if [ "$image_count" -eq 0 ]; then
+                echo "Repository $repository is empty."
+                break
+              fi
+              local ids
+              ids=$(echo "$images_json" | jq -c '.imageIds')
+              aws ecr batch-delete-image --repository-name "$repository" --image-ids "$ids" >/dev/null
+            done
+          }
+
+          empty_versioned_bucket "$WEB_BUCKET"
+          empty_ecr_repository "$ECR_REPOSITORY"
+
+          terraform destroy \
+            -var-file=config/terraform.tfvars \
+            -var-file=config/ip_whitelist.tfvars \
+            -auto-approve || true
       - name: 📊 Extract Outputs
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: extract
         working-directory: terraform
         run: |
@@ -452,17 +548,26 @@ jobs:
     name: 🏗️ Angular Build
     needs: [validate-env, determine-action]
     runs-on: ubuntu-latest
+    env:
+      PIPELINE_ACTION: ${{ needs.determine-action.outputs.action }}
     steps:
+      - name: ℹ️ Skip Angular build for destroy
+        if: ${{ env.PIPELINE_ACTION == 'destroy' }}
+        run: echo "Destroy action detected; skipping Angular build."
       - name: 📥 Checkout Code
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/checkout@v4
       - name: ⚙️ Setup Node.js
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: 📦 Install Dependencies
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         working-directory: services/octonius-web
         run: npm install
       - name: 🏗️ Build Angular App
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         id: build
         working-directory: services/octonius-web
         run: |
@@ -477,6 +582,7 @@ jobs:
           fi
           echo "dist_path=services/octonius-web/dist/octonius-web" >> $GITHUB_OUTPUT
       - name: 📦 Upload Build Artifact
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/upload-artifact@v4
         with:
           name: angular-build-${{ needs.determine-action.outputs.environment }}
@@ -487,21 +593,30 @@ jobs:
     name: 🚀 Deploy Web Assets
     needs: [validate-env, infra, determine-action, angular-build]
     runs-on: ubuntu-latest
+    env:
+      PIPELINE_ACTION: ${{ needs.determine-action.outputs.action }}
     steps:
+      - name: ℹ️ Skip web deployment for destroy
+        if: ${{ env.PIPELINE_ACTION == 'destroy' }}
+        run: echo "Destroy action detected; skipping web deployment."
       - name: 📥 Checkout Code
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/checkout@v4
       - name: 🔐 Configure AWS Credentials
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
       - name: 📦 Download Build Artifacts
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         uses: actions/download-artifact@v4
         with:
           name: angular-build-${{ needs.determine-action.outputs.environment }}
           path: dist
       - name: 🚀 Deploy to S3 (Versioned)
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         run: |
           BUILD_VERSION="$(date +'%Y%m%d%H%M%S')-${GITHUB_SHA:0:7}"
           echo "Build version: $BUILD_VERSION"
@@ -538,9 +653,11 @@ jobs:
           fi
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: 📢 Output Build Version
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         run: |
           echo "## Build Version: $BUILD_VERSION" >> $GITHUB_STEP_SUMMARY
       - name: 🔄 Invalidate CloudFront Cache
+        if: ${{ env.PIPELINE_ACTION != 'destroy' }}
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ needs.infra.outputs.web_cloudfront_distribution_id }} \
@@ -557,7 +674,7 @@ jobs:
           echo "## 🚀 Deployment Summary for ${{ needs.determine-action.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔄 Action Performed" >> $GITHUB_STEP_SUMMARY
-          echo "- ${{ github.event.inputs.action || 'deploy' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ needs.determine-action.outputs.action }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📅 Deployment Time" >> $GITHUB_STEP_SUMMARY
           echo "- $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
@@ -574,7 +691,8 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔄 Next Steps" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ github.event.inputs.action }}" == "apply" ]] || [[ -z "${{ github.event.inputs.action }}" ]]; then
+          ACTION="${{ needs.determine-action.outputs.action }}"
+          if [[ "$ACTION" == "deploy" ]]; then
             echo "1. Verify the deployment in the AWS Console" >> $GITHUB_STEP_SUMMARY
             echo "2. Test the application endpoints" >> $GITHUB_STEP_SUMMARY
             echo "3. Monitor CloudWatch metrics for any issues" >> $GITHUB_STEP_SUMMARY

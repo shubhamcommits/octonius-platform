@@ -22,6 +22,8 @@ import TextAlign from '@tiptap/extension-text-align'
 import CharacterCount from '@tiptap/extension-character-count'
 import BubbleMenu from '@tiptap/extension-bubble-menu'
 import TextStyle from '@tiptap/extension-text-style'
+import Mention from '@tiptap/extension-mention'
+import { Node as TiptapNode } from '@tiptap/core'
 import { Subscription } from 'rxjs'
 
 import { UserService } from '../../../core/services/user.service'
@@ -32,6 +34,180 @@ import { AuthService } from '../../../core/services/auth.service'
 import { ThemeService } from '../../../core/services/theme.service'
 import { environment } from '../../../../environments/environment'
 import { SharedModule } from '../../shared/shared.module'
+import { UserMentionService, UserMentionSuggestion } from '../../../core/services/user-mention.service'
+import { FileMentionService, FileMentionSuggestion } from '../../../core/services/file-mention.service'
+
+// Custom mention node definitions
+const UserMentionNode = TiptapNode.create({
+  name: 'userMention',
+  group: 'inline',
+  inline: true,
+  atom: true,
+  addAttributes() {
+    return {
+      id: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-id'),
+        renderHTML: attributes => {
+          if (!attributes['id']) {
+            return {}
+          }
+          return {
+            'data-id': attributes['id'],
+          }
+        },
+      },
+      label: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-label'),
+        renderHTML: attributes => {
+          if (!attributes['label']) {
+            return {}
+          }
+          return {
+            'data-label': attributes['label'],
+          }
+        },
+      },
+      avatar: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-avatar'),
+        renderHTML: attributes => {
+          if (!attributes['avatar']) {
+            return {}
+          }
+          return {
+            'data-avatar': attributes['avatar'],
+          }
+        },
+      },
+      email: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-email'),
+        renderHTML: attributes => {
+          if (!attributes['email']) {
+            return {}
+          }
+          return {
+            'data-email': attributes['email'],
+          }
+        },
+      },
+      type: {
+        default: 'user',
+        parseHTML: element => element.getAttribute('data-type'),
+        renderHTML: attributes => {
+          return {
+            'data-type': attributes['type'],
+          }
+        },
+      },
+    }
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'span[data-type="user"]',
+      },
+    ]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'span',
+      {
+        ...HTMLAttributes,
+        class: 'userMention mention-user bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium',
+      },
+      `@${HTMLAttributes['data-label'] || 'User'}`,
+    ]
+  },
+})
+
+const FileMentionNode = TiptapNode.create({
+  name: 'fileMention',
+  group: 'inline',
+  inline: true,
+  atom: true,
+  addAttributes() {
+    return {
+      id: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-id'),
+        renderHTML: attributes => {
+          if (!attributes['id']) {
+            return {}
+          }
+          return {
+            'data-id': attributes['id'],
+          }
+        },
+      },
+      label: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-label'),
+        renderHTML: attributes => {
+          if (!attributes['label']) {
+            return {}
+          }
+          return {
+            'data-label': attributes['label'],
+          }
+        },
+      },
+      icon: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-icon'),
+        renderHTML: attributes => {
+          if (!attributes['icon']) {
+            return {}
+          }
+          return {
+            'data-icon': attributes['icon'],
+          }
+        },
+      },
+      type: {
+        default: 'file',
+        parseHTML: element => element.getAttribute('data-type'),
+        renderHTML: attributes => {
+          return {
+            'data-type': attributes['type'],
+          }
+        },
+      },
+      size: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-size'),
+        renderHTML: attributes => {
+          if (!attributes['size']) {
+            return {}
+          }
+          return {
+            'data-size': attributes['size'],
+          }
+        },
+      },
+    }
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'span[data-type="file"]',
+      },
+    ]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'span',
+      {
+        ...HTMLAttributes,
+        class: 'fileMention mention-file bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm font-medium cursor-pointer hover:bg-secondary/20 transition-colors',
+        style: 'cursor: pointer;',
+      },
+      `#${HTMLAttributes['data-label'] || 'File'}`,
+    ]
+  },
+})
 
 @Component({
   selector: 'app-note-editor',
@@ -99,6 +275,13 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   uploadedImages: Map<string, string> = new Map() // URL -> File ID mapping
   private processedDeletions: Set<string> = new Set() // Track processed deletions to avoid duplicates
   private deletionCheckTimer: any = null // Debounce timer for deletion checks
+
+  // Mention-related properties
+  userMentionSuggestions: UserMentionSuggestion[] = []
+  fileMentionSuggestions: FileMentionSuggestion[] = []
+  showUserMentions = false
+  showFileMentions = false
+  currentMentionQuery = ''
   
   // Common emojis for quick access
   commonEmojis = [
@@ -134,7 +317,9 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private fileService: FileService,
     private authService: AuthService,
     private themeService: ThemeService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private userMentionService: UserMentionService,
+    private fileMentionService: FileMentionService
   ) {}
   
   ngOnInit(): void {
@@ -161,6 +346,23 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.userName = user.first_name || user.email?.split('@')[0] || 'User'
         this.userId = user.uuid
         this.workplaceId = user.current_workplace_id || ''
+        
+        // Set context for mention services
+        // Check if we're in a workplace context with a group ID
+        const groupId = this.route.snapshot.queryParamMap.get('groupId')
+        const currentUrl = this.router.url
+        
+        if (currentUrl.startsWith('/workplace/note-editor') && groupId) {
+          // We're in a workplace note editor with a group context
+          console.log('Setting workplace group context for mentions:', { groupId, workplaceId: this.workplaceId, userId: this.userId })
+          this.userMentionService.setContext(groupId, this.workplaceId)
+          this.fileMentionService.setContext(groupId, this.workplaceId, this.userId)
+        } else {
+          // Default to "my space" context
+          console.log('Setting myspace context for mentions')
+          this.userMentionService.setContext('myspace', undefined)
+          this.fileMentionService.setContext('myspace', undefined, this.userId)
+        }
         
         console.log('User properties set:', {
           userId: this.userId,
@@ -232,6 +434,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     // Small delay to ensure DOM is ready
     setTimeout(() => {
       this.initializeEditor()
+      this.setupFileMentionClickListeners()
     }, 100)
   }
 
@@ -309,6 +512,9 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
         element: editorElement,
         enableInputRules: true,
         extensions: [
+          // Add custom mention nodes first
+          UserMentionNode,
+          FileMentionNode,
           StarterKit.configure({
             heading: {
               levels: [1, 2, 3],
@@ -416,6 +622,180 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
               duration: 100,
               placement: 'top'
             }
+          }),
+          // User mentions (@)
+          Mention.configure({
+            HTMLAttributes: {
+              class: 'userMention mention-user bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium',
+            },
+            suggestion: {
+              char: '@',
+              allowSpaces: false,
+              startOfLine: false,
+          command: ({ editor, range, props }: any) => {
+            editor
+              .chain()
+              .focus()
+              .deleteRange(range)
+              .insertContent([
+                {
+                  type: 'userMention',
+                  attrs: {
+                    id: props.id,
+                    label: props.label,
+                    avatar: props.avatar,
+                    email: props.email,
+                    type: 'user'
+                  }
+                },
+                {
+                  type: 'text',
+                  text: ' '
+                }
+              ])
+              .run()
+          },
+              items: ({ query }: any) => {
+                console.log('User mention query:', query);
+                this.currentMentionQuery = query
+                this.showUserMentions = true
+                this.showFileMentions = false
+                
+                return new Promise((resolve) => {
+                  this.userMentionService.getUserSuggestions(query).subscribe({
+                    next: (suggestions: any) => {
+                      console.log('User suggestions received:', suggestions);
+                      this.userMentionSuggestions = suggestions
+                      resolve(suggestions)
+                    },
+                    error: (error) => {
+                      console.error('Error fetching user suggestions:', error);
+                      this.userMentionSuggestions = []
+                      resolve([])
+                    }
+                  })
+                })
+              },
+              render: () => {
+                let component: HTMLElement
+                let popup: any
+
+                return {
+                  onStart: (props: any) => {
+                    component = this.createMentionComponent('user', props)
+                    popup = this.createMentionPopup(component)
+                  },
+                  onUpdate: (props: any) => {
+                    if (!component || !popup) return
+                    
+                    // Update component with new props
+                    component.innerHTML = ''
+                    const newComponent = this.createMentionComponent('user', props)
+                    component.appendChild(newComponent)
+                  },
+                  onKeyDown: (props: any) => {
+                    if (props.event.key === 'Escape') {
+                      popup.hide()
+                      return true
+                    }
+                    return false
+                  },
+                  onExit: () => {
+                    if (popup) {
+                      popup.destroy()
+                    }
+                    this.hideAllMentionPopups()
+                  },
+                }
+              },
+            },
+          }),
+          // File mentions (#)
+          Mention.configure({
+            HTMLAttributes: {
+              class: 'fileMention mention-file bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm font-medium',
+            },
+            suggestion: {
+              char: '#',
+              allowSpaces: false,
+              startOfLine: false,
+              command: ({ editor, range, props }: any) => {
+                editor
+                  .chain()
+                  .focus()
+                  .deleteRange(range)
+                  .insertContent([
+                    {
+                      type: 'fileMention',
+                      attrs: {
+                        id: props.id,
+                        label: props.label,
+                        icon: props.icon,
+                        type: 'file',
+                        size: props.size
+                      }
+                    },
+                    {
+                      type: 'text',
+                      text: ' '
+                    }
+                  ])
+                  .run()
+              },
+              items: ({ query }: any) => {
+                console.log('File mention query:', query);
+                this.currentMentionQuery = query
+                this.showUserMentions = false
+                this.showFileMentions = true
+                
+                return new Promise((resolve) => {
+                  this.fileMentionService.getFileSuggestions(query).subscribe({
+                    next: (suggestions: any) => {
+                      console.log('File suggestions received:', suggestions);
+                      this.fileMentionSuggestions = suggestions
+                      resolve(suggestions)
+                    },
+                    error: (error) => {
+                      console.error('Error fetching file suggestions:', error);
+                      this.fileMentionSuggestions = []
+                      resolve([])
+                    }
+                  })
+                })
+              },
+              render: () => {
+                let component: HTMLElement
+                let popup: any
+
+                return {
+                  onStart: (props: any) => {
+                    component = this.createMentionComponent('file', props)
+                    popup = this.createMentionPopup(component)
+                  },
+                  onUpdate: (props: any) => {
+                    if (!component || !popup) return
+                    
+                    // Update component with new props
+                    component.innerHTML = ''
+                    const newComponent = this.createMentionComponent('file', props)
+                    component.appendChild(newComponent)
+                  },
+                  onKeyDown: (props: any) => {
+                    if (props.event.key === 'Escape') {
+                      popup.hide()
+                      return true
+                    }
+                    return false
+                  },
+                  onExit: () => {
+                    if (popup) {
+                      popup.destroy()
+                    }
+                    this.hideAllMentionPopups()
+                  },
+                }
+              },
+            },
           })
         ],
         editorProps: {
@@ -972,7 +1352,23 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     // Clean up orphaned images before navigating away
     this.cleanupOrphanedImages()
     
-    this.router.navigate(['/myspace/files'])
+    // Determine the correct back navigation based on current route
+    const currentUrl = this.router.url
+    if (currentUrl.startsWith('/workplace/note-editor')) {
+      // If we're in workplace note editor, try to get the group ID from query parameters
+      const groupId = this.route.snapshot.queryParamMap.get('groupId')
+      
+      if (groupId) {
+        // Navigate back to the specific group's files page
+        this.router.navigate(['/workplace/files', groupId])
+      } else {
+        // Fallback to general workplace files if no group ID available
+        this.router.navigate(['/workplace/files'])
+      }
+    } else {
+      // Default to my-space files for backward compatibility
+      this.router.navigate(['/myspace/files'])
+    }
   }
 
   // Tiptap specific methods
@@ -1688,4 +2084,429 @@ export class NoteEditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
     return baseClasses.join(' ')
   }
+
+  // Mention helper methods
+  private createMentionComponent(type: 'user' | 'file', props: any): HTMLElement {
+    const container = document.createElement('div')
+    container.className = 'mention-popup bg-base-100 border border-base-300 rounded-lg shadow-xl p-2 max-w-xs'
+    
+    const suggestions = type === 'user' ? this.userMentionSuggestions : this.fileMentionSuggestions
+    
+    if (suggestions.length === 0) {
+      const noResultsText = type === 'user' ? 'No users found' : 'No files found'
+      container.innerHTML = `<div class="text-sm text-base-content/60 p-2">${noResultsText}</div>`
+      return container
+    }
+    
+    suggestions.forEach((suggestion: any, index: number) => {
+      const item = document.createElement('div')
+      item.className = `mention-item flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-base-200 ${index === props.selectedIndex ? 'bg-primary/10' : ''}`
+      
+      if (type === 'user') {
+        item.innerHTML = `
+          <div class="avatar">
+            <div class="w-6 h-6 rounded-full">
+              <img src="${suggestion.avatar || environment.defaultAvatarUrl}" alt="${suggestion.label}" />
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-base-content truncate">${suggestion.label}</div>
+            <div class="text-xs text-base-content/60 truncate">${suggestion.email || ''}</div>
+          </div>
+        `
+        
+        item.addEventListener('click', () => {
+          console.log('🔍 Click handler - type:', type);
+          console.log('🔍 Click handler - suggestion:', suggestion);
+          console.log('🔍 Click handler - props:', props);
+          
+          if (type === 'user') {
+            this.insertUserMention(suggestion as UserMentionSuggestion, props)
+          } else if (type === 'file') {
+            this.insertFileMention(suggestion as FileMentionSuggestion, props)
+          }
+          // Close the dropdown after selection
+          this.hideAllMentionPopups()
+        })
+      } else {
+        console.log('🔍 File suggestion details:', {
+          label: suggestion.label,
+          type: suggestion.type,
+          icon: suggestion.icon,
+          size: suggestion.size
+        });
+        
+        // Create the icon container with SVG icon
+        const iconContainer = document.createElement('div');
+        iconContainer.className = 'w-8 h-8 flex items-center justify-center flex-shrink-0';
+        
+        // Create SVG icon based on the suggestion icon
+        const iconSvg = this.createFileIconSVG(suggestion.icon || 'file');
+        iconContainer.appendChild(iconSvg);
+        
+        // Create the text container
+        const textContainer = document.createElement('div');
+        textContainer.className = 'flex-1 min-w-0';
+        textContainer.innerHTML = `
+          <div class="text-sm font-medium text-base-content truncate">${suggestion.label}</div>
+          <div class="text-xs text-base-content/60">${suggestion.type} ${suggestion.size ? `• ${suggestion.size}` : ''}</div>
+        `;
+        
+        // Append both containers to the item
+        item.appendChild(iconContainer);
+        item.appendChild(textContainer);
+        
+        item.addEventListener('click', () => {
+          this.insertFileMention(suggestion as FileMentionSuggestion, props)
+          // Close the dropdown after selection
+          this.hideAllMentionPopups()
+        })
+      }
+      
+      container.appendChild(item)
+    })
+    
+    return container
+  }
+
+  private createMentionPopup(component: HTMLElement): any {
+    // This is a simplified popup implementation
+    // In a real implementation, you'd use a proper popup library like Tippy.js
+    const popup = {
+      element: component,
+      isVisible: false,
+      show: () => {
+        // Prevent duplicate popups
+        if (popup.isVisible) {
+          return
+        }
+        
+        // Remove any existing popups first
+        this.hideAllMentionPopups()
+        
+        // Add to document.body for better positioning control
+        document.body.appendChild(component)
+        popup.isVisible = true
+        
+        // Find the text area and position relative to it
+        const editorElement = this.editorElement?.nativeElement || document.body
+        const proseMirror = editorElement.querySelector('.ProseMirror')
+        
+        if (proseMirror) {
+          // Try to find the actual text input element within ProseMirror
+          const textInput = proseMirror.querySelector('p') || proseMirror.querySelector('div') || proseMirror
+          const textInputRect = textInput.getBoundingClientRect()
+          
+          // Position the dropdown right below the text input, but only if it's visible
+          // Check if the text input is actually visible and in the viewport
+          if (textInputRect.top > 0 && textInputRect.bottom > 0) {
+            component.style.position = 'fixed'
+            component.style.top = `${textInputRect.bottom}px`
+            component.style.left = `${textInputRect.left}px`
+            component.style.zIndex = '99999'
+            
+            console.log('🔍 Text input found and visible, positioning dropdown at:', {
+              top: textInputRect.bottom,
+              left: textInputRect.left,
+              textInputRect: textInputRect,
+              proseMirrorRect: proseMirror.getBoundingClientRect()
+            });
+          } else {
+            // If text input is not visible, position it at the top of the editor
+            const editorRect = editorElement.getBoundingClientRect()
+            component.style.position = 'fixed'
+            component.style.top = `${editorRect.top + 2}px`
+            component.style.left = `${editorRect.left}px`
+            component.style.zIndex = '99999'
+            
+            console.log('🔍 Text input not visible, positioning at editor top:', {
+              top: editorRect.top + 2,
+              left: editorRect.left,
+              editorRect: editorRect
+            });
+          }
+        } else {
+          // Fallback positioning - position at the editor container
+          const editorRect = editorElement.getBoundingClientRect()
+          component.style.position = 'fixed'
+          component.style.top = `${editorRect.top + 2}px`
+          component.style.left = `${editorRect.left}px`
+          component.style.zIndex = '99999'
+          
+          console.log('🔍 ProseMirror not found, positioning at editor:', {
+            top: editorRect.top + 2,
+            left: editorRect.left,
+            editorRect: editorRect
+          });
+        }
+        
+        // Add click outside handler to close dropdown
+        this.addClickOutsideHandler(component, () => {
+          popup.hide()
+        })
+        
+        // Add scroll handler to close dropdown
+        this.addScrollHandler(() => {
+          popup.hide()
+        })
+        
+        // Prevent scroll from bubbling up when scrolling within the dropdown
+        component.addEventListener('wheel', (event) => {
+          event.stopPropagation()
+        }, { passive: true })
+        
+        console.log('🔍 Mention popup created and shown:', component);
+      },
+      hide: () => {
+        if (component.parentNode) {
+          component.parentNode.removeChild(component)
+        }
+        popup.isVisible = false
+        this.removeClickOutsideHandler()
+        this.removeScrollHandler()
+      },
+      destroy: () => {
+        popup.hide()
+      }
+    }
+    
+    popup.show()
+    return popup
+  }
+
+  private hideAllMentionPopups(): void {
+    // Remove all existing mention popups
+    const existingPopups = document.querySelectorAll('.mention-popup')
+    existingPopups.forEach(popup => {
+      if (popup.parentNode) {
+        popup.parentNode.removeChild(popup)
+      }
+    })
+    
+    this.showUserMentions = false
+    this.showFileMentions = false
+  }
+
+  private clickOutsideHandler: ((event: MouseEvent) => void) | null = null
+  private scrollHandler: ((event: Event) => void) | null = null
+
+  private addClickOutsideHandler(element: HTMLElement, callback: () => void): void {
+    this.clickOutsideHandler = (event: MouseEvent) => {
+      if (!element.contains(event.target as Node)) {
+        callback()
+      }
+    }
+    document.addEventListener('mousedown', this.clickOutsideHandler)
+  }
+
+  private removeClickOutsideHandler(): void {
+    if (this.clickOutsideHandler) {
+      document.removeEventListener('mousedown', this.clickOutsideHandler)
+      this.clickOutsideHandler = null
+    }
+  }
+
+  private addScrollHandler(callback: () => void): void {
+    this.scrollHandler = (event: Event) => {
+      // Only close dropdown if scrolling outside of the dropdown
+      const target = event.target as Element
+      const dropdown = document.querySelector('.mention-popup')
+      
+      if (dropdown && !dropdown.contains(target)) {
+        callback()
+      }
+    }
+    if (this.scrollHandler) {
+      window.addEventListener('scroll', this.scrollHandler, true)
+    }
+  }
+
+  private removeScrollHandler(): void {
+    if (this.scrollHandler) {
+      window.removeEventListener('scroll', this.scrollHandler, true)
+      this.scrollHandler = null
+    }
+  }
+
+  private insertUserMention(user: UserMentionSuggestion, props: any): void {
+    console.log('🔍 insertUserMention called with user:', user);
+    console.log('🔍 insertUserMention called with props:', props);
+    
+    const { editor, range } = props
+    
+    // Insert the mention with proper styling
+    editor
+      .chain()
+      .focus()
+      .deleteRange(range)
+      .insertContent([
+        {
+          type: 'userMention',
+          attrs: {
+            id: user.id,
+            label: user.label,
+            avatar: user.avatar,
+            email: user.email,
+            type: 'user'
+          }
+        },
+        {
+          type: 'text',
+          text: ' '
+        }
+      ])
+      .run()
+  }
+
+  private insertFileMention(file: FileMentionSuggestion, props: any): void {
+    const { editor, range } = props
+    
+    // Insert the mention with proper styling
+    editor
+      .chain()
+      .focus()
+      .deleteRange(range)
+      .insertContent([
+        {
+          type: 'fileMention',
+          attrs: {
+            id: file.id,
+            label: file.label,
+            icon: file.icon,
+            type: 'file',
+            size: file.size
+          }
+        },
+        {
+          type: 'text',
+          text: ' '
+        }
+      ])
+      .run()
+  }
+
+  private createFileIconSVG(iconName: string): SVGElement {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '20');
+    svg.setAttribute('height', '20');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('class', 'w-5 h-5 text-base-content/70');
+
+    // Icon paths based on Lucide icons
+    const iconPaths: { [key: string]: string } = {
+      'file': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z',
+      'file-pen-line': 'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z',
+      'file-image': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M18 13a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM6 20l4-8 3 3 4-6 3 4',
+      'file-video': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M10 11l5 3-5 3v-6z',
+      'file-audio': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M9 18v-6a3 3 0 1 1 6 0v6M9 12h6',
+      'file-text': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M16 13H8M16 17H8M10 9H8',
+      'file-keynote': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M8 13h8M8 17h8M8 9h8',
+      'file-archive': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M4 7h16M10 11h4M10 15h4M10 19h4',
+      'file-code': 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M10 9l-2 2 2 2M14 9l2 2-2 2',
+      'folder': 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'
+    };
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', iconPaths[iconName] || iconPaths['file']);
+    svg.appendChild(path);
+
+    return svg;
+  }
+
+  private setupFileMentionClickListeners(): void {
+    // Set up click listeners for file mentions
+    setTimeout(() => {
+      this.attachClickListenersToFileMentions();
+      
+      // Set up MutationObserver to handle dynamically added file mentions
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach((node) => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                const element = node as Element;
+                // Check if the added node is a file mention or contains file mentions
+                if (element.classList?.contains('fileMention') && element.getAttribute('data-type') === 'file') {
+                  this.attachClickListenerToFileMention(element as HTMLElement);
+                } else {
+                  // Check for file mentions within the added node
+                  const fileMentions = element.querySelectorAll?.('.fileMention[data-type="file"]');
+                  fileMentions?.forEach(mention => this.attachClickListenerToFileMention(mention as HTMLElement));
+                }
+              }
+            });
+          }
+        });
+      });
+      
+      // Start observing the editor element for changes
+      if (this.editorElement?.nativeElement) {
+        observer.observe(this.editorElement.nativeElement, {
+          childList: true,
+          subtree: true
+        });
+      }
+    }, 200);
+  }
+
+  private attachClickListenersToFileMentions(): void {
+    const fileMentions = document.querySelectorAll('.fileMention[data-type="file"]');
+    fileMentions.forEach(mention => this.attachClickListenerToFileMention(mention as HTMLElement));
+  }
+
+  private attachClickListenerToFileMention(mention: HTMLElement): void {
+    // Remove existing listeners to avoid duplicates
+    mention.removeEventListener('click', this.handleFileMentionClick);
+    
+    // Add click listener
+    mention.addEventListener('click', this.handleFileMentionClick);
+    
+    // Add cursor pointer styling
+    mention.style.cursor = 'pointer';
+  }
+
+  private handleFileMentionClick = (event: Event): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const mention = event.target as HTMLElement;
+    const fileId = mention.getAttribute('data-id');
+    const fileLabel = mention.getAttribute('data-label');
+    
+    if (fileId) {
+      this.navigateToFile(fileId, fileLabel || undefined);
+    }
+  }
+
+  private navigateToFile(fileId: string, fileLabel?: string): void {
+    console.log('Navigating to file:', { fileId, fileLabel });
+    
+    // Determine the current context to decide which route to use
+    const currentUrl = this.router.url;
+    
+    if (currentUrl.startsWith('/workplace')) {
+      // We're in workplace context, navigate to workplace files
+      const groupId = this.route.snapshot.queryParamMap.get('groupId');
+      if (groupId) {
+        this.router.navigate(['/workplace/files', groupId], { 
+          queryParams: { fileId: fileId }
+        });
+      } else {
+        this.router.navigate(['/workplace/files'], { 
+          queryParams: { fileId: fileId }
+        });
+      }
+    } else {
+      // We're in myspace context, navigate to myspace files
+      this.router.navigate(['/myspace/files'], { 
+        queryParams: { fileId: fileId }
+      });
+    }
+  }
+
 } 

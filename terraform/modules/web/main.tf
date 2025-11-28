@@ -7,6 +7,7 @@ provider "aws" {
 # S3 bucket for web assets
 resource "aws_s3_bucket" "web" {
   bucket = "${var.environment}-${var.project_name}-web-deployment-bucket-${var.aws_region}"
+  force_destroy = true
 
   tags = merge(
     var.common_tags,

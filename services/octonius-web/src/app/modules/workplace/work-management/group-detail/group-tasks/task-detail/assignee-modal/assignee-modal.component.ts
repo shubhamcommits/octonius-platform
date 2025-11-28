@@ -1,20 +1,24 @@
 import { Component, OnInit, OnDestroy, HostListener, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
-import { GroupMember } from '../../../../../services/group-task.service';
+import { Subscription, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
+import { GroupMember, GroupTaskService } from '../../../../../services/group-task.service';
 import { ToastService } from '../../../../../../../core/services/toast.service';
 import { ModalService } from '../../../../../../../core/services/modal.service';
+import { Subject } from 'rxjs';
+import { SharedModule } from '../../../../../../shared/shared.module';
+import { AvatarComponent } from '../../../../../../../core/components/avatar/avatar.component';
+import { AvatarService } from '../../../../../../../core/services/avatar.service';
 
 export interface AssigneeData {
   selectedUserIds: string[];
-  groupMembers: GroupMember[];
+  groupId: string;
 }
 
 @Component({
   selector: 'app-assignee-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SharedModule, AvatarComponent],
   templateUrl: './assignee-modal.component.html',
   styleUrls: ['./assignee-modal.component.scss']
 })
@@ -30,27 +34,72 @@ export class AssigneeModalComponent implements OnInit, OnDestroy, OnChanges {
 
   // Data
   groupMembers: GroupMember[] = [];
+  searchQuery = '';
+  totalCount = 0;
+  hasMore = false;
+  currentOffset = 0;
+  readonly limit = 5;
 
-  // Loading state
+  // Loading states
   isSaving = false;
+  isLoadingMembers = false;
+  isLoadingMore = false;
+
+  // Search subject for debounced search
+  private searchSubject = new Subject<string>();
+  private subscriptions: Subscription[] = [];
 
   constructor(
     private toastService: ToastService,
-    private modalService: ModalService
+    private modalService: ModalService,
+    private groupTaskService: GroupTaskService,
+    private avatarService: AvatarService
   ) {}
 
   ngOnInit(): void {
+    this.setupSearchSubscription();
     this.resetForm();
+    this.loadMembers();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['assigneeData'] && changes['assigneeData'].currentValue) {
       this.resetForm();
+      this.loadMembers();
     }
   }
 
   ngOnDestroy(): void {
-    // Cleanup
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  private setupSearchSubscription(): void {
+    const searchSubscription = this.searchSubject
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap(query => {
+          this.searchQuery = query;
+          this.currentOffset = 0;
+          this.groupMembers = [];
+          return this.searchMembers(query);
+        })
+      )
+      .subscribe({
+        next: (result) => {
+          this.groupMembers = result.members;
+          this.totalCount = result.totalCount;
+          this.hasMore = result.hasMore;
+          this.isLoadingMembers = false;
+        },
+        error: (error) => {
+          console.error('Search error:', error);
+          this.toastService.error('Failed to search members');
+          this.isLoadingMembers = false;
+        }
+      });
+
+    this.subscriptions.push(searchSubscription);
   }
 
   @HostListener('document:keydown.escape')
@@ -73,12 +122,73 @@ export class AssigneeModalComponent implements OnInit, OnDestroy, OnChanges {
   resetForm(): void {
     if (this.assigneeData) {
       this.assigneeForm.selectedUserIds = [...this.assigneeData.selectedUserIds];
-      this.groupMembers = [...this.assigneeData.groupMembers];
     } else {
       this.assigneeForm.selectedUserIds = [];
-      this.groupMembers = [];
     }
     this.isSaving = false;
+  }
+
+  loadMembers(): void {
+    if (!this.assigneeData?.groupId) return;
+    
+    this.isLoadingMembers = true;
+    this.searchMembers('').subscribe({
+      next: (result) => {
+        this.groupMembers = result.members;
+        this.totalCount = result.totalCount;
+        this.hasMore = result.hasMore;
+        this.isLoadingMembers = false;
+      },
+      error: (error) => {
+        console.error('Error loading members:', error);
+        this.toastService.error('Failed to load group members');
+        this.isLoadingMembers = false;
+      }
+    });
+  }
+
+  private searchMembers(query: string) {
+    if (!this.assigneeData?.groupId) {
+      throw new Error('Group ID is required');
+    }
+    
+    return this.groupTaskService.getGroupMembers(
+      this.assigneeData.groupId,
+      query,
+      this.limit,
+      this.currentOffset
+    );
+  }
+
+  onSearchChange(query: string): void {
+    this.isLoadingMembers = true;
+    this.searchSubject.next(query);
+  }
+
+  loadMore(): void {
+    if (this.isLoadingMore || !this.hasMore || !this.assigneeData?.groupId) return;
+
+    this.isLoadingMore = true;
+    this.currentOffset += this.limit;
+
+    this.groupTaskService.getGroupMembers(
+      this.assigneeData.groupId,
+      this.searchQuery,
+      this.limit,
+      this.currentOffset
+    ).subscribe({
+      next: (result) => {
+        this.groupMembers = [...this.groupMembers, ...result.members];
+        this.hasMore = result.hasMore;
+        this.isLoadingMore = false;
+      },
+      error: (error) => {
+        console.error('Error loading more members:', error);
+        this.toastService.error('Failed to load more members');
+        this.isLoadingMore = false;
+        this.currentOffset -= this.limit; // Revert offset on error
+      }
+    });
   }
 
   toggleAssignee(userId: string, event: any): void {
@@ -124,16 +234,16 @@ export class AssigneeModalComponent implements OnInit, OnDestroy, OnChanges {
     event.stopPropagation();
   }
 
-  getUserAvatarUrl(user: any): string {
-    return user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(this.getUserDisplayName(user))}&background=random`;
+
+  getAvatarUrl(user: any): string | null {
+    return this.avatarService.getAvatarUrl(user);
   }
 
   getUserDisplayName(user: any): string {
-    return user.display_name || user.full_name || user.email || 'Unknown User';
+    return this.avatarService.getUserDisplayName(user);
   }
 
   getUserInitials(user: any): string {
-    const name = this.getUserDisplayName(user);
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    return this.avatarService.getUserInitials(user);
   }
 } 

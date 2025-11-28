@@ -7,12 +7,12 @@ import { WorkGroupService, WorkGroup } from '../../../../services/work-group.ser
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { ModalService } from '../../../../../../core/services/modal.service';
-import { AssigneeModalComponent, AssigneeData } from './assignee-modal/assignee-modal.component';
-import { TiptapEditorComponent } from '../../../../../../core/components/tiptap-editor/tiptap-editor.component';
+import { DialogService } from '../../../../../../core/services/dialog.service';
+import { AssigneeModalComponent } from './assignee-modal/assignee-modal.component';
 import { CustomFieldModalComponent, CustomFieldData } from './custom-field-modal/custom-field-modal.component';
+import { CustomFieldService, GroupCustomFieldDefinition, TaskCustomField, CreateTaskCustomFieldData } from '../../../../services/custom-field.service';
 import { TimeEntryModalComponent, TimeEntryData } from './time-entry-modal/time-entry-modal.component';
-import { DatePickerModalComponent, DatePickerData } from './date-picker-modal/date-picker-modal.component';
-import { environment } from '../../../../../../../environments/environment';
+import { DatePickerModalComponent } from './date-picker-modal/date-picker-modal.component';
 
 @Component({
   selector: 'app-task-detail',
@@ -29,6 +29,8 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   comments: TaskComment[] = [];
   currentUser: any = null;
   groupMembers: GroupMember[] = [];
+  groupFieldDefinitions: GroupCustomFieldDefinition[] = [];
+  taskCustomFields: TaskCustomField[] = [];
 
   // Loading states
   isLoading = false;
@@ -38,11 +40,34 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   isAddingTimeEntry = false;
   isUpdatingCustomFields = false;
   isSaving = false;
+  isUpdatingEstimatedHours = false;
 
   // UI state
   activeTab: 'activity' | 'subtasks' | 'files' | 'time' = 'activity';
   showDeleteModal = false;
   showAssigneeModal = false;
+  isEditingEstimatedHours = false;
+  estimatedHoursInput = 0;
+  estimatedHoursError = '';
+
+  // Tiptap editor configuration
+  editorConfig = {
+    placeholder: 'Add a comment...',
+    showToolbar: true,
+    showBubbleMenu: true,
+    showCharacterCount: false,
+    maxHeight: '200px',
+    minHeight: '100px',
+    readOnly: false,
+    toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link'],
+    enableImageUpload: false,
+    enableEmojiPicker: false,
+    enableTableControls: false,
+    sourceContext: 'task-comment',
+    enableMentions: true,
+    groupId: undefined as string | undefined,
+    workplaceId: undefined as string | undefined
+  };
 
   // Live editing data
   liveEditData = {
@@ -73,9 +98,11 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     private taskService: GroupTaskService,
     private commentService: TaskCommentService,
     private workGroupService: WorkGroupService,
+    private customFieldService: CustomFieldService,
     private toastService: ToastService,
     private authService: AuthService,
     private modalService: ModalService,
+    private dialogService: DialogService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -96,6 +123,13 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     this.groupSub = this.workGroupService.getCurrentGroup().subscribe((group: WorkGroup | null) => {
       this.group = group;
       if (group) {
+        // Update editor config with group context for mentions
+        this.editorConfig.groupId = group.uuid;
+        // Get workplace ID from current user context
+        if (this.currentUser?.current_workplace_id) {
+          this.editorConfig.workplaceId = this.currentUser.current_workplace_id;
+        }
+        this.loadGroupFieldDefinitions();
         this.loadTaskFromRoute();
       }
     });
@@ -131,6 +165,12 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
         this.task = task;
         this.populateEditForm();
         this.loadComments();
+        // Use custom fields from task object instead of separate API call
+        if (task.custom_fields) {
+          this.taskCustomFields = task.custom_fields;
+        } else {
+          this.loadTaskCustomFields();
+        }
         this.isLoading = false;
       },
       error: (error: any) => {
@@ -269,29 +309,18 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     if (!this.group) return;
 
     this.isLoadingMembers = true;
-    this.taskService.getGroupMembers(this.group.uuid).subscribe({
-      next: (members: GroupMember[]) => {
-        this.groupMembers = members;
-        this.isLoadingMembers = false;
-        
-        // Open modal after members are loaded
-        this.modalService.openModal(AssigneeModalComponent, {
-          assigneeData: {
-            selectedUserIds: this.assigneeForm.selectedUserIds,
-            groupMembers: this.groupMembers
-          },
-          onSave: (selectedUserIds: string[]) => this.saveAssigneesWithData(selectedUserIds),
-          onCancel: () => this.closeAssigneeModal()
-        });
-        this.showAssigneeModal = false; // Hide loading state
+    
+    // Open modal directly - it will handle loading members internally
+    this.modalService.openModal(AssigneeModalComponent, {
+      assigneeData: {
+        selectedUserIds: this.assigneeForm.selectedUserIds,
+        groupId: this.group.uuid
       },
-      error: (error: any) => {
-        console.error('Error loading group members:', error);
-        this.toastService.error('Failed to load group members');
-        this.isLoadingMembers = false;
-        this.showAssigneeModal = false; // Hide loading state on error
-      }
+      onSave: (selectedUserIds: string[]) => this.saveAssigneesWithData(selectedUserIds),
+      onCancel: () => this.closeAssigneeModal()
     });
+    this.showAssigneeModal = false; // Hide loading state
+    this.isLoadingMembers = false;
   }
 
   closeAssigneeModal(): void {
@@ -389,59 +418,75 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
 
   // Custom fields
   openCustomFieldsModal(): void {
+    if (!this.task) return;
+
     this.modalService.openModal(CustomFieldModalComponent, {
+      groupFieldDefinitions: this.groupFieldDefinitions,
+      taskCustomFields: this.taskCustomFields,
       onSave: (data: CustomFieldData) => this.handleCustomFieldSave(data),
       onCancel: () => this.modalService.closeModal()
     });
   }
 
   private handleCustomFieldSave(data: CustomFieldData): void {
-    if (!this.task || !this.group) return;
+    if (!this.task) return;
 
     this.isUpdatingCustomFields = true;
-    const customFields: Record<string, string> = {
-      ...(this.task.metadata?.custom_fields || {}),
-      [data.fieldName]: data.fieldValue
+    
+    const fieldData: CreateTaskCustomFieldData = {
+      field_definition_id: data.field_definition_id,
+      field_name: data.field_name,
+      field_value: data.field_value,
+      field_type: data.field_type,
+      is_group_field: data.is_group_field
     };
 
-    this.taskService.updateCustomFields(this.group.uuid, this.task.uuid, customFields).subscribe({
-      next: (updatedTask: Task) => {
-        this.task = updatedTask;
-        this.modalService.closeModal();
-        this.toastService.success('Custom field added successfully');
+    this.customFieldService.upsertTaskCustomField(this.task.uuid, fieldData).subscribe({
+      next: (response: any) => {
+        if (response.success) {
+          this.loadTaskCustomFields();
+          this.modalService.closeModal();
+          this.toastService.success('Custom field saved successfully');
+        } else {
+          this.toastService.error(response.message || 'Failed to save custom field');
+        }
         this.isUpdatingCustomFields = false;
       },
       error: (error: any) => {
-        console.error('Error updating custom fields:', error);
-        this.toastService.error('Failed to add custom field');
+        console.error('Error saving custom field:', error);
+        this.toastService.error('Failed to save custom field');
         this.isUpdatingCustomFields = false;
       }
     });
   }
 
-  removeCustomField(fieldName: string): void {
-    if (!this.task || !this.group) return;
+  removeCustomField(fieldId: string): void {
+    if (!this.task) return;
 
-    // Show loading state (optional)
-    console.log('Removing custom field:', fieldName);
-    console.log('Current custom fields:', this.task.metadata?.custom_fields);
+    this.isUpdatingCustomFields = true;
 
-    const customFields: Record<string, string> = { ...(this.task.metadata?.custom_fields || {}) };
-    delete customFields[fieldName];
+    // Find the task custom field to remove
+    const taskField = this.taskCustomFields.find(tf => tf.uuid === fieldId);
+    if (!taskField) {
+      this.toastService.error('Custom field not found');
+      this.isUpdatingCustomFields = false;
+      return;
+    }
 
-    console.log('Updated custom fields to send:', customFields);
-
-    this.taskService.updateCustomFields(this.group.uuid, this.task.uuid, customFields).subscribe({
-      next: (updatedTask: Task) => {
-        console.log('Updated task received:', updatedTask);
-        this.task = updatedTask;
-        // Force change detection to ensure UI updates
-        this.cdr.detectChanges();
-        this.toastService.success(`${fieldName} field removed successfully`);
+    this.customFieldService.deleteTaskCustomField(fieldId).subscribe({
+      next: (response: any) => {
+        if (response.success) {
+          this.loadTaskCustomFields();
+          this.toastService.success('Custom field removed successfully');
+        } else {
+          this.toastService.error(response.message || 'Failed to remove custom field');
+        }
+        this.isUpdatingCustomFields = false;
       },
       error: (error: any) => {
         console.error('Error removing custom field:', error);
-        this.toastService.error(`Failed to remove ${fieldName} field`);
+        this.toastService.error('Failed to remove custom field');
+        this.isUpdatingCustomFields = false;
       }
     });
   }
@@ -456,16 +501,98 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     return this.task?.metadata?.custom_fields || {};
   }
 
+  // Helper method to get custom field definitions from group metadata
+  getCustomFieldDefinitions(): any[] {
+    if (!this.group?.metadata) return [];
+    return (this.group.metadata as any).custom_fields_settings || [];
+  }
+
   // Helper method to check if custom fields exist
   hasCustomFields(): boolean {
-    const customFields = this.getCustomFields();
-    return Object.keys(customFields).length > 0;
+    const customFieldEntries = this.getCustomFieldEntries();
+    return customFieldEntries.length > 0;
+  }
+
+  // Load group field definitions
+  private loadGroupFieldDefinitions(): void {
+    if (!this.group) return;
+
+    this.customFieldService.getGroupTemplatesForTaskCreation(this.group.uuid).subscribe({
+      next: (response: any) => {
+        if (response.success && response.data) {
+          this.groupFieldDefinitions = response.data;
+        }
+      },
+      error: (error: any) => {
+        console.error('Error loading group field definitions:', error);
+      }
+    });
+  }
+
+  // Load task custom fields
+  private loadTaskCustomFields(): void {
+    if (!this.task) return;
+
+    this.customFieldService.getTaskCustomFields(this.task.uuid).subscribe({
+      next: (response: any) => {
+        if (response.success && response.data) {
+          this.taskCustomFields = response.data;
+        }
+      },
+      error: (error: any) => {
+        console.error('Error loading task custom fields:', error);
+      }
+    });
   }
 
   // Helper method to get custom field entries as array for iteration
-  getCustomFieldEntries(): { key: string; value: string }[] {
-    const customFields = this.getCustomFields();
-    return Object.entries(customFields).map(([key, value]) => ({ key, value }));
+  getCustomFieldEntries(): { key: string; value: string; displayName: string; isGroupField: boolean; isTaskField: boolean; fieldType: string; fieldDefinitionId?: string }[] {
+    const allFields: { key: string; value: string; displayName: string; isGroupField: boolean; isTaskField: boolean; fieldType: string; fieldDefinitionId?: string }[] = [];
+    
+    // Process all task custom fields (both group fields and task-specific fields)
+    this.taskCustomFields.forEach(taskField => {
+      if (taskField.is_group_field && taskField.field_definition_id) {
+        // This is a group field - use the field definition that comes with the task field
+        const fieldDef = (taskField as any).fieldDefinition;
+        if (fieldDef) {
+          allFields.push({
+            key: taskField.uuid, // Use task field UUID as key to avoid duplicates
+            value: taskField.field_value,
+            displayName: fieldDef.name,
+            isGroupField: true,
+            isTaskField: true,
+            fieldType: fieldDef.type,
+            fieldDefinitionId: fieldDef.uuid
+          });
+        } else {
+          // Fallback: try to find in group field definitions
+          const fieldDef = this.groupFieldDefinitions.find(fd => fd.uuid === taskField.field_definition_id);
+          if (fieldDef) {
+            allFields.push({
+              key: taskField.uuid,
+              value: taskField.field_value,
+              displayName: fieldDef.name,
+              isGroupField: true,
+              isTaskField: true,
+              fieldType: fieldDef.type,
+              fieldDefinitionId: fieldDef.uuid
+            });
+          }
+        }
+      } else if (!taskField.is_group_field) {
+        // This is a task-specific field
+        allFields.push({
+          key: taskField.uuid,
+          value: taskField.field_value,
+          displayName: taskField.field_name,
+          isGroupField: false,
+          isTaskField: true,
+          fieldType: taskField.field_type
+        });
+      }
+    });
+    
+    return allFields;
   }
 
   // TrackBy function for custom fields to improve change detection
@@ -524,8 +651,17 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   }
 
   // Helper method to get user avatar with fallback
-  getUserAvatarUrl(user: any): string {
-    return user?.avatar_url || environment.defaultAvatarUrl;
+  getAvatarUrl(user: any): string | null {
+    return user?.avatar_url || null;
+  }
+
+  getUserInitials(user: any): string {
+    if (!user) return 'U';
+    const firstName = user.first_name || '';
+    const lastName = user.last_name || '';
+    const firstInitial = firstName.charAt(0) || '';
+    const lastInitial = lastName.charAt(0) || '';
+    return `${firstInitial}${lastInitial}`.toUpperCase();
   }
 
   // Utility methods
@@ -537,13 +673,6 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     return user.email || 'Unknown User';
   }
 
-  getUserInitials(user: any): string {
-    if (!user) return 'U';
-    if (user.first_name || user.last_name) {
-      return `${user.first_name?.charAt(0) || ''}${user.last_name?.charAt(0) || ''}`;
-    }
-    return (user.email?.charAt(0) || 'U').toUpperCase();
-  }
 
   getStatusLabel(status: string): string {
     switch (status) {
@@ -647,9 +776,8 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       this.toastService.info('Subtasks feature coming soon!');
     } else if (tab === 'files') {
       this.toastService.info('File attachments feature coming soon!');
-    } else if (tab === 'time') {
-      this.toastService.info('Time tracking feature coming soon!');
     }
+    // Time tracking tab is now fully implemented
   }
 
   // Task status management
@@ -802,6 +930,243 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         console.error('Error updating task due date:', error);
         this.toastService.error('Failed to update due date');
+      }
+    });
+  }
+
+  // Time tracking methods
+  getTimeEntries(): Array<{ user_id: string; hours: number; description?: string; date: Date }> {
+    return this.task?.metadata?.time_entries || [];
+  }
+
+  getTotalTimeTracked(): number {
+    const entries = this.getTimeEntries();
+    return entries.reduce((total, entry) => total + entry.hours, 0);
+  }
+
+  getEstimatedHours(): number {
+    return this.task?.metadata?.estimated_hours || 0;
+  }
+
+  getTimeDifference(): number {
+    const total = this.getTotalTimeTracked();
+    const estimated = this.getEstimatedHours();
+    return Math.abs(total - estimated);
+  }
+
+  getTimeTrackingStatus(): 'under' | 'over' | 'exact' {
+    const total = this.getTotalTimeTracked();
+    const estimated = this.getEstimatedHours();
+    
+    if (estimated === 0) return 'exact';
+    if (total < estimated) return 'under';
+    if (total > estimated) return 'over';
+    return 'exact';
+  }
+
+  // Utility functions for time formatting
+  formatTimeDisplay(hours: number): string {
+    if (hours === 0) return '0h';
+    
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    
+    if (minutes === 0) {
+      return `${wholeHours}h`;
+    } else if (wholeHours === 0) {
+      return `${minutes}m`;
+    } else {
+      return `${wholeHours}h ${minutes}m`;
+    }
+  }
+
+  formatTimeEntryHours(hours: number): string {
+    return this.formatTimeDisplay(hours);
+  }
+
+  getUserById(userId: string): any {
+    // First check if it's the current user
+    if (this.currentUser && this.currentUser.uuid === userId) {
+      return this.currentUser;
+    }
+    
+    // Then check group members
+    const member = this.groupMembers.find(member => member.uuid === userId);
+    if (member) {
+      return member;
+    }
+    
+    // Return a fallback user object
+    return {
+      uuid: userId,
+      first_name: 'Unknown',
+      last_name: 'User',
+      avatar_url: null
+    };
+  }
+
+  formatTimeEntryDate(date: Date | string): string {
+    if (!date) return 'Unknown date';
+    
+    const dateObj = new Date(date);
+    return dateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  trackByTimeEntry(index: number, entry: any): string {
+    return `${entry.user_id}-${entry.date}-${entry.hours}`;
+  }
+
+  // Estimated hours editing methods
+  toggleEstimatedHoursEdit(): void {
+    this.isEditingEstimatedHours = !this.isEditingEstimatedHours;
+    if (this.isEditingEstimatedHours) {
+      this.estimatedHoursInput = this.task?.metadata?.estimated_hours || 0;
+      this.estimatedHoursError = '';
+    }
+  }
+
+  cancelEstimatedHoursEdit(): void {
+    this.isEditingEstimatedHours = false;
+    this.estimatedHoursInput = 0;
+    this.estimatedHoursError = '';
+  }
+
+  saveEstimatedHours(): void {
+    if (!this.task || !this.group) return;
+
+    // Validate input
+    this.estimatedHoursError = '';
+    if (this.estimatedHoursInput < 0) {
+      this.estimatedHoursError = 'Estimated hours cannot be negative';
+      return;
+    }
+
+    if (this.estimatedHoursInput > 9999) {
+      this.estimatedHoursError = 'Estimated hours cannot exceed 9999';
+      return;
+    }
+
+    this.isUpdatingEstimatedHours = true;
+
+    // Update the task with new estimated hours
+    this.taskService.updateTask(this.group.uuid, this.task.uuid, {
+      metadata: {
+        ...this.task.metadata,
+        estimated_hours: this.estimatedHoursInput || undefined
+      }
+    }).subscribe({
+      next: (updatedTask: Task) => {
+        this.task = updatedTask;
+        this.isEditingEstimatedHours = false;
+        this.estimatedHoursInput = 0;
+        this.toastService.success('Estimated hours updated successfully');
+      },
+      error: (error: any) => {
+        console.error('Error updating estimated hours:', error);
+        this.estimatedHoursError = error.message || 'Failed to update estimated hours';
+        this.toastService.error(this.estimatedHoursError);
+      },
+      complete: () => {
+        this.isUpdatingEstimatedHours = false;
+      }
+    });
+  }
+
+  editTimeEntry(entry: any): void {
+    if (!this.task || !this.group) return;
+
+    // Find the index of the time entry
+    const timeEntries = this.getTimeEntries();
+    const timeEntryIndex = timeEntries.findIndex(e => 
+      e.user_id === entry.user_id && 
+      e.hours === entry.hours && 
+      e.date === entry.date
+    );
+
+    if (timeEntryIndex === -1) {
+      this.toastService.error('Time entry not found');
+      return;
+    }
+
+    // Open the time entry modal with pre-filled data
+    this.modalService.openModal(TimeEntryModalComponent, {
+      initialData: {
+        hours: entry.hours,
+        description: entry.description || '',
+        date: new Date(entry.date).toISOString().split('T')[0]
+      },
+      onSave: (data: TimeEntryData) => this.handleTimeEntryUpdate(timeEntryIndex, data),
+      onCancel: () => this.modalService.closeModal()
+    });
+  }
+
+  deleteTimeEntry(entry: any): void {
+    if (!this.task || !this.group) return;
+
+    // Find the index of the time entry
+    const timeEntries = this.getTimeEntries();
+    const timeEntryIndex = timeEntries.findIndex(e => 
+      e.user_id === entry.user_id && 
+      e.hours === entry.hours && 
+      e.date === entry.date
+    );
+
+    if (timeEntryIndex === -1) {
+      this.toastService.error('Time entry not found');
+      return;
+    }
+
+    // Show confirmation dialog using platform's dialog service
+    this.dialogService.confirm({
+      title: 'Delete Time Entry',
+      message: 'Are you sure you want to delete this time entry? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'warning',
+      icon: 'AlertTriangle'
+    }).subscribe(confirmed => {
+      if (confirmed) {
+        this.taskService.deleteTimeEntry(this.group!.uuid, this.task!.uuid, timeEntryIndex).subscribe({
+          next: (updatedTask: Task) => {
+            this.task = updatedTask;
+            this.toastService.success('Time entry deleted successfully');
+          },
+          error: (error: any) => {
+            console.error('Error deleting time entry:', error);
+            this.toastService.error('Failed to delete time entry');
+          }
+        });
+      }
+    });
+  }
+
+  private handleTimeEntryUpdate(timeEntryIndex: number, data: TimeEntryData): void {
+    if (!this.task || !this.group) return;
+
+    this.isAddingTimeEntry = true;
+    const timeData = {
+      hours: data.hours,
+      description: data.description,
+      date: new Date(data.date)
+    };
+
+    this.taskService.updateTimeEntry(this.group.uuid, this.task.uuid, timeEntryIndex, timeData).subscribe({
+      next: (updatedTask: Task) => {
+        this.task = updatedTask;
+        this.modalService.closeModal();
+        this.toastService.success('Time entry updated successfully');
+        this.isAddingTimeEntry = false;
+      },
+      error: (error: any) => {
+        console.error('Error updating time entry:', error);
+        this.toastService.error('Failed to update time entry');
+        this.isAddingTimeEntry = false;
       }
     });
   }

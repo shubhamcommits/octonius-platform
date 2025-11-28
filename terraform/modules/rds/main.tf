@@ -45,12 +45,25 @@ resource "aws_security_group" "rds" {
   description = "Security group for RDS PostgreSQL"
   vpc_id      = var.vpc_id
 
-  # Allow PostgreSQL traffic from the current App Runner security group only
+  # Allow PostgreSQL traffic from the App Runner security group
   ingress {
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [var.ecs_security_group_id]
+    description     = "Allow PostgreSQL traffic from ECS/App Runner"
+  }
+
+  # Allow PostgreSQL traffic from the bastion security group (if provided)
+  dynamic "ingress" {
+    for_each = var.bastion_security_group_id != null ? [1] : []
+    content {
+      from_port       = 5432
+      to_port         = 5432
+      protocol        = "tcp"
+      security_groups = [var.bastion_security_group_id]
+      description     = "Allow PostgreSQL traffic from bastion host"
+    }
   }
 
   # Allow all outbound traffic
@@ -59,6 +72,7 @@ resource "aws_security_group" "rds" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
   }
 
   tags = merge(
@@ -67,6 +81,10 @@ resource "aws_security_group" "rds" {
       Name = "${var.environment}-${var.project_name}-db-${var.region}"
     }
   )
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # RDS PostgreSQL Instance
@@ -93,6 +111,7 @@ resource "aws_db_instance" "main" {
   multi_az            = var.multi_az
   publicly_accessible = false
   skip_final_snapshot = var.skip_final_snapshot
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.environment}-${var.project_name}-db-final"
 
   # Backup configuration
   backup_retention_period = var.backup_retention_period

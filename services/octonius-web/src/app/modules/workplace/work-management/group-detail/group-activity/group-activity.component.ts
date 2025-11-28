@@ -22,6 +22,25 @@ export class GroupActivityComponent implements OnInit, OnDestroy, AfterViewInit 
   group: WorkGroup | null = null;
   private groupSub: Subscription | null = null;
 
+  // Tiptap editor configuration
+  editorConfig = {
+    placeholder: 'What\'s on your mind?',
+    showToolbar: true,
+    showBubbleMenu: true,
+    showCharacterCount: true,
+    autoExpand: true,
+    minHeight: '120px',
+    readOnly: false,
+    toolbarItems: ['bold', 'italic', 'underline', 'link', 'bulletList', 'orderedList', 'table', 'emoji'],
+    enableImageUpload: true,
+    enableEmojiPicker: true,
+    enableTableControls: true,
+    sourceContext: 'group-activity',
+    enableMentions: true,
+    groupId: undefined as string | undefined,
+    workplaceId: undefined as string | undefined
+  };
+
   constructor(
     private activityService: GroupActivityService,
     private authService: AuthService,
@@ -34,6 +53,14 @@ export class GroupActivityComponent implements OnInit, OnDestroy, AfterViewInit 
     this.currentUser = this.authService.getCurrentUser();
     this.groupSub = this.workGroupService.getCurrentGroup().subscribe(group => {
       this.group = group;
+      // Update editor config with group context for mentions
+      if (group) {
+        this.editorConfig.groupId = group.uuid;
+        // Get workplace ID from current user context
+        if (this.currentUser?.current_workplace_id) {
+          this.editorConfig.workplaceId = this.currentUser.current_workplace_id;
+        }
+      }
       this.fetchPosts();
     });
   }

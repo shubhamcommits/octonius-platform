@@ -90,4 +90,22 @@ variable "bastion_key_name" {
   description = "EC2 Key Pair name for bastion host SSH access"
   type        = string
   default     = "octonius-bastion"
-} 
+}
+
+variable "bastion_instance_type" {
+  description = "EC2 instance type for bastion host (Note: Requires vCPU quota)"
+  type        = string
+  default     = "t2.micro"  # 1 vCPU - consider requesting quota increase if limit exceeded
+}
+
+variable "lambda_image_tag" {
+  description = "Docker image tag for Lambda functions"
+  type        = string
+  default     = "latest"
+}
+
+variable "domain_name" {
+  description = "Domain name for the application (use environment-prefixed domains in tfvars files)"
+  type        = string
+  default     = "octonius.com"
+}

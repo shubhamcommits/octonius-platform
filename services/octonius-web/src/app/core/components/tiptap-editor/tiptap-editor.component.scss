@@ -18,19 +18,27 @@
   position: relative;
   display: block;
   min-height: 120px;
-  max-height: 200px;
   padding: 0.75rem;
   border-radius: 0.5rem;
   transition: border 0.2s;
   outline: none;
   width: 100%;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow: hidden;
+  max-height: none;
+
+  // Hide all scrollbars
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  
+  &::-webkit-scrollbar {
+    display: none !important;
+  }
 
   // Auto-expand mode - no max height constraint
   &.auto-expand {
     max-height: none;
-    overflow-y: visible;
+    overflow: visible;
   }
 
   // Remove default margins

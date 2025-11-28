@@ -39,19 +39,13 @@
                class="group flex items-center gap-3 p-3 rounded-lg border border-base-200 hover:border-primary/30 hover:bg-primary/5 cursor-pointer transition-all" 
                [ngClass]="{'border-primary/50': selectedMember?.id === result.id, 'bg-primary/10': selectedMember?.id === result.id}" 
                (click)="selectMember(result)">
-            <div class="avatar">
-              <div class="w-10 h-10 rounded-full">
-                <div *ngIf="getUserAvatarUrl(result); else searchResultInitials" 
-                     class="w-full h-full rounded-full overflow-hidden">
-                  <img [src]="getUserAvatarUrl(result)" [alt]="result.displayName" class="object-cover">
-                </div>
-                <ng-template #searchResultInitials>
-                  <div class="w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center">
-                    <lucide-icon name="User" class="w-5 h-5"></lucide-icon>
-                  </div>
-                </ng-template>
-              </div>
-            </div>
+            <app-avatar 
+              [avatarUrl]="getAvatarUrl(result)"
+              [initials]="getUserInitials(result)"
+              [altText]="result.displayName"
+              [showInitials]="false"
+              size="md">
+            </app-avatar>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <p class="font-medium text-sm text-base-content truncate">{{ result.displayName }}</p>
@@ -84,19 +78,13 @@
       <!-- Selected Member Details -->
       <div *ngIf="selectedMember" class="space-y-4 pt-4 border-t border-base-200">
         <div class="flex items-center gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-          <div class="avatar">
-            <div class="w-12 h-12 rounded-full">
-              <div *ngIf="getUserAvatarUrl(selectedMember); else selectedMemberInitials" 
-                   class="w-full h-full rounded-full overflow-hidden">
-                <img [src]="getUserAvatarUrl(selectedMember)" [alt]="selectedMember.displayName" class="object-cover">
-              </div>
-              <ng-template #selectedMemberInitials>
-                <div class="w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center">
-                  <lucide-icon name="User" class="w-6 h-6"></lucide-icon>
-                </div>
-              </ng-template>
-            </div>
-          </div>
+          <app-avatar 
+            [avatarUrl]="getAvatarUrl(selectedMember)"
+            [initials]="getUserInitials(selectedMember)"
+            [altText]="selectedMember.displayName"
+            [showInitials]="false"
+            size="lg">
+          </app-avatar>
           <div class="flex-1">
             <div class="flex items-center gap-2">
               <p class="font-semibold text-base-content">{{ selectedMember.displayName }}</p>
@@ -235,19 +223,14 @@
                  class="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-base-50 transition-colors duration-200">
               <!-- Member Info -->
               <div class="col-span-5 flex items-center gap-4">
-                <div class="avatar">
-                  <div class="w-12 h-12 rounded-full border border-base-300">
-                    <div *ngIf="getUserAvatarUrl(member.user); else memberInitials" 
-                         class="w-full h-full rounded-full overflow-hidden">
-                      <img [src]="getUserAvatarUrl(member.user)" [alt]="member.user.displayName" class="object-cover">
-                    </div>
-                    <ng-template #memberInitials>
-                      <div class="w-full h-full rounded-full bg-base-200 text-base-content flex items-center justify-center border border-base-300">
-                        <lucide-icon name="User" class="w-6 h-6"></lucide-icon>
-                      </div>
-                    </ng-template>
-                  </div>
-                </div>
+                <app-avatar 
+                  [avatarUrl]="getAvatarUrl(member.user)"
+                  [initials]="getUserInitials(member.user)"
+                  [altText]="getUserDisplayName(member.user)"
+                  [showInitials]="false"
+                  size="lg"
+                  [showBorder]="true">
+                </app-avatar>
                 
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2 mb-1">

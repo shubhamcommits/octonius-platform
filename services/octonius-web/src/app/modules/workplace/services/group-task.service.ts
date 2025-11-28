@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, catchError, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { TaskCustomField } from './custom-field.service';
 
 // Task interfaces
 export interface Task {
@@ -40,6 +41,7 @@ export interface Task {
     }>;
     custom_fields?: Record<string, string>; // Simplified to key-value pairs
   };
+  custom_fields?: TaskCustomField[]; // Custom fields from task_custom_fields table
   created_at: string;
   updated_at: string;
   creator?: {
@@ -333,14 +335,30 @@ export class GroupTaskService {
   }
 
   /**
-   * Get group members who can be assigned to tasks
+   * Get group members who can be assigned to tasks with search and pagination
    * @param groupId The group UUID
-   * @returns Observable of group members
+   * @param searchQuery Optional search query for name or email
+   * @param limit Number of results to return (default: 5)
+   * @param offset Number of results to skip (default: 0)
+   * @returns Observable of group members with pagination info
    */
-  getGroupMembers(groupId: string): Observable<GroupMember[]> {
-    return this.http.get<ApiResponse<GroupMember[]>>(`${this.apiUrl}/${groupId}/tasks/members`)
+  getGroupMembers(groupId: string, searchQuery?: string, limit: number = 5, offset: number = 0): Observable<{
+    members: GroupMember[];
+    totalCount: number;
+    hasMore: boolean;
+  }> {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    params.set('limit', limit.toString());
+    params.set('offset', offset.toString());
+
+    return this.http.get<ApiResponse<GroupMember[]> & { meta: { pagination: any } }>(`${this.apiUrl}/${groupId}/tasks/members?${params.toString()}`)
       .pipe(
-        map(response => response.data),
+        map(response => ({
+          members: response.data,
+          totalCount: response.meta?.pagination?.totalCount || response.data.length,
+          hasMore: response.meta?.pagination?.hasMore || false
+        })),
         catchError(error => {
           console.error('Error fetching group members:', error);
           return throwError(() => new Error('Failed to load group members'));
@@ -384,6 +402,47 @@ export class GroupTaskService {
         catchError(error => {
           console.error('Error updating custom fields:', error);
           return throwError(() => new Error('Failed to update custom fields'));
+        })
+      );
+  }
+
+  /**
+   * Update a time entry in a task
+   * @param groupId The group UUID
+   * @param taskId The task UUID
+   * @param timeEntryIndex The index of the time entry to update
+   * @param timeData Updated time entry data
+   * @returns Observable of the updated task
+   */
+  updateTimeEntry(groupId: string, taskId: string, timeEntryIndex: number, timeData: {
+    hours: number;
+    description?: string;
+    date?: Date;
+  }): Observable<Task> {
+    return this.http.put<ApiResponse<Task>>(`${this.apiUrl}/${groupId}/tasks/${taskId}/time-entries/${timeEntryIndex}`, timeData)
+      .pipe(
+        map(response => response.data),
+        catchError(error => {
+          console.error('Error updating time entry:', error);
+          return throwError(() => new Error('Failed to update time entry'));
+        })
+      );
+  }
+
+  /**
+   * Delete a time entry from a task
+   * @param groupId The group UUID
+   * @param taskId The task UUID
+   * @param timeEntryIndex The index of the time entry to delete
+   * @returns Observable of the updated task
+   */
+  deleteTimeEntry(groupId: string, taskId: string, timeEntryIndex: number): Observable<Task> {
+    return this.http.delete<ApiResponse<Task>>(`${this.apiUrl}/${groupId}/tasks/${taskId}/time-entries/${timeEntryIndex}`)
+      .pipe(
+        map(response => response.data),
+        catchError(error => {
+          console.error('Error deleting time entry:', error);
+          return throwError(() => new Error('Failed to delete time entry'));
         })
       );
   }

@@ -133,6 +133,7 @@ module "bastion" {
   public_subnet_id = module.vpc.public_subnet_ids[0]
   whitelisted_ips  = var.whitelisted_ips
   key_name         = var.bastion_key_name
+  instance_type    = var.bastion_instance_type
 
   # Database connection info
   rds_endpoint      = module.rds.endpoint
@@ -152,6 +153,7 @@ module "rds" {
   vpc_id                = module.vpc.vpc_id
   subnet_ids            = module.vpc.private_subnet_ids
   ecs_security_group_id = aws_security_group.app_runner.id
+  bastion_security_group_id = module.bastion.bastion_security_group_id
 
   instance_class          = var.environment == "prod" ? "db.t4g.small" : "db.t4g.micro"
   allocated_storage       = var.environment == "prod" ? 100 : 20
@@ -167,19 +169,9 @@ module "rds" {
   performance_insights_enabled          = true
   performance_insights_retention_period = var.environment == "prod" ? 7 : 7
   deletion_protection                   = var.environment == "prod"
+  skip_final_snapshot                   = true
 
   tags = local.common_tags
-}
-
-# Add bastion access to RDS security group after both modules are created
-resource "aws_security_group_rule" "rds_from_bastion" {
-  type                     = "ingress"
-  from_port                = 5432
-  to_port                  = 5432
-  protocol                 = "tcp"
-  source_security_group_id = module.bastion.bastion_security_group_id
-  security_group_id        = module.rds.security_group_id
-  description              = "PostgreSQL access from bastion host"
 }
 
 module "elasticache" {
@@ -290,4 +282,31 @@ module "web" {
   project_name = local.project_name
   common_tags  = local.common_tags
   aws_region   = local.aws_region
-} 
+}
+
+# Lambda Auto-Discovery Module
+module "lambda_services" {
+  source = "./modules/lambda-auto-discovery"
+
+  environment        = var.environment
+  aws_region         = var.aws_region
+  project_name       = local.project_name
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+  tags               = local.common_tags
+  
+  # RDS security group for database access
+  rds_security_group_id = module.rds.security_group_id
+
+  # JWT configuration for API Gateway (if needed)
+  jwt_issuer   = "" # Configure if using JWT auth
+  jwt_audience = [] # Configure if using JWT auth
+  
+  # Container image configuration
+  use_container_images = true
+  ecr_repository_urls  = {} # Start with empty map, Terraform will create repositories as needed
+  lambda_image_tag     = var.lambda_image_tag
+
+  # Domain configuration (for services that enable custom domains in their config)
+  domain_name      = var.domain_name
+}

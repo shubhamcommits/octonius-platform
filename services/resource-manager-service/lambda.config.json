@@ -1,0 +1,141 @@
+{
+  "service": {
+    "name": "resource-manager-service",
+    "description": "Resource scheduler service for auto-shutdown/startup of non-production resources"
+  },
+  "functions": {
+    "resource-manager-service": {
+      "handler": "dist/index.handler",
+      "memory": 512,
+      "timeout": 60,
+      "events": [{
+        "type": "api",
+        "method": "ANY",
+        "path": "/{proxy+}",
+        "authorizer": false
+      }, {
+        "type": "api",
+        "method": "ANY",
+        "path": "/",
+        "authorizer": false
+      }, {
+        "type": "schedule",
+        "rate": "cron(0 18 * * ? *)",
+        "enabled": true,
+        "input": {
+          "action": "shutdown",
+          "environment": "dev"
+        }
+      }, {
+        "type": "schedule",
+        "rate": "cron(0 8 * * ? *)",
+        "enabled": true,
+        "input": {
+          "action": "startup",
+          "environment": "dev"
+        }
+      }, {
+        "type": "schedule",
+        "rate": "cron(0 18 * * ? *)",
+        "enabled": true,
+        "input": {
+          "action": "shutdown",
+          "environment": "staging"
+        }
+      }, {
+        "type": "schedule",
+        "rate": "cron(0 8 * * ? *)",
+        "enabled": true,
+        "input": {
+          "action": "startup",
+          "environment": "staging"
+        }
+      }]
+    }
+  },
+  "shared": {
+    "runtime": "nodejs18.x",
+    "architecture": "x86_64",
+    "vpc": {
+      "enabled": true,
+      "securityGroups": ["lambda-sg"],
+      "subnets": "private"
+    },
+    "environment": {
+      "NODE_ENV": "${env:ENVIRONMENT}",
+      "SERVICE_NAME": "resource-manager-service",
+      "SECRET_NAME": "${env:ENVIRONMENT}-${env:PROJECT_NAME}-resource-manager-service-env-${env:AWS_DEFAULT_REGION}"
+    },
+    "layers": [],
+    "tracing": "Active"
+  },
+  "permissions": [
+    "secretsmanager:GetSecretValue",
+    "secretsmanager:DescribeSecret",
+    "rds:ListTagsForResource",
+    "rds:DescribeDBInstances",
+    "rds:StopDBInstance",
+    "rds:StartDBInstance",
+    "rds:DescribeDBClusters",
+    "rds:StopDBCluster",
+    "rds:StartDBCluster",
+    "elasticache:ListTagsForResource",
+    "elasticache:DescribeReplicationGroups",
+    "elasticache:ModifyReplicationGroup",
+    "apprunner:PauseService",
+    "apprunner:ResumeService",
+    "apprunner:DescribeService",
+    "apprunner:ListTagsForResource",
+    "apprunner:ListServices",
+    "apprunner:DescribeService",
+    "apprunner:UpdateService",
+    "lambda:ListTags",
+    "lambda:ListFunctions",
+    "lambda:GetFunctionConcurrency",
+    "lambda:ListAliases",
+    "lambda:GetProvisionedConcurrencyConfig",
+    "lambda:PutFunctionConcurrency",
+    "lambda:DeleteProvisionedConcurrencyConfig",
+    "lambda:TagResource",
+    "lambda:UntagResource",
+    "lambda:UpdateFunctionConfiguration",
+    "lambda:GetFunctionConfiguration",
+    "ec2:DescribeInstances",
+    "ec2:StopInstances",
+    "ec2:StartInstances",
+    "ec2:DescribeSecurityGroups",
+    "ec2:DescribeVpcs",
+    "ec2:DescribeSubnets",
+    "cloudfront:ListDistributions",
+    "cloudfront:ListTagsForResource",
+    "cloudfront:GetDistributionConfig",
+    "cloudfront:UpdateDistribution",
+    "cloudwatch:PutMetricData",
+    "cloudwatch:DescribeAlarms",
+    "cloudwatch:GetMetricData",
+    "logs:CreateLogGroup",
+    "logs:CreateLogStream",
+    "logs:PutLogEvents",
+    "logs:DescribeLogGroups",
+    "logs:DescribeMetricFilters",
+    "logs:PutRetentionPolicy",
+    "logs:ListTagsLogGroup",
+    "s3:ListAllMyBuckets",
+    "s3:GetBucketLocation",
+    "s3:ListBucket",
+    "s3:GetBucketLifecycleConfiguration",
+    "s3:PutBucketLifecycleConfiguration",
+    "s3:GetBucketIntelligentTieringConfiguration",
+    "s3:PutBucketIntelligentTieringConfiguration",
+    "scheduler:CreateSchedule",
+    "scheduler:DeleteSchedule",
+    "scheduler:GetSchedule",
+    "scheduler:ListSchedules",
+    "scheduler:UpdateSchedule"
+  ],
+  "customDomain": {
+    "enabled": true,
+    "subdomain": "resource",
+    "createDns": true
+  }
+}

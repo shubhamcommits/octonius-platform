@@ -1,0 +1,36 @@
+<div *ngIf="open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 animate-fadeIn">
+  <div class="bg-base-100 rounded-xl shadow-xl w-full max-w-md p-6 relative">
+    <button class="absolute top-4 right-4 btn btn-ghost btn-sm" (click)="onClose()">
+      ✕
+    </button>
+    <h2 class="text-xl font-bold text-error mb-4">Delete Section</h2>
+    
+    <div class="space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-full bg-error/10 flex items-center justify-center flex-shrink-0">
+          <lucide-icon name="AlertTriangle" class="w-5 h-5 text-error"></lucide-icon>
+        </div>
+        <div>
+          <p class="text-base-content/80 mb-2">
+            Are you sure you want to delete the section <strong>"{{ columnName }}"</strong>?
+          </p>
+          <p class="text-error text-sm font-medium">
+            All tasks in this section will be permanently deleted and cannot be recovered.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4 border-t border-base-300">
+        <button type="button" class="btn btn-ghost" (click)="onClose()">Cancel</button>
+        <button 
+          type="button" 
+          class="btn btn-error" 
+          (click)="onConfirm()"
+          [disabled]="isDeleting">
+          <span *ngIf="isDeleting" class="loading loading-spinner loading-sm"></span>
+          {{ isDeleting ? 'Deleting...' : 'Delete Section' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

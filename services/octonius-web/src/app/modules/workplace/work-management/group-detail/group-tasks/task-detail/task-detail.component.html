@@ -42,15 +42,7 @@
               <!-- Description Editor -->
               <div class="form-control">
                 <app-tiptap-editor
-                  [config]="{
-                    placeholder: 'Task description',
-                    showToolbar: true,
-                    showBubbleMenu: true,
-                    showCharacterCount: true,
-                    autoExpand: true,
-                    minHeight: '120px',
-                    toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
-                  }"
+                  [config]="editorConfig"
                   [ngModel]="liveEditData.description"
                   (ngModelChange)="onDescriptionChange($event)">
                 </app-tiptap-editor>
@@ -63,7 +55,7 @@
             <button tabindex="0" class="btn btn-ghost btn-sm btn-circle hover:bg-base-200 transition-colors" title="Task actions">
               <lucide-icon name="MoreHorizontal" class="w-4 h-4"></lucide-icon>
             </button>
-            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-lg w-44 border border-base-200">
+            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-lg w-44 border border-base-300">
               <li>
                 <a (click)="openDeleteModal()" class="flex items-center gap-3 py-2 px-3 rounded-md text-error hover:bg-error/10 transition-colors">
                   <lucide-icon name="Trash2" class="w-4 h-4"></lucide-icon>
@@ -115,6 +107,15 @@
             (click)="switchTab('files')">
             Files
           </button>
+          <button 
+            class="pb-3 px-1 text-sm font-medium border-b-2 transition-colors"
+            [ngClass]="{
+              'border-primary text-primary': activeTab === 'time',
+              'border-transparent text-base-content/60': activeTab !== 'time'
+            }"
+            (click)="switchTab('time')">
+            Time tracking
+          </button>
         </div>
 
         <!-- Activity Tab Content -->
@@ -130,13 +131,13 @@
 
           <!-- Comment Items -->
           <div *ngFor="let comment of comments" class="flex gap-3">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
-                <img [src]="getUserAvatarUrl(comment.user)" 
-                     [alt]="getUserDisplayName(comment.user)" 
-                     class="w-full h-full object-cover" />
-              </div>
-            </div>
+            <app-avatar 
+              [avatarUrl]="getAvatarUrl(comment.user)"
+              [initials]="getUserInitials(comment.user)"
+              [altText]="getUserDisplayName(comment.user)"
+              [showInitials]="false"
+              size="sm">
+            </app-avatar>
             
             <div class="flex-grow min-w-0">
               <div class="flex items-center gap-2 mb-2">
@@ -153,25 +154,17 @@
           <!-- Add Comment Section -->
           <div class="mt-6">
             <div class="flex gap-3">
-              <div class="flex-shrink-0">
-                <div class="w-8 h-8 rounded-full overflow-hidden bg-base-300">
-                  <img [src]="getUserAvatarUrl(currentUser)" 
-                       [alt]="getUserDisplayName(currentUser)" 
-                       class="w-full h-full object-cover" />
-                </div>
-              </div>
+              <app-avatar 
+                [avatarUrl]="getAvatarUrl(currentUser)"
+                [initials]="getUserInitials(currentUser)"
+                [altText]="getUserDisplayName(currentUser)"
+                [showInitials]="false"
+                size="sm">
+              </app-avatar>
               <div class="flex-grow">
                 <app-tiptap-editor
                   [(ngModel)]="newComment"
-                  [config]="{
-                    placeholder: 'Add a comment...',
-                    showToolbar: true,
-                    showBubbleMenu: true,
-                    showCharacterCount: false,
-                    autoExpand: true,
-                    minHeight: '80px',
-                    toolbarItems: ['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link']
-                  }">
+                  [config]="editorConfig">
                 </app-tiptap-editor>
                 <div class="flex justify-end mt-2">
                   <button 
@@ -198,6 +191,122 @@
           <lucide-icon name="Paperclip" class="w-12 h-12 mx-auto mb-4 opacity-50"></lucide-icon>
           <p>File attachments feature coming soon!</p>
         </div>
+
+        <!-- Time Tracking Tab Content -->
+        <div *ngIf="activeTab === 'time'" class="space-y-6">
+          <!-- Time Tracking Summary -->
+          <div class="bg-gradient-to-br from-base-100 to-base-200/50 rounded-xl p-6 border border-base-200 shadow-sm">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-xl font-bold text-base-content">Time Tracking Summary</h3>
+                <p class="text-sm text-base-content/60 mt-1">Track and manage time spent on this task</p>
+              </div>
+              <button 
+                class="btn btn-primary btn-sm shadow-sm hover:shadow-md transition-all duration-200" 
+                (click)="openTimeEntryModal()"
+                [disabled]="isAddingTimeEntry">
+                <lucide-icon name="Clock" class="w-4 h-4"></lucide-icon>
+                Add Time Entry
+              </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="text-center p-4 bg-base-100 rounded-lg border border-base-200 hover:shadow-sm transition-shadow">
+                <div class="text-3xl font-bold text-primary mb-1">{{ formatTimeDisplay(getTotalTimeTracked()) }}</div>
+                <div class="text-sm text-base-content/60 font-medium">Total Time</div>
+                <div class="text-xs text-base-content/40 mt-1">{{ getTimeEntries().length }} entries</div>
+              </div>
+              <div class="text-center p-4 bg-base-100 rounded-lg border border-base-200 hover:shadow-sm transition-shadow">
+                <div class="text-3xl font-bold text-success mb-1">{{ formatTimeDisplay(getEstimatedHours()) }}</div>
+                <div class="text-sm text-base-content/60 font-medium">Estimated</div>
+                <div class="text-xs text-base-content/40 mt-1">Original estimate</div>
+              </div>
+              <div class="text-center p-4 bg-base-100 rounded-lg border border-base-200 hover:shadow-sm transition-shadow">
+                <div class="text-3xl font-bold mb-1" 
+                     [ngClass]="{
+                       'text-success': getTimeTrackingStatus() === 'under',
+                       'text-warning': getTimeTrackingStatus() === 'over',
+                       'text-base-content': getTimeTrackingStatus() === 'exact'
+                     }">
+                  {{ getTimeTrackingStatus() === 'under' ? '-' : getTimeTrackingStatus() === 'over' ? '+' : '' }}{{ formatTimeDisplay(getTimeDifference()) }}
+                </div>
+                <div class="text-sm text-base-content/60 font-medium">Difference</div>
+                <div class="text-xs text-base-content/40 mt-1" 
+                     [ngClass]="{
+                       'text-success': getTimeTrackingStatus() === 'under',
+                       'text-warning': getTimeTrackingStatus() === 'over',
+                       'text-base-content': getTimeTrackingStatus() === 'exact'
+                     }">
+                  {{ getTimeTrackingStatus() === 'under' ? 'Under budget' : getTimeTrackingStatus() === 'over' ? 'Over budget' : 'On track' }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Time Entries List -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold">Time Entries</h3>
+            
+            <div *ngIf="!getTimeEntries() || getTimeEntries().length === 0" class="text-center py-8 text-base-content/60">
+              <lucide-icon name="Clock" class="w-12 h-12 mx-auto mb-4 opacity-50"></lucide-icon>
+              <p>No time entries yet. Start tracking time to see entries here.</p>
+            </div>
+
+            <!-- Time Entry Items -->
+            <div *ngFor="let entry of getTimeEntries(); trackBy: trackByTimeEntry" 
+                 class="group bg-base-100 rounded-lg p-4 border border-base-200 hover:shadow-sm transition-all duration-200 hover:border-primary/20">
+              <div class="flex items-start justify-between">
+                <div class="flex items-start gap-3 flex-grow">
+                  <app-avatar 
+                    [avatarUrl]="getAvatarUrl(getUserById(entry.user_id))"
+                    [initials]="getUserInitials(getUserById(entry.user_id))"
+                    [altText]="getUserDisplayName(getUserById(entry.user_id))"
+                    [showInitials]="true"
+                    size="md">
+                  </app-avatar>
+                  
+                  <div class="flex-grow min-w-0">
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class="font-semibold text-sm text-base-content">{{ getUserDisplayName(getUserById(entry.user_id)) }}</span>
+                      <span class="text-xs text-base-content/60 bg-base-200 px-2 py-1 rounded-full">{{ formatTimeEntryDate(entry.date) }}</span>
+                    </div>
+                    
+                    <div class="text-sm text-base-content/80 mb-3 leading-relaxed" 
+                         [appRichHtml]="entry.description || 'No description provided'">
+                    </div>
+                    
+                    <div class="flex items-center gap-4 text-xs text-base-content/60">
+                      <span class="flex items-center gap-1.5 bg-primary/10 text-primary px-2 py-1 rounded-md font-medium">
+                        <lucide-icon name="Clock" class="w-3 h-3"></lucide-icon>
+                        {{ formatTimeEntryHours(entry.hours) }}
+                      </span>
+                      <span class="flex items-center gap-1.5">
+                        <lucide-icon name="Calendar" class="w-3 h-3"></lucide-icon>
+                        {{ formatTimeEntryDate(entry.date) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Time Entry Actions -->
+                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <button 
+                    class="btn btn-ghost btn-xs hover:bg-primary/10 hover:text-primary"
+                    (click)="editTimeEntry(entry)"
+                    title="Edit time entry">
+                    <lucide-icon name="Edit" class="w-3 h-3"></lucide-icon>
+                  </button>
+                  <button 
+                    class="btn btn-ghost btn-xs text-error hover:bg-error/10 hover:text-error"
+                    (click)="deleteTimeEntry(entry)"
+                    title="Delete time entry">
+                    <lucide-icon name="Trash2" class="w-3 h-3"></lucide-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -209,11 +318,13 @@
         <div class="space-y-2">
           <!-- Current Assignees -->
           <div *ngFor="let assignee of task.assignees" class="flex items-center gap-2 p-2 bg-base-100 rounded-lg border border-base-200">
-            <div class="w-6 h-6 rounded-full overflow-hidden bg-base-300">
-                             <img [src]="getUserAvatarUrl(assignee)" 
-                   [alt]="getUserDisplayName(assignee)"
-                   class="w-full h-full object-cover" />
-            </div>
+            <app-avatar 
+              [avatarUrl]="getAvatarUrl(assignee)"
+              [initials]="getUserInitials(assignee)"
+              [altText]="getUserDisplayName(assignee)"
+              [showInitials]="true"
+              size="xs">
+            </app-avatar>
             <span class="text-sm font-medium flex-grow">{{ getUserDisplayName(assignee) }}</span>
             <button class="text-base-content/40 hover:text-base-content/80 transition-colors" 
                     (click)="removeAssignee(assignee.uuid)">
@@ -256,7 +367,7 @@
             <span class="text-sm font-medium flex-grow">{{ getPriorityLabel(task.priority) }}</span>
             <lucide-icon name="ChevronDown" class="w-3 h-3 text-base-content/40"></lucide-icon>
           </label>
-          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-200">
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-300">
             <li><a (click)="updateTaskPriority('low')" [class.active]="task.priority === 'low'">Low</a></li>
             <li><a (click)="updateTaskPriority('medium')" [class.active]="task.priority === 'medium'">Medium</a></li>
             <li><a (click)="updateTaskPriority('high')" [class.active]="task.priority === 'high'">High</a></li>
@@ -280,7 +391,7 @@
             <span class="text-sm font-medium flex-grow">{{ getStatusLabel(task.status) }}</span>
             <lucide-icon name="ChevronDown" class="w-3 h-3 text-base-content/40"></lucide-icon>
           </label>
-          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-200">
+          <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-lg w-full border border-base-300">
             <li><a (click)="updateTaskStatus('todo')" [class.active]="task.status === 'todo'">To Do</a></li>
             <li><a (click)="updateTaskStatus('in_progress')" [class.active]="task.status === 'in_progress'">In Progress</a></li>
             <li><a (click)="updateTaskStatus('review')" [class.active]="task.status === 'review'">Review</a></li>
@@ -323,18 +434,19 @@
           <!-- Dynamic Custom Fields -->
           <div *ngFor="let field of getCustomFieldEntries(); trackBy: trackByFieldKey" 
                class="group flex items-center justify-between p-2 rounded-lg border transition-all duration-200 hover:shadow-sm hover:scale-[1.02]"
-               [style.background-color]="getCustomFieldBackgroundColor(field.key)"
-               [style.border-color]="getCustomFieldColor(field.key) + '40'">
+               [style.background-color]="getCustomFieldBackgroundColor(field.displayName)"
+               [style.border-color]="getCustomFieldColor(field.displayName) + '40'">
             <div class="flex items-center gap-2">
               <div class="w-4 h-4 rounded-sm shadow-sm"
-                   [style.background-color]="getCustomFieldColor(field.key)"></div>
-              <span class="text-sm font-medium">{{ field.key | titlecase }}</span>
+                   [style.background-color]="getCustomFieldColor(field.displayName)"></div>
+              <span class="text-sm font-medium">{{ field.displayName }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-sm text-base-content/80 font-medium">{{ field.value }}</span>
-              <button class="opacity-0 group-hover:opacity-100 text-base-content/40 hover:text-error transition-all duration-200 p-1 rounded hover:bg-error/10" 
+              <span class="text-sm text-base-content/80 font-medium">{{ field.value || 'No value set' }}</span>
+              <button *ngIf="field.isTaskField" 
+                      class="opacity-0 group-hover:opacity-100 text-base-content/40 hover:text-error transition-all duration-200 p-1 rounded hover:bg-error/10" 
                       (click)="removeCustomField(field.key)"
-                      title="Remove {{ field.key }} field">
+                      title="Remove {{ field.displayName }} field">
                 <lucide-icon name="X" class="w-3 h-3"></lucide-icon>
               </button>
             </div>
@@ -357,18 +469,67 @@
       <!-- Time Tracking Section -->
       <div>
         <h3 class="text-sm font-medium text-base-content/70 mb-3">Time tracking</h3>
-        <div *ngIf="task.metadata?.estimated_hours || task.metadata?.actual_hours" class="space-y-1 mb-3">
-          <div *ngIf="task.metadata.estimated_hours" class="text-sm">
-            Estimated: {{ task.metadata.estimated_hours }}h
+        
+        <!-- Estimated Hours -->
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-base-content/70">Estimated Hours</span>
+            <button 
+              class="btn btn-ghost btn-xs"
+              (click)="toggleEstimatedHoursEdit()"
+              [disabled]="isUpdatingEstimatedHours">
+              <lucide-icon [name]="isEditingEstimatedHours ? 'X' : 'Edit'" class="w-3 h-3"></lucide-icon>
+            </button>
           </div>
-          <div *ngIf="task.metadata.actual_hours" class="text-sm">
-            Actual: {{ task.metadata.actual_hours }}h
+          
+          <div *ngIf="!isEditingEstimatedHours" class="flex items-center gap-2">
+            <span class="text-sm text-base-content">
+              {{ task.metadata.estimated_hours || 0 }}h
+            </span>
+            <span *ngIf="!task.metadata.estimated_hours" class="text-xs text-base-content/60">No estimate set</span>
+          </div>
+          
+          <div *ngIf="isEditingEstimatedHours" class="space-y-2">
+            <input 
+              type="number" 
+              [(ngModel)]="estimatedHoursInput"
+              placeholder="0"
+              step="0.25"
+              min="0"
+              class="input input-bordered input-sm w-full"
+              [class.input-error]="estimatedHoursError"
+              (keyup.enter)="saveEstimatedHours()"
+              (keyup.escape)="cancelEstimatedHoursEdit()" />
+            <div *ngIf="estimatedHoursError" class="text-xs text-error">{{ estimatedHoursError }}</div>
+            <div class="flex gap-1">
+              <button 
+                class="btn btn-primary btn-xs"
+                (click)="saveEstimatedHours()"
+                [disabled]="isUpdatingEstimatedHours">
+                <span *ngIf="isUpdatingEstimatedHours" class="loading loading-spinner loading-xs"></span>
+                Save
+              </button>
+              <button 
+                class="btn btn-ghost btn-xs"
+                (click)="cancelEstimatedHoursEdit()"
+                [disabled]="isUpdatingEstimatedHours">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
-        <p *ngIf="!task.metadata?.estimated_hours && !task.metadata?.actual_hours" 
+
+        <!-- Actual Hours Display -->
+        <div *ngIf="task.metadata.actual_hours" class="mb-3">
+          <div class="text-sm text-base-content/70 mb-1">Actual Hours</div>
+          <div class="text-sm text-base-content">{{ task.metadata.actual_hours }}h</div>
+        </div>
+
+        <p *ngIf="!task.metadata.estimated_hours && !task.metadata.actual_hours" 
            class="text-sm text-base-content/60 mb-3">
           No time tracked yet
         </p>
+        
         <button class="btn btn-outline btn-sm w-full" (click)="openTimeEntryModal()">
           <lucide-icon name="Clock" class="w-4 h-4"></lucide-icon>
           Add Time Entry

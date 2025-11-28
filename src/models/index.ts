@@ -19,6 +19,8 @@ import { Task } from '../groups/tasks/task.model'
 import { TaskColumn } from '../groups/tasks/task-column.model'
 import { TaskComment } from '../groups/tasks/task-comment.model'
 import { TaskAssignee } from '../groups/tasks/task-assignee.model'
+import { GroupCustomFieldDefinition } from '../custom-fields/custom-field-definition.model'
+import { TaskCustomField } from '../custom-fields/task-custom-field.model'
 
 // Export all models
 export {
@@ -41,7 +43,9 @@ export {
     Task,
     TaskColumn,
     TaskComment,
-    TaskAssignee
+    TaskAssignee,
+    GroupCustomFieldDefinition,
+    TaskCustomField
 }
 
 // Create models object
@@ -65,7 +69,9 @@ const models = {
     Task,
     TaskColumn,
     TaskComment,
-    TaskAssignee
+    TaskAssignee,
+    GroupCustomFieldDefinition,
+    TaskCustomField
 }
 
 // Initialize associations

@@ -9,6 +9,8 @@ import { LayoutComponent } from './layout/layout.component';
 import { ProfileComponent } from './profile/profile.component';
 import { SettingsComponent } from './settings/settings.component';
 import { BillingComponent } from './billing/billing.component';
+import { AvatarComponent } from '../../core/components/avatar/avatar.component';
+import { AvatarService } from '../../core/services/avatar.service';
 
 @NgModule({
   declarations: [
@@ -23,7 +25,11 @@ import { BillingComponent } from './billing/billing.component';
     RouterModule,
     SharedModule,
     ReactiveFormsModule,
-    FormsModule
+    FormsModule,
+    AvatarComponent
+  ],
+  providers: [
+    AvatarService
   ]
 })
 export class AccountModule { } 
