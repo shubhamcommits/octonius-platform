@@ -1,768 +1,817 @@
-[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v3/monitor/1za90.svg)](https://uptime.betterstack.com/?utm_source=status_badge)
+<div align="center">
 
-# 🚀 Octonius Platform
+# 🐙 Octonius Platform
 
-A modern, scalable web application platform built with **Node.js/TypeScript**, **Angular**, and **Terraform** infrastructure on AWS.
+### A Modern, Enterprise-Grade Web Application Platform
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Angular](https://img.shields.io/badge/Angular-19-DD0031?logo=angular&logoColor=white)](https://angular.io/)
+[![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![AWS](https://img.shields.io/badge/AWS-Cloud-FF9900?logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7.0-DC382D?logo=redis&logoColor=white)](https://redis.io/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+**[🌐 Live Demo](https://app.octonius.com)** • **[📖 Documentation](docs/)** • **[🚀 Quick Start](#-quick-start)**
+
+---
+
+*Built with modern best practices: Infrastructure as Code, CI/CD automation, microservices architecture, and comprehensive security scanning.*
+
+</div>
+
+---
+
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Technology Stack](#-technology-stack)
+- [AWS Infrastructure](#-aws-infrastructure)
+- [DevOps & Tooling](#-devops--tooling)
+- [Project Structure](#-project-structure)
+- [Quick Start](#-quick-start)
+- [Development](#-development)
+- [Infrastructure Management](#-infrastructure-management)
+- [Environment Configuration](#-environment-configuration)
+- [Deployment](#-deployment)
+- [Features](#-features)
+- [API Documentation](#-api-documentation)
+- [Security](#-security)
+- [Roadmap](#-roadmap)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
 
 ## 🎯 Overview
 
-The Octonius Platform provides a robust foundation for web applications with:
-- **Frontend**: Modern Angular application with Tailwind CSS and DaisyUI
-- **Backend**: Node.js/TypeScript server with Express, PostgreSQL, and Redis
-- **Infrastructure**: Clean, modular Terraform setup for AWS resources
-- **CI/CD**: Automated GitHub Actions workflows for deployment
-- **Monitoring**: Comprehensive logging and monitoring setup
+**Octonius Platform** is a modern, scalable web application platform designed for enterprise-grade deployments. It combines a robust Node.js/TypeScript backend with a sleek Angular frontend, all orchestrated through comprehensive Terraform infrastructure on AWS.
 
-## 🏗️ Architecture
+### Key Highlights
+
+- 🏗️ **100% Pipeline-Native Infrastructure** - Everything computed in CI/CD using standard tools
+- 🌍 **Branch-Based Environment Mapping** - Automatic environment detection from branch names
+- 🔐 **Enterprise Security** - Comprehensive scanning, secret detection, and access control
+- 📊 **Cost Transparency** - Built-in infrastructure cost estimation with Infracost
+- 🚀 **Zero-Downtime Deployments** - Automated blue-green deployments via AWS App Runner
+
+---
+
+## 🛠 Technology Stack
+
+### Backend Technologies
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Node.js** | 22.x | JavaScript runtime environment |
+| **TypeScript** | 5.x | Static type checking and modern JavaScript features |
+| **Express.js** | 4.x | Fast, minimalist web framework |
+| **Sequelize** | 6.x | Promise-based ORM for PostgreSQL |
+| **PostgreSQL** | 16 | Primary relational database |
+| **Redis** | 7.0 | In-memory caching and session storage |
+
+### Backend Dependencies
+
+```json
+{
+  "Core Framework": {
+    "express": "REST API framework",
+    "ts-node": "TypeScript execution",
+    "ts-node-dev": "Development with hot reload"
+  },
+  "Database & ORM": {
+    "pg": "PostgreSQL client",
+    "pg-hstore": "PostgreSQL HStore support",
+    "sequelize": "ORM for database operations"
+  },
+  "Authentication & Security": {
+    "jsonwebtoken": "JWT token generation and validation",
+    "bcrypt": "Password hashing (Blowfish)",
+    "bcryptjs": "Pure JavaScript bcrypt implementation"
+  },
+  "AWS SDK": {
+    "@aws-sdk/client-ec2": "EC2 instance management",
+    "@aws-sdk/client-s3": "S3 file storage operations",
+    "@aws-sdk/client-secrets-manager": "Secrets management",
+    "@aws-sdk/s3-request-presigner": "Presigned URL generation"
+  },
+  "Email Services": {
+    "resend": "Transactional email delivery",
+    "react-email": "React-based email templates",
+    "@react-email/components": "Email component library",
+    "@react-email/tailwind": "Tailwind CSS for emails"
+  },
+  "Utilities": {
+    "axios": "HTTP client for external APIs",
+    "compression": "Response compression middleware",
+    "cors": "Cross-Origin Resource Sharing",
+    "dotenv": "Environment variable management",
+    "morgan": "HTTP request logging",
+    "multer": "File upload handling",
+    "uuid": "UUID generation",
+    "winston": "Application logging",
+    "zod": "Schema validation",
+    "opossum": "Circuit breaker pattern"
+  }
+}
+```
+
+### Frontend Technologies
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Angular** | 19.x | Component-based frontend framework |
+| **TypeScript** | 5.7 | Static typing for JavaScript |
+| **Tailwind CSS** | 3.4 | Utility-first CSS framework |
+| **DaisyUI** | 4.x | Component library for Tailwind |
+| **TipTap** | 2.x | Rich text editor framework |
+
+### Frontend Dependencies
+
+```json
+{
+  "Angular Ecosystem": {
+    "@angular/core": "Core Angular framework",
+    "@angular/animations": "Animation support",
+    "@angular/router": "Client-side routing",
+    "@angular/forms": "Template and reactive forms",
+    "@angular/platform-browser": "Browser platform support"
+  },
+  "Rich Text Editor (TipTap)": {
+    "@tiptap/core": "Core editor engine",
+    "@tiptap/starter-kit": "Essential extensions bundle",
+    "@tiptap/extension-bubble-menu": "Contextual formatting menu",
+    "@tiptap/extension-character-count": "Character counting",
+    "@tiptap/extension-highlight": "Text highlighting",
+    "@tiptap/extension-image": "Image embedding",
+    "@tiptap/extension-link": "Hyperlink support",
+    "@tiptap/extension-mention": "User mentions",
+    "@tiptap/extension-placeholder": "Placeholder text",
+    "@tiptap/extension-table": "Table support",
+    "@tiptap/extension-task-item": "Task lists",
+    "@tiptap/extension-text-align": "Text alignment",
+    "@tiptap/extension-underline": "Underline formatting"
+  },
+  "UI & Styling": {
+    "tailwindcss": "Utility-first CSS",
+    "daisyui": "Tailwind component library",
+    "postcss": "CSS processing",
+    "autoprefixer": "CSS vendor prefixing",
+    "lucide-angular": "Icon library"
+  },
+  "Maps & Geolocation": {
+    "leaflet": "Interactive maps",
+    "@types/leaflet": "TypeScript definitions"
+  },
+  "Reactive Programming": {
+    "rxjs": "Reactive Extensions for JavaScript",
+    "zone.js": "Angular change detection"
+  },
+  "Testing": {
+    "karma": "Test runner",
+    "jasmine-core": "Testing framework",
+    "karma-chrome-launcher": "Chrome browser launcher",
+    "karma-coverage": "Code coverage reports"
+  }
+}
+```
+
+---
+
+## ☁️ AWS Infrastructure
+
+### Terraform Modules
+
+The platform uses modular Terraform configurations for infrastructure management:
+
+```
+terraform/
+├── modules/
+│   ├── app_runner/          # AWS App Runner service configuration
+│   ├── bastion/             # Bastion host for secure SSH access
+│   ├── ecr/                 # Elastic Container Registry
+│   ├── elasticache/         # ElastiCache Redis cluster
+│   ├── lambda-auto-discovery/ # Lambda function auto-discovery
+│   ├── rds/                 # RDS PostgreSQL database
+│   ├── vpc/                 # Virtual Private Cloud networking
+│   └── web/                 # Static web hosting (S3 + CloudFront)
+├── locals.tf                # Local variable definitions
+├── main.tf                  # Main Terraform configuration
+├── outputs.tf               # Output definitions
+├── variables.tf             # Variable declarations
+└── versions.tf              # Provider version constraints
+```
+
+### AWS Services Used
+
+| Service | Purpose | Terraform Module |
+|---------|---------|------------------|
+| **VPC** | Isolated network with public/private subnets | `vpc` |
+| **App Runner** | Containerized application deployment | `app_runner` |
+| **ECR** | Docker image registry | `ecr` |
+| **RDS** | PostgreSQL database hosting | `rds` |
+| **ElastiCache** | Redis caching layer | `elasticache` |
+| **S3** | Static file storage, Terraform state | `web` |
+| **CloudFront** | CDN for static assets | `web` |
+| **NAT Gateway** | Private subnet internet access | `vpc` |
+| **DynamoDB** | Terraform state locking | Auto-created |
+| **Secrets Manager** | Secure credential storage | Backend config |
+| **CloudWatch** | Logging and monitoring | Integrated |
+| **Lambda** | Serverless functions | `lambda-auto-discovery` |
+| **EC2** | Bastion host for SSH access | `bastion` |
+| **IAM** | Identity and access management | All modules |
+
+### Network Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Octonius Platform                        │
-├─────────────────────────────────────────────────────────────────┤
-│  Frontend Layer (Angular)                                       │
-│  ├── Authentication Module                                      │
-│  │   ├── Welcome & Login                                        │
-│  │   ├── OTP Verification                                       │
-│  │   ├── Workplace Selection                                    │
-│  │   ├── Workplace Creation                                     │
-│  │   ├── Workplace Login                                        │
-│  │   └── Invitation Acceptance                                  │
-│  ├── My Space Module                                           │
-│  │   ├── Inbox (Mission Control)                               │
-│  │   ├── Workload (Task Management)                            │
-│  │   ├── Files (Private Notes & Files)                         │
-│  │   └── Note Editor (TipTap)                                  │
-│  ├── Workplace Module                                          │
-│  │   ├── Apps Dashboard                                         │
-│  │   ├── Work Management                                        │
-│  │   │   ├── Group Activity                                     │
-│  │   │   ├── Task Boards (Kanban)                              │
-│  │   │   ├── Group Dashboard                                    │
-│  │   │   └── Group Administration                               │
-│  │   ├── File Management                                        │
-│  │   ├── CRM System                                            │
-│  │   ├── Communities                                            │
-│  │   ├── Library                                               │
-│  │   └── Lounge (Story Sharing)                                │
-│  ├── Account Module                                            │
-│  │   ├── Profile Management                                     │
-│  │   ├── Settings & Preferences                                 │
-│  │   ├── Workplace Administration                               │
-│  │   ├── Role & Permission Management                           │
-│  │   └── Billing Management                                     │
-│  └── Shared Components & Services                               │
-│      ├── TipTap Rich Text Editor                               │
-│      ├── Theme Service (Light/Dark)                            │
-│      ├── Location Picker                                       │
-│      ├── Infinite Scroll Lists                                 │
-│      └── Auth Guards & Permissions                             │
-├─────────────────────────────────────────────────────────────────┤
-│  Backend Layer (Node.js/TypeScript)                            │
-│  ├── Authentication Services                                    │
-│  │   ├── OTP Generation & Verification                          │
-│  │   ├── JWT Token Management                                   │
-│  │   └── Session Management                                     │
-│  ├── User Management                                           │
-│  │   ├── Profile CRUD Operations                               │
-│  │   ├── Avatar Upload                                         │
-│  │   └── User Preferences                                       │
-│  ├── Workplace Services                                        │
-│  │   ├── Workplace CRUD                                        │
-│  │   ├── Member Management                                      │
-│  │   ├── Invitation System                                     │
-│  │   └── Role Assignment                                       │
-│  ├── Group & Task Management                                   │
-│  │   ├── Group CRUD Operations                                 │
-│  │   ├── Task Board Management                                 │
-│  │   ├── Activity Feed                                         │
-│  │   └── Member Management                                     │
-│  ├── File Management                                           │
-│  │   ├── S3 Upload Intent                                      │
-│  │   ├── File Metadata Management                              │
-│  │   └── Note Creation & Editing                               │
-│  ├── Lounge Services                                           │
-│  │   ├── Story Management                                      │
-│  │   └── Content Sharing                                       │
-│  ├── Notification Services                                     │
-│  │   ├── Email Notifications                                   │
-│  │   └── In-App Notifications                                  │
-│  └── Role & Permission System                                  │
-│      ├── Permission Management                                 │
-│      ├── Role Assignment                                       │
-│      └── Access Control                                        │
-├─────────────────────────────────────────────────────────────────┤
-│  Data Layer                                                     │
-│  ├── PostgreSQL Database                                       │
-│  │   ├── Users & Authentication                                │
-│  │   ├── Workplaces & Memberships                              │
-│  │   ├── Groups & Tasks                                        │
-│  │   ├── Files & Notes                                         │
-│  │   ├── Activities & Comments                                 │
-│  │   └── Roles & Permissions                                   │
-│  ├── Redis Cache                                               │
-│  │   ├── Session Storage                                       │
-│  │   ├── OTP Cache                                             │
-│  │   └── Application Cache                                     │
-│  └── AWS S3 Storage                                           │
-│      ├── File Storage                                          │
-│      ├── Avatar Storage                                        │
-│      └── Presigned URLs                                        │
-├─────────────────────────────────────────────────────────────────┤
-│  Infrastructure Layer (Terraform)                              │
-│  ├── VPC with Public/Private Subnets                          │
-│  ├── NAT Gateways & Internet Gateway                           │
-│  ├── Security Groups & NACLs                                   │
-│  ├── S3 Buckets (State & Files)                               │
-│  ├── DynamoDB (State Locking)                                 │
-│  └── Future: ECS, RDS, ALB, CloudFront                        │
-├─────────────────────────────────────────────────────────────────┤
-│  CI/CD Pipeline (GitHub Actions)                               │
-│  ├── 100% Pipeline-Native Terraform                            │
-│  ├── Branch-Based Environment Detection                        │
-│  ├── Auto-Bootstrap AWS Resources                             │
-│  ├── Application Build & Test                                  │
-│  └── Automated Deployment                                      │
+│                         AWS VPC                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                    Public Subnets                        │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │    │
+│  │  │   NAT GW     │  │   ALB/CDN    │  │   Bastion    │   │    │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘   │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                               │                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                   Private Subnets                        │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │    │
+│  │  │  App Runner  │  │     RDS      │  │ ElastiCache  │   │    │
+│  │  │   (API)      │  │  PostgreSQL  │  │    Redis     │   │    │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘   │    │
+│  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Quick Start
+### Environment-Specific Infrastructure
 
-### Frontend Setup (Angular)
+| Environment | VPC CIDR | NAT Gateway | Cost Profile |
+|-------------|----------|-------------|--------------|
+| **Production** (`prod`) | `10.0.0.0/16` | Multiple (HA) | High (optimized for availability) |
+| **Development** (`dev`) | `10.1.0.0/16` | Single | Medium (balanced) |
+| **Feature** (`feature-*`) | `10.{hash}.0.0/16` | Single | Low (minimal) |
+| **Hotfix** (`hotfix-*`) | Dynamic | Single | Low (isolated) |
 
-```bash
-# 1. Navigate to web application
-cd services/octonius-web
+---
 
-# 2. Install dependencies
-npm install
+## 🔧 DevOps & Tooling
 
-# 3. Start development server
-npm run start
+### CI/CD Pipeline (GitHub Actions)
 
-# 4. Build for production
-npm run build
+```yaml
+# Workflow: platform-deploy.yml
+Triggers:
+  - Push to master → Auto-deploy to production
+  - Push to development → Plan for dev environment
+  - Push to feature/* → Plan for feature environment
+  - Manual dispatch → Choose environment and action
+
+Features:
+  - Automatic S3/DynamoDB bootstrap
+  - Environment detection from branch names
+  - Terraform plan/apply automation
+  - Docker image building and pushing to ECR
 ```
 
-### Backend Setup
+### Pre-commit Hooks
 
-```bash
-# 1. Install dependencies
-npm install
+The platform uses comprehensive pre-commit hooks for code quality:
 
-# 2. Build application
-npm run build
+| Hook | Purpose |
+|------|---------|
+| **terraform_fmt** | Terraform code formatting |
+| **terraform_validate** | Terraform configuration validation |
+| **terraform_docs** | Auto-generate Terraform documentation |
+| **terraform_tflint** | Terraform linting rules |
+| **checkov** | Security and compliance scanning |
+| **trailing-whitespace** | Remove trailing whitespace |
+| **end-of-file-fixer** | Ensure files end with newline |
+| **check-yaml** | YAML syntax validation |
+| **check-json** | JSON syntax validation |
+| **check-merge-conflict** | Detect merge conflict markers |
+| **detect-private-key** | Prevent committing private keys |
+| **shellcheck** | Shell script linting |
+| **markdownlint** | Markdown file linting |
+| **prettier** | YAML/JSON formatting |
+| **detect-secrets** | Secret detection in code |
 
-# 3. Start development server
-npm run dev
+### Infrastructure Tools
 
-# 4. Start production server
-npm run start
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Terraform** | Latest | Infrastructure as Code |
+| **TFLint** | Configured | Terraform linting |
+| **Infracost** | Latest | Cost estimation |
+| **Checkov** | 2.4.9 | Security scanning |
+| **Docker** | Latest | Containerization |
+| **Docker Compose** | 3.8 | Local development orchestration |
+
+### Infracost Configuration
+
+```yaml
+# Cost monitoring and alerts
+Cost Thresholds:
+  percentage_threshold: 20%  # Alert if cost increases by >20%
+  absolute_threshold: $100   # Alert if cost increases by >$100/month
+
+Usage Estimates:
+  - NAT Gateway: 100GB/month
+  - Load Balancer: 100GB/month
+  - RDS Backup: 100GB
+  - S3 Standard: 50GB
+  - CloudWatch Logs: 10GB ingested, 10GB stored
+  - VPC Flow Logs: 5GB/month
 ```
 
-### Infrastructure Setup (Terraform)
-
-**📖 See [README-terraform.md](README-terraform.md) for complete infrastructure documentation**
-
-```bash
-# 1. Bootstrap Terraform state management
-./scripts/terraform-bootstrap.sh -e dev
-
-# 2. Deploy infrastructure
-cd terraform/environments/dev
-terraform init
-terraform plan
-terraform apply
-```
+---
 
 ## 📁 Project Structure
 
 ```
 octonius-platform/
-├── 📱 Frontend (Angular)
-│   ├── services/octonius-web/
-│   │   ├── src/
-│   │   │   ├── app/
-│   │   │   │   ├── modules/
-│   │   │   │   │   ├── auth/           # Authentication module
-│   │   │   │   │   │   ├── welcome/    # Welcome screen
-│   │   │   │   │   │   ├── login/      # Login component
-│   │   │   │   │   │   ├── verify-otp/ # OTP verification
-│   │   │   │   │   │   ├── select-workplace/ # Workplace selection
-│   │   │   │   │   │   ├── create-workplace/ # Workplace creation
-│   │   │   │   │   │   ├── workplace-login/ # Workplace login
-│   │   │   │   │   │   └── accept-invitation/ # Invitation acceptance
-│   │   │   │   │   ├── my-space/       # My Space module
-│   │   │   │   │   │   ├── inbox/      # Mission control dashboard
-│   │   │   │   │   │   ├── workload/   # Personal task management
-│   │   │   │   │   │   ├── files/      # Private file management
-│   │   │   │   │   │   └── note-editor/ # Rich text note editor
-│   │   │   │   │   ├── workplace/      # Workplace module
-│   │   │   │   │   │   ├── apps/       # Apps dashboard
-│   │   │   │   │   │   ├── work-management/ # Work management
-│   │   │   │   │   │   │   ├── group-detail/ # Group management
-│   │   │   │   │   │   │   │   ├── group-activity/ # Activity feeds
-│   │   │   │   │   │   │   │   ├── group-tasks/ # Task boards
-│   │   │   │   │   │   │   │   ├── group-dashboard/ # Analytics
-│   │   │   │   │   │   │   │   └── group-admin/ # Administration
-│   │   │   │   │   │   ├── files/      # File management
-│   │   │   │   │   │   ├── crm/        # CRM system
-│   │   │   │   │   │   ├── communities/ # Team communities
-│   │   │   │   │   │   ├── library/    # Knowledge base
-│   │   │   │   │   │   └── lounge/     # Story sharing
-│   │   │   │   │   ├── account/        # Account module
-│   │   │   │   │   │   ├── profile/    # Profile management
-│   │   │   │   │   │   ├── settings/   # Settings & preferences
-│   │   │   │   │   │   └── billing/    # Billing management
-│   │   │   │   │   └── shared/         # Shared components
-│   │   │   │   │       ├── components/ # Reusable components
-│   │   │   │   │       │   ├── navbar/ # Navigation bar
-│   │   │   │   │       │   ├── topbar/ # Top navigation
-│   │   │   │   │       │   ├── location-picker/ # Location selection
-│   │   │   │   │       │   └── infinite-scroll-list/ # Performance lists
-│   │   │   │   │       ├── services/   # Shared services
-│   │   │   │   │       │   ├── auth.guard.ts # Route protection
-│   │   │   │   │       │   ├── permission.guard.ts # Permission control
-│   │   │   │   │       │   └── workload.service.ts # Workload management
-│   │   │   │   │       └── directives/ # Custom directives
-│   │   │   │   ├── core/              # Core services & components
-│   │   │   │   │   ├── services/      # Core services
-│   │   │   │   │   │   ├── auth.service.ts # Authentication
-│   │   │   │   │   │   ├── user.service.ts # User management
-│   │   │   │   │   │   ├── file.service.ts # File operations
-│   │   │   │   │   │   ├── theme.service.ts # Theme management
-│   │   │   │   │   │   └── toast.service.ts # Notifications
-│   │   │   │   │   ├── components/    # Core components
-│   │   │   │   │   │   ├── tiptap-editor/ # Rich text editor
-│   │   │   │   │   │   └── dialog/    # Modal system
-│   │   │   │   │   └── models/        # Data models
-│   │   │   │   ├── app.config.ts      # App configuration
-│   │   │   │   └── app.routes.ts      # Route definitions
-│   │   │   └── environments/          # Environment configurations
-│   │   ├── package.json
-│   │   └── angular.json
-│   │
-├── 🔧 Backend (Node.js/TypeScript)
-│   ├── src/
-│   │   ├── auths/                     # Authentication services
-│   │   │   ├── auth.controller.ts     # Auth endpoints
-│   │   │   ├── auth.service.ts        # Auth business logic
-│   │   │   ├── auth.model.ts          # Auth data model
-│   │   │   ├── token.service.ts       # Token management
-│   │   │   └── auth.route.ts          # Auth routes
-│   │   ├── users/                     # User management
-│   │   │   ├── user.controller.ts     # User endpoints
-│   │   │   ├── user.service.ts        # User business logic
-│   │   │   ├── user.model.ts          # User data model
-│   │   │   └── user.route.ts          # User routes
-│   │   ├── workplaces/               # Workplace management
-│   │   │   ├── workplace.controller.ts # Workplace endpoints
-│   │   │   ├── workplace.service.ts   # Workplace business logic
-│   │   │   ├── workplace.model.ts     # Workplace data model
-│   │   │   ├── workplace-membership.model.ts # Membership model
-│   │   │   ├── workplace-invitation.model.ts # Invitation model
-│   │   │   └── workplace.route.ts     # Workplace routes
-│   │   ├── groups/                   # Group & task management
-│   │   │   ├── group.controller.ts    # Group endpoints
-│   │   │   ├── group.service.ts       # Group business logic
-│   │   │   ├── group.model.ts         # Group data model
-│   │   │   ├── group-membership.model.ts # Group membership
-│   │   │   ├── private-group.service.ts # Private group logic
-│   │   │   ├── tasks/                # Task management
-│   │   │   │   ├── task.controller.ts # Task endpoints
-│   │   │   │   ├── task.service.ts    # Task business logic
-│   │   │   │   ├── task.model.ts      # Task data model
-│   │   │   │   ├── task-column.model.ts # Task columns
-│   │   │   │   ├── task-comment.model.ts # Task comments
-│   │   │   │   ├── task-assignee.model.ts # Task assignments
-│   │   │   │   └── task.route.ts      # Task routes
-│   │   │   ├── activity/             # Activity tracking
-│   │   │   │   ├── activity.model.ts  # Activity data model
-│   │   │   │   └── activity.service.ts # Activity logic
-│   │   │   └── group.route.ts        # Group routes
-│   │   ├── files/                    # File management
-│   │   │   ├── file.controller.ts     # File endpoints
-│   │   │   ├── file.service.ts        # File business logic
-│   │   │   ├── file.model.ts          # File data model
-│   │   │   └── file.route.ts          # File routes
-│   │   ├── lounge/                   # Content sharing
-│   │   │   ├── lounge.controller.ts   # Lounge endpoints
-│   │   │   ├── lounge.service.ts      # Lounge business logic
-│   │   │   ├── lounge.model.ts        # Story data model
-│   │   │   └── lounge.route.ts        # Lounge routes
-│   │   ├── roles/                    # Role & permission system
-│   │   │   ├── role.controller.ts     # Role endpoints
-│   │   │   ├── role.service.ts        # Role business logic
-│   │   │   ├── role.model.ts          # Role data model
-│   │   │   ├── permission.model.ts    # Permission model
-│   │   │   ├── role-permission.model.ts # Role-permission mapping
-│   │   │   ├── permissions.constants.ts # Permission constants
-│   │   │   ├── initialize-permissions.ts # Permission initialization
-│   │   │   └── role.route.ts          # Role routes
-│   │   ├── notifications/            # Notification system
-│   │   │   ├── notification.controller.ts # Notification endpoints
-│   │   │   ├── notification.service.ts # Notification logic
-│   │   │   ├── emails/               # Email templates
-│   │   │   └── notification.route.ts  # Notification routes
-│   │   ├── workload/                 # Workload management
-│   │   │   ├── workload.controller.ts # Workload endpoints
-│   │   │   ├── workload.service.ts    # Workload logic
-│   │   │   └── workload.route.ts      # Workload routes
-│   │   ├── shared/                   # Shared utilities
-│   │   │   ├── s3.service.ts         # S3 integration
-│   │   │   ├── cache.service.ts       # Caching service
-│   │   │   ├── circuit-breakers/     # Circuit breaker patterns
-│   │   │   ├── permission.util.ts     # Permission utilities
-│   │   │   └── response.utils.ts      # Response utilities
-│   │   ├── middleware/               # Express middleware
-│   │   │   ├── auth.middleware.ts     # Authentication middleware
-│   │   │   └── request-timer.middleware.ts # Request timing
-│   │   ├── config/                   # Configuration
-│   │   │   ├── env.ts                # Environment variables
-│   │   │   ├── database.ts           # Database config
-│   │   │   ├── aws.ts                # AWS config
-│   │   │   ├── redis.ts              # Redis config
-│   │   │   └── constants.ts          # Application constants
-│   │   ├── models/                   # Data model exports
-│   │   ├── app.ts                    # Express app setup
-│   │   ├── server.ts                 # Main server file
-│   │   ├── database.ts               # Database connection
-│   │   ├── sequelize.ts              # Sequelize setup
-│   │   └── redis.ts                  # Redis connection
-│   └── package.json                  # Node.js dependencies
-│
-├── 🏗️ Infrastructure (Terraform)
-│   ├── terraform/
-│   │   ├── main.tf                   # Main Terraform configuration
-│   │   ├── variables.tf              # Variable definitions
-│   │   ├── outputs.tf                # Output definitions
-│   │   ├── locals.tf                 # Local values
-│   │   ├── versions.tf               # Provider versions
-│   │   └── modules/                  # Terraform modules
-│   │       ├── vpc/                  # VPC networking module
-│   │       ├── ecr/                  # ECR repository module
-│   │       ├── rds/                  # RDS database module
-│   │       ├── elasticache/          # ElastiCache Redis module
-│   │       ├── app_runner/           # App Runner module
-│   │       ├── bastion/              # Bastion host module
-│   │       └── web/                  # Web application module
-│   └── terraform.tfstate             # Terraform state file
-│
-├── 🐳 Docker & Deployment
-│   ├── Dockerfile                    # Application container
-│   ├── docker-compose.yml           # Local development
-│   └── docker-entrypoint.sh         # Container entrypoint
-│
-├── 📚 Documentation
-│   ├── docs/
-│   │   ├── README.md                 # Documentation index
-│   │   ├── architecture.md           # System architecture
-│   │   ├── devops-guide.md           # DevOps & deployment
-│   │   ├── terraform-guide.md        # Infrastructure guide
-│   │   ├── frontend-guide.md         # Frontend development
-│   │   ├── contributing.md           # Contribution guidelines
-│   │   └── faq.md                    # Frequently asked questions
-│   └── README.md                     # This file (overview)
+├── .github/
+│   └── workflows/
+│       └── platform-deploy.yml    # CI/CD workflow
+├── docs/                          # Documentation files
+├── services/
+│   ├── octonius-web/              # Angular frontend application
+│   │   ├── public/                # Static assets
+│   │   ├── src/                   # Source code
+│   │   │   ├── app/               # Angular components
+│   │   │   ├── assets/            # Images, fonts, etc.
+│   │   │   └── environments/      # Environment configs
+│   │   ├── angular.json           # Angular CLI configuration
+│   │   ├── tailwind.config.js     # Tailwind CSS configuration
+│   │   └── package.json           # Frontend dependencies
+│   └── resource-manager-service/  # Resource management microservice
+├── src/                           # Backend source code
+│   ├── controllers/               # Request handlers
+│   ├── models/                    # Database models
+│   ├── routes/                    # API route definitions
+│   ├── services/                  # Business logic
+│   ├── middlewares/               # Express middlewares
+│   └── utils/                     # Utility functions
+├── terraform/
+│   ├── modules/                   # Reusable Terraform modules
+│   │   ├── app_runner/
+│   │   ├── bastion/
+│   │   ├── ecr/
+│   │   ├── elasticache/
+│   │   ├── lambda-auto-discovery/
+│   │   ├── rds/
+│   │   ├── vpc/
+│   │   └── web/
+│   ├── locals.tf
+│   ├── main.tf
+│   ├── outputs.tf
+│   ├── variables.tf
+│   └── versions.tf
+├── .dockerignore                  # Docker ignore patterns
+├── .gitignore                     # Git ignore patterns
+├── .infracost.yml                 # Infracost configuration
+├── .pre-commit-config.yaml        # Pre-commit hooks configuration
+├── .tflint.hcl                    # TFLint rules
+├── docker-compose.yml             # Docker Compose configuration
+├── docker-entrypoint.sh           # Container entrypoint script
+├── Dockerfile                     # Multi-stage Docker build
+├── Octonius-Platform-API.postman_collection.json
+├── package.json                   # Backend dependencies
+├── server.ts                      # Application entry point
+└── tsconfig.json                  # TypeScript configuration
 ```
 
-## 🔐 Authentication System
+---
 
-The platform implements a comprehensive, passwordless authentication system with:
+## 🚀 Quick Start
 
-### Core Authentication Features
-- **Passwordless Authentication**: Email-based login without passwords
-- **OTP Verification**: Secure 6-digit one-time password verification
-- **Email Delivery**: Automated OTP delivery via Resend email service
-- **Session Management**: JWT-based session handling with Redis storage
-- **Token Refresh**: Automatic token refresh for seamless user experience
+### Prerequisites
 
-### Workplace Management
-- **Workplace Selection**: Choose from existing workplaces or create new ones
-- **Workplace Creation**: Set up new workplaces with custom branding and settings
-- **Workplace Login**: Secure workplace-specific authentication flow
-- **Invitation System**: Email-based workplace invitations with role assignment
-- **Invitation Acceptance**: Accept invitations and join workplaces seamlessly
+- **Node.js** >= 22.0.0
+- **npm** >= 8.0.0
+- **Docker** & **Docker Compose**
+- **Terraform** (for infrastructure)
+- **AWS CLI** (configured with credentials)
 
-### Security Features
-- **Role-Based Access Control**: Granular permission system with custom roles
-- **Route Protection**: Angular guards for route-level access control
-- **Permission Guards**: Feature-level permission checking
-- **Secure Headers**: CORS, compression, and security middleware
-- **Request Timing**: Performance monitoring and request tracking
-
-### User Experience
-- **Welcome Screen**: Clean, modern landing page
-- **Progressive Flow**: Step-by-step authentication process
-- **Auto-Save**: Automatic form data persistence
-- **Error Handling**: User-friendly error messages and recovery
-- **Mobile Responsive**: Optimized for all device sizes
-
-### Technical Implementation
-- **JWT Tokens**: Access and refresh token management
-- **Redis Caching**: Session and OTP storage
-- **Email Templates**: Professional email notifications
-- **Circuit Breakers**: Resilient external service integration
-- **Rate Limiting**: Protection against abuse and spam
-
-## 🎨 Frontend Features
-
-### Authentication Module
-- **Welcome & Login**: Clean, modern login interface with email-based authentication
-- **OTP Verification**: Secure one-time password verification with resend functionality
-- **Workplace Selection**: Choose from existing workplaces or create new ones
-- **Workplace Creation**: Set up new workplaces with custom branding and settings
-- **Workplace Login**: Secure workplace-specific authentication
-- **Invitation Acceptance**: Accept workplace invitations with role assignment
-- **Email Notifications**: Automated OTP delivery via Resend email service
-
-### My Space Module
-- **Inbox (Mission Control)**: Centralized dashboard for work status and updates
-- **Workload Management**: Personal task tracking and assignment management
-- **File Management**: Private file storage with S3 integration and rich file types
-- **Note Editor**: Advanced rich text editor powered by TipTap with markdown support
-- **Personal Dashboard**: Customizable workspace for individual productivity
-
-### Workplace Module
-- **Apps Dashboard**: Centralized access to all workplace applications
-- **Work Management**: Comprehensive project and team management
-  - **Group Activity**: Real-time activity feeds and team updates
-  - **Task Boards**: Kanban-style task management with drag-and-drop
-  - **Group Dashboard**: Analytics and project overview
-  - **Group Administration**: Member management, permissions, and settings
-- **File Management**: Shared file storage with folder organization
-- **CRM System**: Customer relationship management tools
-- **Communities**: Team collaboration and communication spaces
-- **Library**: Knowledge base and resource management
-- **Lounge**: Story sharing and content creation platform
-
-### Account Module
-- **Profile Management**: Complete user profile with avatar upload and preferences
-- **Settings & Preferences**: Comprehensive settings with multiple tabs
-  - **Overview**: Workplace statistics and quick actions
-  - **Details**: Workplace information and branding
-  - **Members**: Team member management and invitations
-  - **Roles**: Custom role creation and permission management
-  - **Permissions**: Granular permission control system
-  - **Invitations**: Invitation management and tracking
-  - **Billing**: Subscription and payment management
-- **Workplace Administration**: Full workplace management capabilities
-- **Role & Permission Management**: Advanced access control system
-
-### Shared Components & Services
-- **TipTap Rich Text Editor**: Advanced WYSIWYG editor with markdown support
-- **Theme Service**: Light/Dark mode switching with system preference detection
-- **Location Picker**: Interactive location selection with map integration
-- **Infinite Scroll Lists**: Performance-optimized list components
-- **Auth Guards**: Route protection and permission-based access control
-- **Toast Notifications**: User-friendly notification system
-- **Modal System**: Reusable modal components for various interactions
-- **File Upload**: Drag-and-drop file upload with progress tracking
-- **Search & Filter**: Advanced search capabilities across all modules
-- **Responsive Design**: Mobile-first responsive layout with Tailwind CSS
-- **Modern UI**: Clean, professional interface with DaisyUI components
-
-## 🔧 Backend Services
-
-### Authentication & Authorization
-- **OTP System**: Secure one-time password generation and verification
-- **JWT Tokens**: Access and refresh token management with Redis storage
-- **Session Management**: Secure session handling with Redis caching
-- **Passwordless Auth**: Email-based authentication without passwords
-- **Role-Based Access Control**: Granular permission system with custom roles
-
-### User Management
-- **User Profiles**: Complete user profile management with metadata
-- **Avatar Upload**: S3-based avatar storage with presigned URLs
-- **User Preferences**: Customizable notification and display preferences
-- **Profile Updates**: Real-time profile updates with auto-save functionality
-- **User Search**: Advanced user search and filtering capabilities
-
-### Workplace Management
-- **Workplace CRUD**: Complete workplace lifecycle management
-- **Member Management**: Add, remove, and manage workplace members
-- **Invitation System**: Email-based invitation system with role assignment
-- **Role Assignment**: Assign custom roles to workplace members
-- **Workplace Settings**: Branding, preferences, and configuration management
-- **Statistics**: Workplace analytics and member activity tracking
-
-### Group & Task Management
-- **Group Operations**: Create, update, and manage work groups
-- **Task Boards**: Kanban-style task management with drag-and-drop
-- **Task CRUD**: Complete task lifecycle management
-- **Activity Feeds**: Real-time activity tracking and notifications
-- **Member Management**: Group member addition and role assignment
-- **Task Comments**: Collaborative task discussion system
-- **Task Assignments**: User assignment and workload management
-
-### File Management
-- **S3 Integration**: Direct S3 upload with presigned URLs
-- **File Metadata**: Comprehensive file information and organization
-- **Note Creation**: Rich text note creation and editing
-- **File Types**: Support for various file types with proper icons
-- **Folder Organization**: Hierarchical file organization system
-- **Search & Filter**: Advanced file search and filtering capabilities
-
-### Lounge & Content
-- **Story Management**: Create, edit, and share stories
-- **Content Sharing**: Team content sharing and collaboration
-- **Story Feed**: Real-time story updates and interactions
-- **Media Support**: Image and media content support
-
-### Notification System
-- **Email Notifications**: Automated email delivery via Resend
-- **In-App Notifications**: Real-time in-application notifications
-- **OTP Delivery**: Secure OTP delivery via email
-- **System Notifications**: Platform-wide announcements and updates
-
-### Role & Permission System
-- **Permission Management**: Granular permission control system
-- **Custom Roles**: Create and manage custom user roles
-- **Permission Assignment**: Assign specific permissions to roles
-- **Access Control**: Route and feature-level access control
-- **System Permissions**: Built-in system permissions and categories
-
-### Data Models
-- **Users**: Complete user profiles with metadata and preferences
-- **Workplaces**: Organization management with branding and settings
-- **Groups**: Work group management with member relationships
-- **Tasks**: Task management with assignments, comments, and metadata
-- **Files**: File storage with S3 integration and metadata
-- **Activities**: Activity tracking and feed management
-- **Roles & Permissions**: Role-based access control system
-- **Notifications**: Email and in-app notification management
-
-## 🛠️ Development
-
-### Local Development
-
-   ```bash
-# Start with Docker Compose (recommended)
-docker-compose up -d
-
-# Or run directly
-   npm run dev
-```
-
-### Application Scripts
+### Local Development with Docker
 
 ```bash
-npm run dev         # Development server with hot reload
-npm run build       # Build TypeScript to JavaScript
-npm run start       # Production server
-npm run test        # Run tests
-npm run lint        # TypeScript type checking
+# Clone the repository
+git clone https://github.com/shubhamcommits/octonius-platform.git
+cd octonius-platform
+
+# Copy environment template
+cp .env.example .env
+
+# Start all services with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f app
 ```
 
-### Infrastructure Management
+### Manual Setup
 
-   ```bash
-# Environment setup
-./scripts/terraform-bootstrap.sh -e dev
+```bash
+# Install backend dependencies
+npm install
 
-# Terraform operations
-cd terraform/environments/dev
-terraform plan      # Preview changes
-terraform apply     # Apply changes
-terraform destroy   # Destroy infrastructure
+# Install frontend dependencies
+cd services/octonius-web
+npm install
+cd ../..
+
+# Start development server
+npm run dev
+
+# In another terminal, start frontend
+cd services/octonius-web
+npm start
 ```
+
+---
+
+## 💻 Development
+
+### Available Scripts
+
+#### Backend
+
+```bash
+# Development
+npm run dev          # Start with hot reload (NODE_ENV=dev)
+npm run local        # Start local environment
+npm run prod         # Start production mode
+
+# Build
+npm run build        # Compile TypeScript to JavaScript
+npm run lint         # Type checking with TypeScript
+
+# Testing
+npm test             # Run Jest tests
+npm run test:watch   # Watch mode for tests
+
+# Production
+npm run start:dev    # Run compiled code (dev)
+npm run start:prod   # Run compiled code (prod)
+npm run staging      # Run staging environment
+```
+
+#### Frontend (services/octonius-web)
+
+```bash
+npm start            # Start Angular dev server
+npm run build        # Production build
+npm run watch        # Build with watch mode
+npm test             # Run Karma tests
+ng generate          # Generate components/services
+```
+
+### Environment Variables
+
+```env
+# Application
+HOST=localhost
+APP_NAME=Octonius Platform
+PORT=3000
+NODE_ENV=development
+CLUSTER=false
+DOMAIN=dev.api.octonius.com
+
+# JWT Configuration
+JWT_ACCESS_TIME=30d
+
+# Database (PostgreSQL)
+DB_WRITER_HOST=localhost
+DB_READER_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASS=password
+DB_NAME=octonius
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# AWS (for production)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+S3_BUCKET=
+
+# Email (Resend)
+RESEND_API_KEY=
+```
+
+---
+
+## 🏗 Infrastructure Management
+
+### Initial Setup
+
+```bash
+# Navigate to terraform directory
+cd terraform
+
+# Initialize Terraform
+terraform init
+
+# Create workspace (if needed)
+terraform workspace new dev
+
+# Plan infrastructure changes
+terraform plan -out=tfplan
+
+# Apply changes
+terraform apply tfplan
+```
+
+### Environment Management
+
+```bash
+# Switch environments
+terraform workspace select dev
+terraform workspace select prod
+
+# Destroy environment (be careful!)
+terraform destroy
+```
+
+### Infracost Analysis
+
+```bash
+# Install Infracost
+brew install infracost
+
+# Generate cost breakdown
+infracost breakdown --path terraform/
+
+# Compare costs between branches
+infracost diff --path terraform/ --compare-to master
+```
+
+---
 
 ## 🌍 Environment Configuration
 
-### 100% Pipeline-Native Infrastructure
-
-Our infrastructure system is **100% pipeline-native** - everything is computed directly in the CI/CD pipeline using standard tools with **zero external scripts**. Environments are automatically detected from branch names, AWS resources are bootstrapped automatically, and all configurations are generated on-the-fly.
-
 ### Branch-Based Environment Mapping
 
-| Branch Pattern | Environment | Use Case | Infrastructure |
-|----------------|-------------|----------|---------------|
-| `master` | `prod` | Production | High availability, multiple AZs |
-| `development` | `dev` | Development | Cost-optimized, single NAT |
-| `feature/*` | `feature-{name}` | Feature development | Minimal, temporary |
-| `hotfix/*` | `hotfix-{name}` | Critical fixes | Isolated testing |
-| Other branches | `{branch-name}` | Custom environments | Configurable |
+| Branch Pattern | Environment | Use Case |
+|----------------|-------------|----------|
+| `master` | `prod` | Production deployment |
+| `development` | `dev` | Development testing |
+| `feature/*` | `feature-{name}` | Feature development |
+| `hotfix/*` | `hotfix-{name}` | Critical fixes |
+| Other | `{branch-name}` | Custom environments |
 
-### Environment-Specific Settings
+### Auto-Created Resources
 
-**Production (`prod`)**:
-- VPC CIDR: `10.0.0.0/16`
-- Subnets: Multiple AZs for high availability  
-- NAT Gateway: Multiple for redundancy
-- Cost: Higher (optimized for availability)
+When deploying to any environment, the pipeline automatically creates:
 
-**Development (`dev`)**:
-- VPC CIDR: `10.1.0.0/16`
-- Subnets: Multi-AZ with cost optimization
-- NAT Gateway: Single instance
-- Cost: Medium (balanced)
+- **S3 Bucket** - Terraform state storage
+- **DynamoDB Table** - State locking (`{env}-octonius-terraform-locks-{region}`)
+- **VPC & Networking** - Environment-specific CIDR ranges
+- **Security Groups** - Properly configured firewall rules
+- **Tagging** - Comprehensive resource tagging
 
-**Feature Branches (`feature-*`)**:
-- VPC CIDR: `10.{hash}.0.0/16` (auto-computed unique ranges)
-- Subnets: Minimal viable setup
-- NAT Gateway: Single instance  
-- Cost: Low (minimal resources)
+---
 
-## 🚀 Deployment
+## 🚢 Deployment
 
-### Automated (GitHub Actions)
+### Automated Deployment (Recommended)
 
-**100% Pipeline-Native Deployment:**
-1. **Push to `master`** → Auto-deploy to production (with S3/DynamoDB auto-created)
-2. **Push to `development`** → Plan for dev (with S3/DynamoDB auto-created)
-3. **Push to `feature/*`** → Plan for feature environment (with S3/DynamoDB auto-created)
-4. **Manual dispatch** → Choose environment and action
-
-**What Gets Auto-Created:**
-- **S3 Bucket**: Uses existing buckets from environment variables
-- **DynamoDB Table**: `{env}-octonius-terraform-locks-{region}` (created automatically)
-- **VPC & Networking**: Environment-specific CIDR ranges
-- **Security Groups**: Properly configured firewall rules  
-- **State Management**: Isolated S3 bucket and DynamoDB table
-- **Tagging**: Comprehensive resource tagging for management
-
-### Manual Deployment
-
-   ```bash
-# Infrastructure (100% pipeline-native)
+```bash
+# Production deployment
 git checkout master
 git push origin master  # Auto-deploys to prod
 
-git checkout development  
+# Development deployment
+git checkout development
 git push origin development  # Plans for dev
 
-# Application (after infrastructure)
-npm run build
-npm run start
+# Feature deployment
+git checkout -b feature/my-feature
+git push origin feature/my-feature  # Plans for feature environment
 ```
 
-### Infrastructure Components
+### Manual Deployment
 
-Each environment automatically provisions:
-- **VPC & Networking**: Environment-specific CIDR ranges
-- **Security Groups**: Properly configured firewall rules  
-- **State Management**: Isolated S3 bucket and DynamoDB table
-- **Tagging**: Comprehensive resource tagging for management
-- **Future**: ECS, RDS, ALB, CloudFront (planned)
+```bash
+# Build Docker image
+docker build -t octonius-platform .
 
-## 🔐 Security Features
+# Tag for ECR
+docker tag octonius-platform:latest ${AWS_ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/octonius-platform:latest
 
-- **Infrastructure**: VPC with private subnets, NAT gateways
-- **State Management**: Encrypted S3 backend with DynamoDB locking
-- **Access Control**: IAM policies with least privilege
-- **Secrets**: Environment-based configuration
-- **Monitoring**: CloudWatch logs and metrics (future)
+# Push to ECR
+aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com
+docker push ${AWS_ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/octonius-platform:latest
 
-## 📊 Monitoring & Logging
+# Deploy via Terraform
+cd terraform
+terraform apply
+```
 
-- **Application Logs**: Winston logging framework
-- **Infrastructure**: Terraform state tracking
-- **Future Enhancements**: CloudWatch, ELK stack integration
+---
 
-## 🧪 Testing
+## ✨ Features
 
-   ```bash
-npm test              # Run all tests
-npm run test:watch    # Watch mode for development
-   ```
+### User Management
+- ✅ OTP-based authentication
+- ✅ User profiles with metadata
+- ✅ Password hashing with bcrypt
+- ✅ JWT token management
+- ✅ Session handling with Redis
 
-## 🚧 Roadmap
+### Workplace Management
+- ✅ Multi-tenant workplaces
+- ✅ Branding and customization
+- ✅ Member management
+- ✅ Role-based access control
+
+### Task Management
+- ✅ Kanban boards
+- ✅ Task assignments
+- ✅ Priority and status tracking
+- ✅ Task comments and discussions
+- ✅ Due date management
+
+### File Management
+- ✅ S3 integration with presigned URLs
+- ✅ File metadata tracking
+- ✅ Folder organization
+- ✅ Drag-and-drop uploads
+- ✅ File type icons
+
+### Rich Text Editing
+- ✅ TipTap editor integration
+- ✅ Tables, lists, and formatting
+- ✅ Image embedding
+- ✅ User mentions
+- ✅ Task lists
+
+### Notification System
+- ✅ Email notifications via Resend
+- ✅ In-app notifications
+- ✅ OTP delivery
+- ✅ System announcements
+
+---
+
+## 📖 API Documentation
+
+API documentation is available via Postman:
+
+- **Collection File**: `Octonius-Platform-API.postman_collection.json`
+
+### Authentication
+
+```bash
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "otp": "123456"
+}
+```
+
+### Response Format
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Operation successful"
+}
+```
+
+---
+
+## 🔐 Security
+
+### Infrastructure Security
+- VPC with private subnets
+- NAT Gateway for outbound traffic
+- Security groups for network isolation
+- Encrypted S3 state backend
+- DynamoDB state locking
+- IAM policies with least privilege
+
+### Application Security
+- JWT authentication
+- bcrypt password hashing
+- CORS configuration
+- Helmet security headers
+- Rate limiting (planned)
+- Input validation with Zod
+
+### DevSecOps
+- Checkov security scanning
+- Secret detection in pre-commit
+- Dependency vulnerability scanning
+- Private key detection
+- Terraform security rules
+
+---
+
+## 🗺 Roadmap
 
 ### Phase 1: Foundation ✅
 - [x] Clean Terraform infrastructure
 - [x] VPC with public/private subnets
 - [x] GitHub Actions CI/CD
-- [x] Application containerization
+- [x] Docker containerization
 - [x] 100% Pipeline-native infrastructure
-- [x] Branch-based environment detection
-- [x] Auto-bootstrap AWS resources
 
 ### Phase 2: Core Application ✅
-- [x] Authentication system (OTP-based)
-- [x] User management with profiles
-- [x] Workplace management system
-- [x] Group and task management
-- [x] File management with S3 integration
-- [x] Role and permission system
-- [x] Notification system
-- [x] Angular frontend with modular architecture
-- [x] TipTap rich text editor
-- [x] Theme system (Light/Dark)
-- [x] Responsive design with Tailwind CSS
+- [x] Authentication system
+- [x] User management
+- [x] Workplace management
+- [x] Task management
+- [x] File management with S3
+- [x] Angular frontend
 
 ### Phase 3: Advanced Features ✅
-- [x] My Space module (Inbox, Workload, Files)
-- [x] Workplace module (Apps, Work Management, CRM, Lounge)
-- [x] Account module (Profile, Settings, Billing)
-- [x] Task boards with Kanban interface
-- [x] Activity feeds and real-time updates
-- [x] File upload with drag-and-drop
-- [x] Location picker integration
-- [x] Infinite scroll lists
-- [x] Modal system and dialogs
-- [x] Toast notifications
-- [x] Search and filtering capabilities
+- [x] My Space module
+- [x] Workplace apps
+- [x] Kanban boards
+- [x] Activity feeds
+- [x] Rich text editor
 
-### Phase 4: Application Infrastructure (In Progress)
-- [ ] RDS PostgreSQL setup
+### Phase 4: Infrastructure (In Progress)
+- [ ] RDS PostgreSQL optimization
 - [ ] ElastiCache Redis setup
 - [ ] Application Load Balancer
 - [ ] ECS container deployment
-- [ ] Database migrations and seeding
-- [ ] Production environment optimization
+- [ ] Database migrations
 
 ### Phase 5: Enhanced Infrastructure
 - [ ] CloudFront CDN
-- [ ] Route53 DNS management
+- [ ] Route53 DNS
 - [ ] SSL/TLS certificates
-- [ ] Auto-scaling configuration
+- [ ] Auto-scaling
 - [ ] Multi-region deployment
-- [ ] Backup and disaster recovery
 
-### Phase 6: Observability & Monitoring
+### Phase 6: Observability
 - [ ] CloudWatch monitoring
 - [ ] ELK logging stack
 - [ ] Health checks & alerts
-- [ ] Performance metrics
-- [ ] Application performance monitoring
-- [ ] Error tracking and reporting
+- [ ] APM integration
 
-### Phase 7: Advanced Features
-- [ ] Real-time collaboration
-- [ ] Video conferencing integration
-- [ ] Mobile applications
-- [ ] API rate limiting
-- [ ] Advanced analytics dashboard
-- [ ] Third-party integrations
+---
 
 ## 🤝 Contributing
 
 1. **Fork** the repository
 2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Test** your changes thoroughly
-4. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-5. **Push** to the branch (`git push origin feature/amazing-feature`)
-6. **Open** a Pull Request
+3. **Install** pre-commit hooks (`pre-commit install`)
+4. **Test** your changes thoroughly
+5. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+6. **Push** to the branch (`git push origin feature/amazing-feature`)
+7. **Open** a Pull Request
 
-## 📞 Support
+### Pre-commit Setup
 
-- **Infrastructure**: See [README-terraform.md](README-terraform.md)
-- **Issues**: GitHub Issues for bug reports and feature requests
-- **Discussions**: GitHub Discussions for questions
+```bash
+# Install pre-commit
+pip install pre-commit
 
-## 📝 License
+# Install hooks
+pre-commit install
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+# Run all hooks manually
+pre-commit run --all-files
+```
 
 ---
 
-## 🎉 Migration from CDK Complete!
+## 📄 License
 
-This project has been successfully migrated from AWS CDK to Terraform for a cleaner, simpler infrastructure management experience. All the complex CDK bootstrap issues are now resolved with straightforward Terraform workflows.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-**Key Improvements:**
-- ✅ **No more CDK bootstrap failures**
-- ✅ **Simplified state management**
-- ✅ **Clean, readable infrastructure code**  
-- ✅ **Better error handling and recovery**
-- ✅ **Consistent naming conventions**
+---
 
-🚀 **Ready to scale!** The foundation is now clean and ready for future enhancements.
+## 📞 Support
+
+- **GitHub Issues**: Bug reports and feature requests
+- **GitHub Discussions**: Questions and community support
+- **Documentation**: See `docs/` directory
+
+---
+
+<div align="center">
+
+### 🎉 Successfully Migrated from AWS CDK to Terraform!
+
+*No more CDK bootstrap failures. Clean, readable infrastructure code. Consistent naming conventions.*
+
+**🚀 Ready to scale!**
+
+---
+
+Made with ❤️ by [Shubham Singh](https://github.com/shubhamcommits)
+
+</div>
+
